@@ -42,9 +42,9 @@ echo helloWorld("PHP"); // "👋 Hey there PHP 👑 Nim is Awesome!"
 ```
 
 ## Debugging your extension
-Use `-d:clueDebugExtension` when compiling your extension to enable debug of the generated Nim code. 
+Use `-d:clueDebugExtension` when compiling your extension to show the generated Nim code. 
 
-If something goes wrong you may want to see the error messages. You can do this by running PHP with the `-d` flag to set the following flags
+If something goes wrong you may want to see the error messages in PHP. You can do this by running PHP with the `-d` flag to set the following flags
 ```
 php -d extension=./plugin_example.so -d display_errors=1 -d error_reporting=E_ALL plugin_example.php
 ```
