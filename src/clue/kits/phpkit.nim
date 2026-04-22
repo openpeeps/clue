@@ -133,13 +133,6 @@ macro phpModule*(stmtNodes: untyped) =
           fnParamChecks.add quote do:
             phpclue_arginfo_set_typed(`fnParamCheckArg`, `pos`, false, `paramNameLit`, `zendTypeExpr`, false)
 
-          # build arginfo per-parameter (keeps existing behavior)
-          # var paramNode = newStmtList()
-          # For now set a generic typed arginfo; you can extend to specific typed setters
-          # paramNode.add quote do:
-          #   phpclue_arginfo_set_typed(`fnParamCheckArg`, 0, false, `paramNode`, phpclue_get_IS_STRING(), false)
-          # fnParamChecks.add(paramNode)
-
         # Build the parse-block that will be injected at the start of the proc body
         var parseBlock = newStmtList()
         # declare locals for parsed values (use genSym to avoid collisions)
