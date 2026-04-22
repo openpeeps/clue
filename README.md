@@ -43,6 +43,48 @@ phpModule do:
     ecoh "👋 Hey there", name, " 👑 Nim is Awesome!"
 ```
 - Check the [PHP example](examples/plugin_php/README.md) directory
+<details>
+  <summary>Use <code>-d:clueDebugExtension</code> to inspect the generated Nim code 👇</summary>
+  
+```nim
+var moduleEntry {.inject.}: ptr zend_module_entry
+var functionEntry {.inject.}: ptr zend_function_entry
+proc nim_module_init(typ {.inject.}: cint; module_number {.inject.}: cint): cint {.
+    cdecl.} =
+  phpclue_zend_result_success()
+
+proc helloWorld(ctx: ptr zend_execute_data; retTy: ptr zval): void {.cdecl.} =
+  var name: cstring = nil
+  var nameLen: csize_t = 0
+  if phpclue_zend_parse_parameters(ctx, "s", addr(name), addr(nameLen)) !=
+      phpclue_zend_result_success():
+    phpclue_throw_type_error(("$1: Argument 1 passed must be of type string" %
+        ["helloWorld"]))
+    return
+  echo "👋 Hey there ", name, " 👑 Nim is Awesome!"
+
+proc phpclue_nim_module_entry*(): ptr zend_module_entry {.cdecl, exportc, dynlib.} =
+  ## The main entry point for the PHP extension, which will be called by PHP
+  ## when the extension is loaded.
+  var paramCheckArg_536870949 {.inject.} = phpclue_arginfo_alloc(1.csize_t)
+  phpclue_arginfo_set_typed(paramCheckArg_536870949, 0, false, "name",
+                            phpclue_get_IS_STRING(), false)
+  paramCheckArg_536870949 = phpclue_arginfo_finalize(paramCheckArg_536870949,
+      1.csize_t)
+  functionEntry = phpclue_fe_alloc(csize_t(2))
+  phpclue_fe_set(functionEntry, csize_t(0), "helloWorld", helloWorld,
+                 paramCheckArg_536870949, 0'u32, 0'u32)
+  phpclue_fe_end(functionEntry, csize_t(2))
+  moduleEntry = phpclue_module_alloc()
+  phpclue_module_init(m = moduleEntry, name = cstring("hello"),
+                      version = cstring("0.1.0"), functionEntry,
+                      nim_module_init, mshutdown = nil, rinit = nil,
+                      rshutdown = nil, minfo = nil)
+  moduleEntry
+
+```
+
+</details>
 
 ### JS example
 Here's a simple example of a Node.js addon written in Nim using the (upcoming) Node.js plugin kit.
