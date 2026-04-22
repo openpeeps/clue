@@ -1,29 +1,37 @@
 <p align="center">
-  <img src="https://github.com/openpeeps/PKG/blob/main/.github/logo.png" width="90px"><br>
-  OpenPeeps repository template for developing libraries,<br>projects and other cool things. 👑 Written in Nim language
+  A toolkit for cool developers
 </p>
 
 <p align="center">
-  <code>nimble install {PKG}</code>
+  <code>nimble install clue</code>
 </p>
 
 <p align="center">
   <a href="https://github.com/">API reference</a><br>
-  <img src="https://github.com/openpeeps/pistachio/workflows/test/badge.svg" alt="Github Actions">  <img src="https://github.com/openpeeps/pistachio/workflows/docs/badge.svg" alt="Github Actions">
+  <img src="https://github.com/openpeeps/clue/workflows/test/badge.svg" alt="Github Actions">  <img src="https://github.com/openpeeps/clue/workflows/docs/badge.svg" alt="Github Actions">
 </p>
 
 ## 😍 Key Features
-- [x] Open Source | `MIT` License
-- [x] Written in Nim language
+- [ ] Plugin Kit interaface for PHP, Python, Ruby, Node.js and more
+- [ ] Generate API bindings for Go, C, C++, D, Crystal, Dart, Zig and more
+- [ ] Generate C header files for your Nim library
+- [ ] Simple, macro-based DSL for creating extensions in Nim
+- [ ] Generate HTTP clients from OpenAPI 3.0 specs
+- [ ] Documentation database for local packages
 
-## Examples
-...
+> [!NOTE]
+> Clue is an effort to create a unified interface for generating native libraries and extensions for other languages in Nim.
+
+## Plugin Kit examples
+Currently, only the PHP plugin kit is available, adding more plugin interfaces is on the roadmap.
+
+- [PHP](examples/plugin_php/README.md)
 
 ### ❤ Contributions & Support
-- 🐛 Found a bug? [Create a new Issue](/issues)
-- 👋 Wanna help? [Fork it!](/fork)
+- 🐛 Found a bug? [Create a new Issue](https://github.com/openpeeps/clue/issues)
+- 👋 Wanna help? [Fork it!](https://github.com/openpeeps/clue/fork)
 - 😎 [Get €20 in cloud credits from Hetzner](https://hetzner.cloud/?ref=Hm0mYGM9NxZ4)
 
 ### 🎩 License
-{PKG} | MIT license. [Made by Humans from OpenPeeps](https://github.com/openpeeps).<br>
+Clue | LGPL-v3 license. [Made by Humans from OpenPeeps](https://github.com/openpeeps).<br>
 Copyright OpenPeeps & Contributors &mdash; All rights reserved.
