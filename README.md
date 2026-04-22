@@ -15,7 +15,8 @@
 - [ ] Plugin Kit interaface for PHP, Python, Ruby, Node.js and more
 - [ ] Generate API bindings for Go, C, C++, D, Crystal, Dart, Zig and more
 - [ ] Generate C header files for your Nim library
-- [ ] Simple, macro-based DSL for creating extensions in Nim
+- [ ] Package generator for target languages (`gem`, `pypi`, `npm`, `composer`)
+- [x] Simple, macro-based DSL for creating extensions in Nim
 - [ ] Generate HTTP clients from OpenAPI 3.0 specs
 - [ ] Documentation database for local packages
 
@@ -25,7 +26,21 @@
 ## Plugin Kit examples
 Currently, only the PHP plugin kit is available, adding more plugin interfaces is on the roadmap.
 
+### PHP example
+Here's a simple example of a PHP extension written in Nim.
+
+```nim
+import clue/kits/phpkit
+
+phpModule do:
+  name = "hello"
+  version = "0.1.0"
+
+  proc helloWorld(name: string) =
+    ecoh "👋 Hey there", name, " 👑 Nim is Awesome!"
+```
 - [PHP](examples/plugin_php/README.md)
+
 
 ### ❤ Contributions & Support
 - 🐛 Found a bug? [Create a new Issue](https://github.com/openpeeps/clue/issues)
