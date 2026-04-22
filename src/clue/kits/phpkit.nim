@@ -216,5 +216,5 @@ macro phpModule*(stmtNodes: untyped) =
       # it to register the extension
       moduleEntry
   
-  when defined(cageDebug):
+  when defined(clueDebugExtension):
     echo result.repr
