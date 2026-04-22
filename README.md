@@ -42,6 +42,11 @@ phpModule do:
 - [PHP](examples/plugin_php/README.md)
 
 
+## Todo
+- [ ] Plugin kits - Add support for version detection and other runtime checks
+- [ ] Plugin kits - More languages (Python, Ruby, [Node.js via Denim](https://github.com/openpeeps/denim), etc.)
+
+
 ### ❤ Contributions & Support
 - 🐛 Found a bug? [Create a new Issue](https://github.com/openpeeps/clue/issues)
 - 👋 Wanna help? [Fork it!](https://github.com/openpeeps/clue/fork)

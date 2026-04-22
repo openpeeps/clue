@@ -1,3 +1,3 @@
 <?php
 
-helloWorld();
+helloWorld("PHP");
