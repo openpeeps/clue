@@ -24,7 +24,7 @@ Because sometimes I have no damn clue how to... 😂
 - [ ] Documentation database for local packages
 
 > [!NOTE]
-> Clue is an effort to create a unified interface for generating native libraries and extensions for other languages in Nim.
+> Clue is an effort to create a unified interface for generating native libraries and extensions for other languages in Nim, enjoying the power of native performance and low-level capabilities of Nim while providing a super dev-friendly experience for authors. Do the do!
 
 ## Plugin Kit examples
 Currently, only the PHP plugin kit is available, adding more plugin interfaces is on the roadmap.
@@ -133,5 +133,5 @@ Local documentation generation comes with other benefits as well! Clue has LLM i
 - 😎 [Get €20 in cloud credits from Hetzner](https://hetzner.cloud/?ref=Hm0mYGM9NxZ4)
 
 ### 🎩 License
-Clue | LGPL-v3 license. [Made by Humans from OpenPeeps](https://github.com/openpeeps).<br>
+Clue | MIT license. [Made by Humans from OpenPeeps](https://github.com/openpeeps).<br>
 Copyright OpenPeeps & Contributors &mdash; All rights reserved.
