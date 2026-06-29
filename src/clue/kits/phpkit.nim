@@ -1,6 +1,6 @@
-# Clue - A toolkit for cool developers
+# Clue - A cool toolkit for Nim developers
 #
-# (c) 2026 George Lemon | LGPL-v3 License
+# (c) 2026 George Lemon | MIT License
 #          Made by Humans from OpenPeeps
 #          https://github.com/openpeeps/clue
 
@@ -294,7 +294,7 @@ macro phpModule*(stmtNodes: untyped) =
         rshutdown = nil,
         minfo = nil
       )
-      
+
       # Return the module entry pointer to PHP, which will use
       # it to register the extension
       moduleEntry
