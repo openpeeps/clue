@@ -47,7 +47,7 @@ proc toZendFormatString*(types: openArray[PhpParamType]): string =
 
 proc getType*(t: NimNode): PhpParamType {.compileTime.} =
   ## Map a Nim type node to a PhpParamType, which can then be used
-  ## to generate the appropriate format string for phpclue_zend_parse_parameters.
+  ## to generate the appropriate format string for php_zend_parse_parameters.
   case t.kind
   of nnkStrLit: pptString
   of nnkIntLit: pptLong
@@ -64,21 +64,21 @@ proc getType*(t: NimNode): PhpParamType {.compileTime.} =
     error("Unsupported parameter type node: " & $t.kind, t)
 
 template `%`*(x: untyped): untyped =
-  phpclue_zval_stringl(retTy, $x.cstring, len($x).csize_t)
+  php_zval_stringl(retTy, $x.cstring, len($x).csize_t)
 
 #
 # API for defining a PHP Class
 #
 proc registerClass*(className: string,
                     names: openArray[string],
-                    handlers: openArray[phpclue_zif_handler],
+                    handlers: openArray[php_zif_handler],
                     arginfos: openArray[ptr zend_internal_arg_info]): ptr zend_class_entry =
   let cnt = names.len.csize_t
-  var ftab = phpclue_fe_alloc(cnt)
+  var ftab = php_fe_alloc(cnt)
   for i in 0 ..< names.len:
-    phpclue_fe_set(ftab, csize_t(i), names[i], handlers[i], arginfos[i], if arginfos[i] == nil: 0'u32 else: 1'u32, 0'u32)
-  phpclue_fe_end(ftab, cnt)
-  phpclue_init_class_entry_ex(className.cstring, csize_t(len(className.cstring)), cast[pointer](ftab), nil, nil)
+    php_fe_set(ftab, csize_t(i), names[i], handlers[i], arginfos[i], if arginfos[i] == nil: 0'u32 else: 1'u32, 0'u32)
+  php_fe_end(ftab, cnt)
+  php_init_class_entry_ex(className.cstring, csize_t(len(className.cstring)), cast[pointer](ftab), nil, nil)
 
 #
 # Macro for defining a PHP module
@@ -123,15 +123,15 @@ macro phpModule*(stmtNodes: untyped) =
 
           let zendTypeExpr =
             case phpType
-            of pptString: newCall(ident("phpclue_get_IS_STRING"))
-            of pptLong:   newCall(ident("phpclue_get_IS_LONG"))
-            of pptDouble: newCall(ident("phpclue_get_IS_DOUBLE"))
-            of pptBool:   newCall(ident("phpclue_get_IS_TRUE")) # adjust if you expose bool type helper
-            else:         newCall(ident("phpclue_get_IS_MIXED"))
+            of pptString: newCall(ident("php_get_IS_STRING"))
+            of pptLong:   newCall(ident("php_get_IS_LONG"))
+            of pptDouble: newCall(ident("php_get_IS_DOUBLE"))
+            of pptBool:   newCall(ident("php_get_IS_TRUE")) # adjust if you expose bool type helper
+            else:         newCall(ident("php_get_IS_MIXED"))
 
           var pos = newLit(i)
           fnParamChecks.add quote do:
-            phpclue_arginfo_set_typed(`fnParamCheckArg`, `pos`, false, `paramNameLit`, `zendTypeExpr`, false)
+            php_arginfo_set_typed(`fnParamCheckArg`, `pos`, false, `paramNameLit`, `zendTypeExpr`, false)
 
         # Build the parse-block that will be injected at the start of the proc body
         var parseBlock = newStmtList()
@@ -170,22 +170,22 @@ macro phpModule*(stmtNodes: untyped) =
         # build format string literal
         let fmtLiteral = newLit(toZendFormatString(paramTypes))
 
-        # build phpclue_zend_parse_parameters call args (ctx, fmt, &vars...)
+        # build php_zend_parse_parameters call args (ctx, fmt, &vars...)
         var zendArgs: seq[NimNode] = @[]
         zendArgs.add(ident("ctx"))
         zendArgs.add(fmtLiteral)
         for syms in paramVarSyms:
           for s in syms:
-            # pass address of each var (phpclue_zend_parse_parameters needs pointers)
+            # pass address of each var (php_zend_parse_parameters needs pointers)
             zendArgs.add(nnkAddr.newTree(s))
 
-        # create the phpclue_zend_parse_parameters call node
-        let parseCall = newCall(ident("phpclue_zend_parse_parameters"), zendArgs)
+        # create the php_zend_parse_parameters call node
+        let parseCall = newCall(ident("php_zend_parse_parameters"), zendArgs)
 
-        # inject phpclue_zend_parse_parameters call; failure -> return (no value)
+        # inject php_zend_parse_parameters call; failure -> return (no value)
         parseBlock.add quote do:
-          if `parseCall` != phpclue_zend_result_success():
-            phpclue_throw_type_error(("$1: Argument 1 passed must be of type string" % [`fnIdentLit`]))
+          if `parseCall` != php_zend_result_success():
+            php_throw_type_error(("$1: Argument 1 passed must be of type string" % [`fnIdentLit`]))
             return
 
         # finally, inject parseBlock at the start of the proc body
@@ -205,15 +205,15 @@ macro phpModule*(stmtNodes: untyped) =
         var fnParamsCheck = newStmtList()
         let paramTypesLen = newLit(paramTypes.len)
         fnParamsCheck.add quote do:
-          var `fnParamCheckArg` {.inject.} = phpclue_arginfo_alloc(`paramTypesLen`.csize_t)
+          var `fnParamCheckArg` {.inject.} = php_arginfo_alloc(`paramTypesLen`.csize_t)
           `fnParamChecks`
-          `fnParamCheckArg` = phpclue_arginfo_finalize(`fnParamCheckArg`, `paramTypesLen`.csize_t)
+          `fnParamCheckArg` = php_arginfo_finalize(`fnParamCheckArg`, `paramTypesLen`.csize_t)
 
         injectFnArgInfos.add(fnParamsCheck)
       else:
         injectFnArgInfos.add quote do:
-          var `fnParamCheckArg` {.inject.}: ptr zend_internal_arg_info = phpclue_arginfo_alloc(0)
-          `fnParamCheckArg` = phpclue_arginfo_finalize(`fnParamCheckArg`, 0)
+          var `fnParamCheckArg` {.inject.}: ptr zend_internal_arg_info = php_arginfo_alloc(0)
+          `fnParamCheckArg` = php_arginfo_finalize(`fnParamCheckArg`, 0)
       
       node[3] = newNimNode(nnkFormalParams)
       node[3].add(ident("void")) # no return type
@@ -236,7 +236,7 @@ macro phpModule*(stmtNodes: untyped) =
       exportedProcs.add(node)
       injectFnEntries.add(
         newCall(
-          ident("phpclue_fe_set"),
+          ident("php_fe_set"),
           ident("functionEntry"),
           newCall(
             ident("csize_t"),
@@ -249,6 +249,8 @@ macro phpModule*(stmtNodes: untyped) =
           newLit(0'u32)
         )
       )
+    of nnkCommentStmt:
+      discard
     else: 
       error("Unsupported statement in phpModule: " & $node.kind)
 
@@ -261,29 +263,29 @@ macro phpModule*(stmtNodes: untyped) =
 
     proc nim_module_init(typ {.inject.}: cint, module_number {.inject.}: cint): cint {.cdecl.} =
       # Module initialization function, called when the module is loaded.
-      phpclue_zend_result_success()
+      php_zend_result_success()
     `exportedProcs`
 
-    proc phpclue_nim_module_entry*: ptr zend_module_entry {.cdecl, exportc, dynlib.} =
+    proc php_nim_module_entry*: ptr zend_module_entry {.cdecl, exportc, dynlib.} =
       ## The main entry point for the PHP extension, which will be called by PHP
       ## when the extension is loaded.
 
       `injectFnArgInfos`
 
       # Allocate and set up the function entries for the module
-      functionEntry = phpclue_fe_alloc(`fnLen`)
+      functionEntry = php_fe_alloc(`fnLen`)
       `injectFnEntries`
 
       # Finalize the function entries array
-      phpclue_fe_end(functionEntry, `fnLen`)
+      php_fe_end(functionEntry, `fnLen`)
 
       # Allocate memory for the function entries and set up
       # the functions provided by this module.
-      moduleEntry = phpclue_module_alloc()
+      moduleEntry = php_module_alloc()
       
       # Initialize the module entry with the module name,
       # version, functions, and lifecycle hooks.
-      phpclue_module_init(
+      php_module_init(
         m = moduleEntry,
         name = cstring(`moduleName`),
         version = cstring(`moduleVersion`),

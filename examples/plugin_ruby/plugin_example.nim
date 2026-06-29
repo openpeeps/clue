@@ -8,24 +8,21 @@ rubyModule do:
   proc hello(name: string) =
     echo "Hello ", name, " from Nim!"
 
-  ## Greet with sprintf — returns formatted Ruby string
+  ## Greet — returns formatted Ruby string
   proc greet(name: string) =
-    result = rb_sprintf("Hi, %s!", cstring(name))
+    result = toRbString("Hi, " & name & "!")
 
-  ## Double an integer — return via Ruby's INT2NUM
+  ## Double an integer
   proc double(n: int) =
-    result = INT2NUM(cint(n * 2))
+    result = toRbInt(n * 2)
 
-  ## Check if a float is positive — return Qtrue/Qfalse
+  ## Check if a float is positive
   proc is_positive(n: float) =
-    if n > 0.0:
-      result = Qtrue
-    else:
-      result = Qfalse
+    result = toRbBool(n > 0.0)
 
   ## Repeat a string and collect results into a Ruby array
   proc repeat(msg: string, count: int) =
-    let ary = rb_ary_new()
+    let ary = toRbArray()
     for i in 0 ..< count:
-      discard rb_ary_push(ary, rb_str_new_cstr(cstring(msg & " " & $i)))
+      discard rb_ary_push(ary, toRbString(msg & " " & $i))
     result = ary

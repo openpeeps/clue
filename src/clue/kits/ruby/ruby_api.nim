@@ -420,3 +420,21 @@ template rb_funcall*(recv: VALUE, mid: ID, args: varargs[VALUE]): VALUE =
 
 template rb_str_new2*(str: cstring): VALUE =
   rb_str_new_cstr(str)
+
+proc toRbString*(s: string): VALUE =
+  rb_str_new_cstr(cstring(s))
+
+proc toRbInt*(n: int): VALUE =
+  INT2NUM(cint(n))
+
+proc toRbFloat*(n: float): VALUE =
+  rb_float_new(cdouble(n))
+
+proc toRbBool*(b: bool): VALUE =
+  if b: Qtrue else: Qfalse
+
+proc toRbArray*(): VALUE =
+  rb_ary_new()
+
+proc toRbHash*(): VALUE =
+  rb_hash_new()
