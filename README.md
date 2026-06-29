@@ -135,7 +135,6 @@ Local documentation generation comes with other benefits as well! Clue has LLM i
 ### ❤ Contributions & Support
 - 🐛 Found a bug? [Create a new Issue](https://github.com/openpeeps/clue/issues)
 - 👋 Wanna help? [Fork it!](https://github.com/openpeeps/clue/fork)
-- 😎 [Get €20 in cloud credits from Hetzner](https://hetzner.cloud/?ref=Hm0mYGM9NxZ4)
 
 |  |  |
 |---|---|
