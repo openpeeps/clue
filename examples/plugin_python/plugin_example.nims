@@ -1,0 +1,3 @@
+--define:release
+--app:lib
+--out:"build/mylib.cpython-311-darwin.so"
