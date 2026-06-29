@@ -1,0 +1,3 @@
+--define:release
+--app:lib
+--out:"build/Example.bundle"
