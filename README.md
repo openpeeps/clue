@@ -15,10 +15,10 @@
 Because sometimes I have no damn clue how to... 😂
 
 ## 😍 Key Features
-- [ ] Plugin Kit interaface for PHP, Python, Ruby, Node.js and more
+- [x] Plugin Kit interface for **PHP**, **Ruby**, **Lua**, **Python** and more
 - [ ] Generate API bindings for Go, C, C++, D, Crystal, Dart, Zig and more
 - [ ] Generate C header files for your Nim library
-- [ ] Package generator for target languages (`gem`, `pypi`, `npm`, `composer`)
+- [ ] Package generator for target languages (`gem`, `pip`, `npm`, `composer`)
 - [x] Simple, macro-based DSL for creating extensions in Nim
 - [ ] Generate HTTP clients from OpenAPI 3.0 specs
 - [ ] Documentation database for local packages
@@ -26,80 +26,86 @@ Because sometimes I have no damn clue how to... 😂
 > [!NOTE]
 > Clue is an effort to create a unified interface for generating native libraries and extensions for other languages in Nim, enjoying the power of native performance and low-level capabilities of Nim while providing a super dev-friendly experience for authors. Do the do!
 
-## Plugin Kit examples
-Currently, only the PHP plugin kit is available, adding more plugin interfaces is on the roadmap.
+## Plugin Kits
 
-### PHP example
-Here's a simple example of a PHP extension written in Nim.
+All kits follow the same macro-based DSL pattern. Write your logic once in Nim, generate native extensions for the target language.
 
+### PHP
 ```nim
 import clue/kits/phpkit
 
 phpModule do:
-  name = "hello"
+  name = "example"
   version = "0.1.0"
 
-  proc helloWorld(name: string) =
-    ecoh "👋 Hey there", name, " 👑 Nim is Awesome!"
+  proc hello(name: string) =
+    echo "Hello ", $name, " from Nim!"
+
+  proc add(a: int, b: int) =
+    php_zval_long(retTy, zend_long(a + b))
 ```
-- Check the [PHP example](examples/plugin_php/README.md) directory
+
+- [PHP example](examples/plugin_php/README.md)
+
+### Ruby
+```nim
+import clue/kits/rubykit
+
+rubyModule do:
+  name: "Example"
+  version: "0.1.0"
+
+  proc hello(name: string) =
+    echo "Hello ", name, " from Nim!"
+
+  proc add(a: int, b: int) =
+    result = INT2NUM(cint(a + b))
+```
+
+- [Ruby example](examples/plugin_ruby/README.md)
+
+### Lua (LuaJIT)
+```nim
+import clue/kits/luakit
+
+luaModule do:
+  name: "mylib"
+
+  proc hello(name: string) =
+    lua_pushstring(L, cstring("Hello " & name & " from Nim!"))
+    return 1
+
+  proc add(a: int, b: int) =
+    lua_pushinteger(L, a + b)
+    return 1
+```
+
+- [Lua example](examples/plugin_lua/README.md)
+
+### Python
+```nim
+import clue/kits/pykit
+
+pythonModule do:
+  name: "mylib"
+
+  proc hello(name: string) =
+    result = PyUnicode_FromString(cstring("Hello " & name & " from Nim!"))
+
+  proc add(a: int, b: int) =
+    result = PyLong_FromLong(a + b)
+```
+
+- [Python example](examples/plugin_python/README.md)
+
 <details>
-  <summary>Use <code>-d:clueDebugExtension</code> to inspect the generated Nim code 👇</summary>
-  
-```nim
-var moduleEntry {.inject.}: ptr zend_module_entry
-var functionEntry {.inject.}: ptr zend_function_entry
-proc nim_module_init(typ {.inject.}: cint; module_number {.inject.}: cint): cint {.
-    cdecl.} =
-  phpclue_zend_result_success()
-
-proc helloWorld(ctx: ptr zend_execute_data; retTy: ptr zval): void {.cdecl.} =
-  var name: cstring = nil
-  var nameLen: csize_t = 0
-  if phpclue_zend_parse_parameters(ctx, "s", addr(name), addr(nameLen)) !=
-      phpclue_zend_result_success():
-    phpclue_throw_type_error(("$1: Argument 1 passed must be of type string" %
-        ["helloWorld"]))
-    return
-  echo "👋 Hey there ", name, " 👑 Nim is Awesome!"
-
-proc phpclue_nim_module_entry*(): ptr zend_module_entry {.cdecl, exportc, dynlib.} =
-  ## The main entry point for the PHP extension, which will be called by PHP
-  ## when the extension is loaded.
-  var paramCheckArg_536870949 {.inject.} = phpclue_arginfo_alloc(1.csize_t)
-  phpclue_arginfo_set_typed(paramCheckArg_536870949, 0, false, "name",
-                            phpclue_get_IS_STRING(), false)
-  paramCheckArg_536870949 = phpclue_arginfo_finalize(paramCheckArg_536870949,
-      1.csize_t)
-  functionEntry = phpclue_fe_alloc(csize_t(2))
-  phpclue_fe_set(functionEntry, csize_t(0), "helloWorld", helloWorld,
-                 paramCheckArg_536870949, 0'u32, 0'u32)
-  phpclue_fe_end(functionEntry, csize_t(2))
-  moduleEntry = phpclue_module_alloc()
-  phpclue_module_init(m = moduleEntry, name = cstring("hello"),
-                      version = cstring("0.1.0"), functionEntry,
-                      nim_module_init, mshutdown = nil, rinit = nil,
-                      rshutdown = nil, minfo = nil)
-  moduleEntry
+  <summary>Use <code>-d:clueDebugExtension</code> to inspect the generated code 👇</summary>
+  Pass this flag when compiling to see the Nim-to-C expansion for any module kit:
 
 ```
-
+nim c -d:clueDebugExtension --app:lib -o:out.so my_extension.nim
+```
 </details>
-
-### JS example
-Here's a simple example of a Node.js addon written in Nim using the (upcoming) Node.js plugin kit.
-```nim
-import clue/kits/jskit
-
-jsModule do:
-  name = "hello"
-  version = "0.1.0"
-
-  proc helloWorld(name: string) =
-    echo "👋 Hey there ", name, " 👑 Nim is Awesome!"
-```
-
-Exactly! We are doing it in the same way as the PHP plugin kit, that is the beauty of the Nim-based DSL approach!
 
 > [!NOTE]
 > All major dynamic languages that support native extensions will be supported via plugin kits, and the goal is to have a unified DSL for defining extensions across all supported languages. Write your logic once in Nim, and generate native extensions for the community in multiple languages without spending time learning all the details of each language's native extension API.
@@ -119,12 +125,11 @@ Clue offers a local documentation generator built on top of the built-in Nim doc
 
 For OpenPeeps packages I always want to generate API references for all our packages via GitHub Actions and make them easily accessible via the GitHub Pages, but for local development, I want a simple way to generate and access documentation for any local package without needing to set up a separate documentation hosting solution.
 
-Local documentation generation comes with other benefits as well! Clue has LLM integration, offers a RAG capability for your local documentation, and can even generate a local search index for your docs to make them easily searchable from the command line.
-
+Local documentation generation comes with other benefits as well! Clue has LLM integration, offers a RAG capability for your local documentation, and can generate a local search index for your docs to make them easily searchable from the command line.
 
 ## Todo
 - [ ] Plugin kits - Add support for version detection and other runtime checks
-- [ ] Plugin kits - More languages (Python, Ruby, [Node.js via Denim](https://github.com/openpeeps/denim), etc.)
+- [ ] Plugin kits - More languages (Crystal, Dart, Zig, etc.)
 - [ ] Plugin kits - Add a `initModules` macro for bulk definitions. Crazy!
 
 ### ❤ Contributions & Support
@@ -133,5 +138,5 @@ Local documentation generation comes with other benefits as well! Clue has LLM i
 - 😎 [Get €20 in cloud credits from Hetzner](https://hetzner.cloud/?ref=Hm0mYGM9NxZ4)
 
 ### 🎩 License
-Clue | MIT license. [Made by Humans from OpenPeeps](https://github.com/openpeeps).<br>
+Clue | MIT license. [Made by humans from OpenPeeps](https://github.com/openpeeps).<br>
 Copyright OpenPeeps & Contributors &mdash; All rights reserved.
