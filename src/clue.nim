@@ -7,7 +7,7 @@
 when isMainModule:
   # Build the CLI with Kapsis
   import pkg/kapsis
-  import ./clue/commands/[docs, pkits, bindgen]
+  import ./clue/commands/[docs, pkits]
 
   # proc docsGenCommand*(v: Values) =
   #   ## Kapsis command for deploying a project to a hosting platform
@@ -41,13 +41,16 @@ when isMainModule:
           ## Generate a Ruby extension
         lua path(module):
           ## Generate a Lua extension
-      -- "Bindings"
-      capi:
-        ## Generate Nim bindings for a C library
-        header path(header):
-          ## Generate bindings from a C header file
-        package string(pkgname):
-          ## Generate bindings for a C library as a Nim package
+      
+      # we need to finish github.com/openpeeps/sweetsyntax
+      # in order to create a C to Nim generator
+      # -- "Bindings"
+      # capi:
+      #   ## Generate Nim bindings for a C library
+      #   header path(header):
+      #     ## Generate bindings from a C header file
+      #   package string(pkgname):
+      #     ## Generate bindings for a C library as a Nim package
 
       # -- "Bundlers"
       #   ## Commands for bundling plugins for different package managers
