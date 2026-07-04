@@ -135,18 +135,19 @@ macro rubyModule*(stmtNodes: untyped) =
             hasTypedParams = true
 
       var newFormalParams = newNimNode(nnkFormalParams)
-      newFormalParams.add(ident("VALUE"))
+      let tVALUE = newTree(nnkDotExpr, ident("ruby_api"), ident("VALUE"))
+      newFormalParams.add(tVALUE)
 
       newFormalParams.add(nnkIdentDefs.newTree(
         ident("self"),
-        ident("VALUE"),
+        tVALUE,
         newEmptyNode()
       ))
 
       for (_, _, valName) in fnParams:
         newFormalParams.add(nnkIdentDefs.newTree(
           valName,
-          ident("VALUE"),
+          tVALUE,
           newEmptyNode()
         ))
 
