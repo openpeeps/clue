@@ -96,7 +96,9 @@ type
       ## which can be used for reference and documentation purposes in the generated code.
     description*: string
       ## The `description` field provides a textual description
-      ## of the spec, which can be used to generate documentation comments in the generated code, giving context and information about the spec's purpose and usage.
+      ## of the spec, which can be used to generate documentation comments
+      ## in the generated code, giving context and information about the spec's
+      ## purpose and usage.
     nullable*: bool
       ## The `nullable` field indicates whether the spec
       ## allows null values.
@@ -107,24 +109,32 @@ type
     of typeObject:
       properties*: OrderedTable[string, Schema]
         ## The `properties` field is a table of property names and their
-        ## corresponding `Schema` definitions for object types, allowing the generator to understand the structure of objects defined in the OpenAPI specification
-        ## and generate appropriate code to represent them.
+        ## corresponding `Schema` definitions for object types, allowing the
+        ## generator to understand the structure of objects defined in the OpenAPI
+        ## specification and generate appropriate code to represent them.
     of typeString:
       stringFormat*: string
         ## The `stringFormat` field provides additional information
-        ## about the format of string types, which can be used to generate more specific code for handling different string formats defined in the OpenAPI specification.
+        ## about the format of string types, which can be used to generate more
+        ## specific code for handling different string formats defined in the
+        ## OpenAPI specification.
     of typeArray:
       arrayItems: seq[Schema]
         ## The `arrayItems` field is a sequence of `Schema`
-        ## definitions for the items in an array type, allowing the generator to understand the structure of arrays defined in the OpenAPI specification and generate appropriate code to represent them.
+        ## definitions for the items in an array type, allowing the generator
+        ## to understand the structure of arrays defined in the OpenAPI specification
+        ## and generate appropriate code to represent them.
     of typeInteger:
       integerFormat: IntegerFormat
         ## The `integerFormat` field provides additional information
-        ## about the format of integer types, which can be used to generate more specific code for handling different integer formats defined in the OpenAPI specification.
+        ## about the format of integer types, which can be used to generate
+        ## more specific code for handling different integer formats defined
+        ## in the OpenAPI specification.
     of typeNumber:
       numberFormat: NumberFormat
-        ## The `numberFormat` field provides additional information about the format of number types, which can be used to generate more specific code for handling different number formats
-        ## defined in the OpenAPI specification.
+        ## The `numberFormat` field provides additional information about the
+        ## format of number types, which can be used to generate more specific
+        ## code for handling different number formats defined in the OpenAPI specification.
     else: discard
 
 #
@@ -192,8 +202,9 @@ type
       ## The `prefs` field holds the preferences for package generation,
       ## allowing the generator to adjust its behavior based on user-defined settings
     preparedSchemas*: OrderedTable[string, Schema]
-      ## A table of prepared schemas that have been parsed and processed from the OpenAPI specification,
-      ## used to store intermediary representations of schemas for easier access during code generation
+      ## A table of prepared schemas that have been parsed and processed from the
+      ## OpenAPI specification, used to store intermediary representations of schemas
+      ## for easier access during code generation
 
 const reservedWords* = ["addr","and","as","asm","bind","block","break","case","cast",
   "concept","const","continue", "converter","defer","discard","distinct","div","do",
