@@ -1,0 +1,5 @@
+nimTitle	pkits	clue/commands/pkits.html	module clue/commands/pkits		0
+nim	pluginsPhpCommand	clue/commands/pkits.html#pluginsPhpCommand,Values	proc pluginsPhpCommand(v: Values)		20
+nim	pluginsRubyCommand	clue/commands/pkits.html#pluginsRubyCommand,Values	proc pluginsRubyCommand(v: Values)		23
+nim	pluginsLuaCommand	clue/commands/pkits.html#pluginsLuaCommand,Values	proc pluginsLuaCommand(v: Values)		26
+nim	pluginsPyCommand	clue/commands/pkits.html#pluginsPyCommand,Values	proc pluginsPyCommand(v: Values)		29

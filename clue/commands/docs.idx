@@ -1,0 +1,3 @@
+nimTitle	docs	clue/commands/docs.html	module clue/commands/docs		0
+nim	docsGenCommand	clue/commands/docs.html#docsGenCommand,Values	proc docsGenCommand(v: Values)		5
+nim	docsOpenCommand	clue/commands/docs.html#docsOpenCommand,Values	proc docsOpenCommand(v: Values)		15
