@@ -7,7 +7,7 @@
 when isMainModule:
   # Build the CLI with Kapsis
   import pkg/kapsis
-  import ./clue/commands/[docs, pkits]
+  import ./cluepkg/commands/[docs, pkits]
 
   # proc docsGenCommand*(v: Values) =
   #   ## Kapsis command for deploying a project to a hosting platform
