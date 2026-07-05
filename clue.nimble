@@ -15,4 +15,3 @@ requires "semver"
 
 requires "kapsis#head"
 requires "openparser#head"
-requires "denim#head"

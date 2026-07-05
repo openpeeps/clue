@@ -21,8 +21,7 @@
 ##   return Qnil
 ## ```
 
-{.passC: "-I/opt/local/include/ruby-3.0.0 -I/opt/local/include/ruby-3.0.0/x86_64-darwin23".}
-{.passL: "-L/opt/local/lib -lruby.3.0 -Wl,-undefined,dynamic_lookup".}
+# Compiler flags are provided by the host project via pkg-config or tim.nims
 
 type
   VALUE* = culong
