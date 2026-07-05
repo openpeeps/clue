@@ -11,7 +11,6 @@ bin           = @["clue"]
 # Dependencies
 
 requires "nim >= 2.0"
-requires "semver"
-
-requires "kapsis#head"
-requires "openparser#head"
+requires "semver >= 1.2.3"
+requires "kapsis >= 0.3.4"
+requires "openparser >= 0.1.4"
