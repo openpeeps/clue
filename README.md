@@ -1,5 +1,5 @@
 <p align="center">
-  A toolkit for cool developers
+  A cool toolkit for Nim developers! 
 </p>
 
 <p align="center">

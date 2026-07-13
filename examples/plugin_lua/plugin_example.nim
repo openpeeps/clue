@@ -25,5 +25,5 @@ luaModule do:
 
   ## Echo back a formatted greeting
   proc greet(name: string) =
-    discard lua_pushfstring(L, "Greetings, %s!", cstring(name))
+    toLuaString(L, "Greetings, " & name & "!")
     return 1

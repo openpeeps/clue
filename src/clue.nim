@@ -7,18 +7,28 @@
 when isMainModule:
   # Build the CLI with Kapsis
   import pkg/kapsis
-  import ./cluepkg/commands/[docs, pkits]
-
-  # proc docsGenCommand*(v: Values) =
-  #   ## Kapsis command for deploying a project to a hosting platform
-  #   discard
-
-  # proc docsOpenCommand*(v: Values) =
-  #   ## Kapsis command for deploying a project to a hosting platform
-  #   discard
+  import ./clue/commands/[pkgmanager_commands, docs_commands, kits_commands]
 
   initKapsis do:
     commands:
+      #
+      # Manage local packages when nimble fails
+      #
+      -- "Package Management"
+      install string(pkg):
+        ## Install a package from remote source
+      uninstall string(pkg):
+        ## Uninstall a package from the system
+      dump string(pkg):
+        ## Dump package info from registry
+
+      -- "Environment Management"
+      venv string("--nim"):
+        ## Manage virtual environments for Nim projects
+      
+      #
+      # Manage local documentations like a pro
+      #
       -- "Documentation"
       docs:
         ## Generate Nim docs for local packages
@@ -27,12 +37,14 @@ when isMainModule:
 
         open string(pkgname):
           ## Open specified pkg docs in the browser
-
+      
+      #
+      # Build native extensions for other languages
+      # from your Nim code
+      #
       -- "Plugin Kits"
       plugins:
         ## Commands for building native plugins
-        # js path(module):
-        #   ## Generate a JavaScript N-API addon
         py path(module):
           ## Generate a Python extension
         php path(module):
