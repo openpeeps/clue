@@ -331,12 +331,12 @@ proc dumpCommand*(v: Values) =
       if res.len > 0:
         var pkgData = res[0]
         var pkgInfo = %*{
-          "method": pkgData[1]["method"].getStr,
-          "name": pkgData[1]["name"].getStr,
-          "url": pkgData[1]["url"].getStr,
-          "description": pkgData[1]["description"].getStr,
-          "web": pkgData[1]["web"].getStr,
-          "license": pkgData[1]["license"].getStr,
+          "method": pkgData[1]["method"].strVal,
+          "name": pkgData[1]["name"].strVal,
+          "url": pkgData[1]["url"].strVal,
+          "description": pkgData[1]["description"].strVal,
+          "web": pkgData[1]["web"].strVal,
+          "license": pkgData[1]["license"].strVal,
           "tags": fromJson(pkgData[1]["tags"].jsonVal)
         }
         display(pretty(pkgInfo))
