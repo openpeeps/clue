@@ -1,3 +1,8 @@
+# Clue - A cool toolkit for Nim developers
+#
+# (c) 2026 George Lemon | LGPLv3 License
+#          Made by Humans from OpenPeeps
+#          https://github.com/openpeeps/clue
 
 ## This module implements a simple package resolver using DFS (Depth-First Search) with
 ## cycle detection and version conflict handling.
@@ -149,11 +154,23 @@ proc resolvePackage(state: var ResolverState, name: string,
         " is not satisfied")
     return
 
-  # look up best candidate
-  let candidate = state.registry.findBestMatch(name, constraint)
+  # treat zero-value constraint as vcAny (unspecified)
+  let effectiveConstraint =
+    if constraint.kind == vcExact and constraint.version.major == 0 and
+       constraint.version.minor == 0 and constraint.version.patch == 0:
+      VersionConstraint(kind: vcAny, version: constraint.version)
+    else:
+      constraint
+
+  let candidate = state.registry.findBestMatch(name, effectiveConstraint)
   if candidate.isNone:
+    var avail: seq[string]
+    if name in state.registry:
+      for pkg in state.registry[name]:
+        avail.add($pkg.version)
     raise newException(PackageNotFoundError,
-      "No version of '" & name & "' satisfies constraint")
+      "No version of '" & name & "' satisfies constraint " & $constraint &
+      ", available: " & (if avail.len > 0: avail.join(", ") else: "none"))
 
   let pkg = candidate.get()
 

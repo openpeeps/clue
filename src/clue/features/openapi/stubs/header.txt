@@ -1,0 +1,7 @@
+# {clue_pkg_name} API client for Nim
+#
+# Auto-generated from OpenAPI 3.x specification
+# Clue CLI Assistant https://github.com/openpeeps/clue
+#
+# Generated at: {clue_pkg_generation_time}
+# License: {clue_pkg_license}

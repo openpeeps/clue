@@ -1,6 +1,6 @@
 # Clue - A cool toolkit for Nim developers
 #
-# (c) 2026 George Lemon | MIT License
+# (c) 2026 George Lemon | LGPLv3 License
 #          Made by Humans from OpenPeeps
 #          https://github.com/openpeeps/clue
 
@@ -12,6 +12,7 @@ import pkg/kapsis/[runtime, interactive/prompts]
 
 import ../features/pkgmanager/resolver
 import ../features/pkgmanager/configs
+import ../features/pkgmanager/nimbleparser
 
 type
   PkgDepInfo = tuple[name: string, constraint: VersionConstraint, refStr: string]
@@ -21,8 +22,8 @@ type
     url: string
 
 proc fetchPkgMeta(pkgName: string): Option[PkgRef] =
-  withNimboxDB do:
-    let res = nimboxDB.getTable("packages")
+  withClueDB do:
+    let res = clueDB.getTable("packages")
                       .get()
                       .where("name", newTextValue(pkgName))
                       .toSeq()
@@ -31,23 +32,44 @@ proc fetchPkgMeta(pkgName: string): Option[PkgRef] =
     return some(PkgRef(name: pkgName, url: $(res[0][1]["url"]), refStr: ""))
   none(PkgRef)
 
-proc clonePackage(url, dest, refStr: string): bool =
-  ## Shallow-clone a package. refStr = branch/tag or "" for default branch.
+proc clonePackage*(url, dest: string): bool =
   if dirExists(dest):
-    return true  # already cached
-  let cmd =
-    if refStr.len > 0: "git clone --branch " & refStr & " " & url & " " & dest
-    else:              "git clone " & url & " " & dest
+    return true
+  let cmd = "git clone " & url & " " & dest
   let (output, exitCode) = execCmdEx(cmd)
   if exitCode != 0:
     displayWarning("Failed to clone " & url & ": " & output)
     return false
+  discard execCmdEx("git -C " & dest & " fetch --tags --quiet")
   true
 
+proc checkoutTag*(dest, version: string): bool =
+  let tags = ["v" & version, version]
+  for tag in tags:
+    let (output, code) = execCmdEx("git -C " & dest & " checkout " & tag & " --quiet 2>/dev/null")
+    if code == 0: return true
+  false
+
+proc findLatestTag*(dest: string): string =
+  let (output, exitCode) = execCmdEx("git -C " & dest & " tag --list")
+  if exitCode != 0: return ""
+  var latest: Version
+  for line in output.splitLines():
+    let tag = line.strip()
+    if tag.len == 0: continue
+    let verStr = if tag.startsWith("v"): tag[1..^1] else: tag
+    try:
+      let ver = parseVersion(verStr)
+      if latest.major == 0 and latest.minor == 0 and latest.patch == 0 or ver > latest:
+        latest = ver
+    except:
+      discard
+  if latest.major == 0 and latest.minor == 0 and latest.patch == 0:
+    ""
+  else:
+    $latest
+
 proc checkGitTag(dest, version: string): bool =
-  ## Check whether a semver tag exists in the cloned repo.
-  ## Uses startProcess instead of execCmdEx — safe to call from spawned threads.
-  ## Tries both "vX.Y.Z" and "X.Y.Z" forms.
   let p = startProcess("git",
     args = ["-C", dest, "tag", "--list"],
     options = {poUsePath, poStdErrToStdOut})
@@ -59,44 +81,42 @@ proc checkGitTag(dest, version: string): bool =
   result = ("v" & version) in tagList or version in tagList
 
 proc parseDepsFromNimble(pkgName: string, pkgRefs: var Table[string, PkgRef]): tuple[version: string, deps: seq[PkgDepInfo]] =
-  let nimbleFilePath = nimboxPkgsCachePath / pkgName / pkgName.changeFileExt("nimble")
+  let nimbleFilePath = cluePkgsCachePath / pkgName / pkgName.changeFileExt("nimble")
   if not fileExists(nimbleFilePath):
     return ("0.0.0", @[])
 
   let pkgNimble = parseNimbleFile(nimbleFilePath)
-  let pkgVersion = if pkgNimble.hasKey("version"): pkgNimble["version"].getStr else: "0.0.0"
+  let pkgVersion = pkgNimble.version
 
   var deps: seq[PkgDepInfo] = @[]
 
-  if pkgNimble.hasKey("requires"):
-    for dep in pkgNimble["requires"]:
-      let depName = dep["name"].getStr
-      if depName == "nim": continue
+  for dep in pkgNimble.requires:
+    if dep.isNim: continue
 
-      var constraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0))
-      var depRef = ""
+    let depName = dep.name
+    let depUrl = dep.url
+    var constraint = dep.constraint
+    var depRef =
+      if dep.branch.len > 0: dep.branch
+      elif dep.tag.len > 0: dep.tag
+      else: ""
 
-      if dep.hasKey("branch"):
-        depRef = dep["branch"].getStr
-        if depRef == "head": depRef = ""
-      elif dep.hasKey("tag"):
-        depRef = dep["tag"].getStr
-      elif dep.hasKey("constraints"):
-        let cs = dep["constraints"]
-        if cs.len > 0 and cs[0].hasKey("version"):
-          let op = if cs[0].hasKey("operator"): cs[0]["operator"].getStr else: ">="
-          constraint = parseConstraint(op & cs[0]["version"].getStr)
+    let lookupName =
+      if depName.len > 0: depName
+      else: depUrl
 
-      if depName notin pkgRefs:
-        let metaOpt = fetchPkgMeta(depName)
-        if metaOpt.isSome:
-          var meta = metaOpt.get()
-          meta.refStr = depRef
-          pkgRefs[depName] = meta
-        else:
-          displayWarning("Unknown package in registry: " & depName)
+    if depRef == "head": depRef = ""
 
-      deps.add((name: depName, constraint: constraint, refStr: depRef))
+    if lookupName notin pkgRefs:
+      let metaOpt = fetchPkgMeta(lookupName)
+      if metaOpt.isSome:
+        var meta = metaOpt.get()
+        meta.refStr = depRef
+        pkgRefs[lookupName] = meta
+      else:
+        displayWarning("Unknown package in registry: " & lookupName)
+
+    deps.add((name: lookupName, constraint: constraint, refStr: depRef))
 
   (pkgVersion, deps)
 
@@ -125,8 +145,7 @@ proc printDepTree(name: string, version: string, deps: seq[PkgDepInfo],
     echo childPrefix & dep.name & constraintStr
 
 proc installPackage*(pkgName: string, pkgRef: string = "") =
-  withNimboxDB do:
-    # look up root in DB
+  withClueDB do:
     let rootMetaOpt = fetchPkgMeta(pkgName)
     if rootMetaOpt.isNone:
       displayError("Package not found in registry: " & pkgName)
@@ -137,19 +156,31 @@ proc installPackage*(pkgName: string, pkgRef: string = "") =
     rootMeta.refStr = pkgRef
     pkgRefs[pkgName] = rootMeta
 
-    # Clone root synchronously — we need its .nimble to start
-    let rootDest = nimboxPkgsCachePath / pkgName
+    # Clone root to cache (full repo with all tags)
+    let rootDest = cluePkgsCachePath / pkgName
     if not dirExists(rootDest):
       echo "Fetching " & pkgName & "..."
-      if not clonePackage(rootMeta.url, rootDest, pkgRef):
+      if not clonePackage(rootMeta.url, rootDest):
         return
     else:
       echo "Using cached " & pkgName
 
+    # Determine target version: specified ref or latest git tag
+    let targetRef =
+      if pkgRef.len > 0: pkgRef
+      else:
+        let latest = findLatestTag(rootDest)
+        if latest.len > 0: latest
+        else: ""
+    if targetRef.len > 0:
+      if not checkoutTag(rootDest, targetRef):
+        displayWarning("Could not checkout " & targetRef & " in " & pkgName)
+      else:
+        display("  " & cyan(pkgName & "@" & targetRef))
+
     # bfs wave by wave concurrent cloning
     var registry: PackageRegistry
     var visited: HashSet[string]
-    # depTree stores (version, deps) per package for tree printing
     var depTree: Table[string, tuple[version: string, deps: seq[PkgDepInfo]]]
     visited.incl(pkgName)
 
@@ -168,7 +199,6 @@ proc installPackage*(pkgName: string, pkgRef: string = "") =
         wave.add((d.name, d.refStr))
 
     while wave.len > 0:
-      # echo "Cloning " & $wave.len & " package(s)..."
       displayInfo("Cloning " & $wave.len & " package(s)...")
       var futs: seq[FlowVar[bool]] = @[]
       for w in wave:
@@ -177,12 +207,12 @@ proc installPackage*(pkgName: string, pkgRef: string = "") =
           displayWarning("No URL for " & w.name & ", skipping.")
           futs.add(spawn (proc(): bool = false)())
           continue
-        let dest = nimboxPkgsCachePath / w.name
+        let dest = cluePkgsCachePath / w.name
         if dirExists(dest):
           display("  " & cyan(w.name) & " (cached)")
           futs.add(spawn (proc(): bool = true)())
         else:
-          futs.add(spawn clonePackage(meta.url, dest, w.refStr))
+          futs.add(spawn clonePackage(meta.url, dest))
           display("  " & cyan(meta.url))
       sync()
 
@@ -192,13 +222,35 @@ proc installPackage*(pkgName: string, pkgRef: string = "") =
           echo "  skipping deps of " & w.name & " (clone failed)"
           continue
 
+        let dest = cluePkgsCachePath / w.name
+        let meta = pkgRefs.getOrDefault(w.name, PkgRef())
+        if meta.refStr.len > 0:
+          discard checkoutTag(dest, meta.refStr)
+
         let (ver, deps) = parseDepsFromNimble(w.name, pkgRefs)
         depTree[w.name] = (ver, deps)
+        # Register HEAD version
         registry.addPackage(UnresolvedPackage(
           name: w.name,
           version: parseVersion(ver),
           dependencies: deps.mapIt(Dependency(name: it.name, constraint: it.constraint))
         ))
+        # Also register all tagged semver versions so the resolver can match constraints
+        let (tagOutput, tagCode) = execCmdEx("git -C " & dest & " tag --list")
+        if tagCode == 0:
+          for tagLine in tagOutput.splitLines():
+            let tag = tagLine.strip()
+            if tag.len == 0: continue
+            let verStr = if tag.startsWith("v"): tag[1..^1] else: tag
+            try:
+              let tagVer = parseVersion(verStr)
+              registry.addPackage(UnresolvedPackage(
+                name: w.name,
+                version: tagVer,
+                dependencies: deps.mapIt(Dependency(name: it.name, constraint: it.constraint))
+              ))
+            except:
+              discard
 
         for d in deps:
           if d.name notin visited:
@@ -207,7 +259,6 @@ proc installPackage*(pkgName: string, pkgRef: string = "") =
 
       wave = nextWave
 
-    # Print dependency tree
     echo ""
     displayInfo("Dependency tree:")
     proc printTree(name: string, indent: int, isLast: bool) =
@@ -223,7 +274,6 @@ proc installPackage*(pkgName: string, pkgRef: string = "") =
         let constraintStr =
           if dep.refStr.len > 0: " @" & dep.refStr
           else: " " & $dep.constraint
-        # If this dep has its own subtree, recurse; otherwise just print leaf
         if dep.name in depTree:
           printTree(dep.name, indent + 1, childIsLast)
         else:
@@ -231,7 +281,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "") =
           echo childBranch & dep.name & constraintStr
 
     printTree(pkgName, 0, true)
-    echo "" # extra newline after tree
+    echo ""
 
     # Resolve versions
     let roots = @[Dependency(name: pkgName,
@@ -248,18 +298,6 @@ proc installPackage*(pkgName: string, pkgRef: string = "") =
       displayError("Package not found during resolution: " & e.msg); return
 
     displayInfo("Resolved " & $resolved.len & " package(s). Verifying git tags...")
-    # echo "Resolved " & $resolved.len & " package(s). Verifying tags..."
-
-    # Fetch tags for any repo that was already cached (full clone fetches them,
-    # but older shallow-cloned caches may be missing them)
-    # for rp in resolved:
-    #   let dest = nimboxPkgsCachePath / rp.name
-    #   if dirExists(dest):
-    #     let p = startProcess("git",
-    #       args = ["-C", dest, "fetch", "--tags", "--quiet"],
-    #       options = {poUsePath, poStdErrToStdOut})
-    #     discard p.waitForExit()
-    #     p.close()
 
     # Concurrently verify git tags
     type TagCheck = tuple[name: string, version: string, dest: string]
@@ -269,7 +307,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "") =
     for rp in resolved:
       let meta = pkgRefs.getOrDefault(rp.name, PkgRef())
       if meta.refStr.len == 0 and $rp.version != "0.0.0":
-        let dest = nimboxPkgsCachePath / rp.name
+        let dest = cluePkgsCachePath / rp.name
         let ver = $rp.version
         tagChecks.add((rp.name, ver, dest))
         tagFuts.add(spawn checkGitTag(dest, ver))
@@ -283,8 +321,37 @@ proc installPackage*(pkgName: string, pkgRef: string = "") =
 
     if tagErrors:
       displayWarning("Some packages have no matching git tag (cloned at HEAD)")
-    else:
-      displaySuccess("All " & $resolved.len & " package(s) installed")
+
+    # Finalize: checkout version tag in cache, then copy to ~/.clue/packages/<name>/<version>/
+    var installedCount = 0
+    for rp in resolved:
+      let ver = $rp.version
+      if ver == "0.0.0": continue
+      let cacheDir = cluePkgsCachePath / rp.name
+      if not dirExists(cacheDir):
+        displayWarning("Cache missing for " & rp.name & ", skipping install")
+        continue
+      let verDir = cluePkgsPath / rp.name / ver
+      if dirExists(verDir):
+        display("  " & cyan(rp.name) & " v" & ver & " (already installed)")
+        installedCount.inc
+        continue
+      # Checkout the resolved version tag
+      let meta = pkgRefs.getOrDefault(rp.name, PkgRef())
+      if meta.refStr.len == 0 and ver != "0.0.0":
+        if not checkoutTag(cacheDir, ver):
+          displayWarning("Could not checkout v" & ver & " for " & rp.name & ", installing from HEAD")
+      try:
+        createDir(verDir)
+        copyDir(cacheDir, verDir)
+        removeDir(verDir / ".git")
+        installedCount.inc
+        displaySuccess("Installed " & rp.name & " v" & ver)
+      except:
+        displayWarning("Failed to install " & rp.name & " v" & ver)
+
+    if installedCount > 0:
+      displaySuccess("Installed " & $installedCount & " package(s) to " & cluePkgsPath)
 
 proc installCommand*(v: Values) =
   let pkgInput = split(v.get("pkg").getStr, "@")
@@ -293,10 +360,15 @@ proc installCommand*(v: Values) =
   installPackage(pkgName, pkgRef)
 
 template whenPackageExists(pkgName: string, body: untyped): untyped =
-  let pkgPath = nimboxPkgsPath / pkgName
-  if dirExists(pkgPath):
-    # Check if the package exists in the database
-    let res = nimboxDB.getTable("packages")
+  let pkgBase = cluePkgsPath / pkgName
+  var found = false
+  if dirExists(pkgBase):
+    for entry in walkDir(pkgBase):
+      if entry.kind == pcDir:
+        found = true
+        break
+  if found:
+    let res = clueDB.getTable("packages")
                       .get()
                       .where("name", newTextValue(pkgName))
                       .toSeq()
@@ -309,22 +381,34 @@ template whenPackageExists(pkgName: string, body: untyped): untyped =
     displayError("Package not found: " & cyan(pkgName))
 
 proc uninstallCommand*(v: Values) =
-  ## Uninstall a package from the system
-  withNimboxDB do:
-    let pkgName = v.get("pkg").getStr
-    whenPackageExists pkgName:
-      if promptConfirm("Are you sure you want to uninstall package: " & cyan(pkgName) & "?"):
-        removeDir(nimboxPkgsPath / pkgName)
-        displaySuccess("Package uninstalled: " & cyan(pkgName))
+  withClueDB do:
+    let pkgInput = split(v.get("pkg").getStr, "@")
+    let pkgName = pkgInput[0]
+    let pkgVersion = if pkgInput.len > 1: pkgInput[1] else: ""
+    if pkgVersion.len > 0:
+      let verDir = cluePkgsPath / pkgName / pkgVersion
+      if dirExists(verDir):
+        if promptConfirm("Remove " & pkgName & "@" & pkgVersion & "?"):
+          removeDir(verDir)
+          displaySuccess("Removed " & pkgName & "@" & pkgVersion)
+        else:
+          displayInfo("Removal cancelled.")
       else:
-        displayInfo("Uninstallation cancelled.")
+        displayError("Version not installed: " & pkgName & "@" & pkgVersion)
+    else:
+      whenPackageExists pkgName:
+        if promptConfirm("Remove all versions of " & cyan(pkgName) & "?"):
+          removeDir(cluePkgsPath / pkgName)
+          displaySuccess("All versions of " & pkgName & " removed")
+        else:
+          displayInfo("Uninstallation cancelled.")
 
 proc dumpCommand*(v: Values) =
   ## Dump package info from registry
-  withNimboxDB do:
+  withClueDB do:
     let pkgName = v.get("pkg").getStr
     whenPackageExists pkgName:
-      let res = nimboxDB.getTable("packages")
+      let res = clueDB.getTable("packages")
                         .get()
                         .where("name", newTextValue(pkgName))
                         .toSeq()
@@ -343,9 +427,9 @@ proc dumpCommand*(v: Values) =
 
 # proc searchCommand*(v: Values) =
 #   ## Search command to find packages by name or tags
-#   withNimboxDB do:
+#   withClueDB do:
 #     let query = v.get("query").getStr
-#     let res = nimboxDB.getTable("packages")
+#     let res = clueDB.getTable("packages")
 #                       .get()
 #                       .where("name", newTextValue(query), opContains)
 #                       .orWhere("tags", newTextValue(query), opContains)
@@ -493,58 +577,58 @@ proc venvCommand*(v: Values) =
   let activateContents = """
 #!/bin/sh
 # Nimbox virtual environment activation script
-# Generated by nimbox venv
+# Generated by clue venv
 
 TARGET_VENV="__VENVDIR__"
 
 # If this venv is already active in this shell, do nothing.
-if [ "$NIMBOX_VENV" = "$TARGET_VENV" ]; then
+if [ "$CLUE_VENV" = "$TARGET_VENV" ]; then
   echo "Nimbox venv already activated: $TARGET_VENV"
   return 0
 fi
 
-NIMBOX_VENV="$TARGET_VENV"
-export NIMBOX_VENV
+CLUE_VENV="$TARGET_VENV"
+export CLUE_VENV
 
 # Save previous environment only if not already saved (prevents double-save)
-if [ -z "$_NIMBOX_OLD_PATH" ]; then
-  export _NIMBOX_OLD_PATH="$PATH"
+if [ -z "$_CLUE_OLD_PATH" ]; then
+  export _CLUE_OLD_PATH="$PATH"
 fi
-if [ -z "$_NIMBOX_OLD_NIMBLE_DIR" ]; then
-  export _NIMBOX_OLD_NIMBLE_DIR="$NIMBLE_DIR"
+if [ -z "$_CLUE_OLD_NIMBLE_DIR" ]; then
+  export _CLUE_OLD_NIMBLE_DIR="$NIMBLE_DIR"
 fi
 
-# Prompt customization: prefer env var, then .nimbox_prompt file, then default
-if [ -z "$NIMBOX_PROMPT" ]; then
-  if [ -f "$NIMBOX_VENV/.nimbox_prompt" ]; then
-    NIMBOX_PROMPT="$(cat "$NIMBOX_VENV/.nimbox_prompt")"
+# Prompt customization: prefer env var, then .clue_prompt file, then default
+if [ -z "$CLUE_PROMPT" ]; then
+  if [ -f "$CLUE_VENV/.clue_prompt" ]; then
+    CLUE_PROMPT="$(cat "$CLUE_VENV/.clue_prompt")"
   else
-    NIMBOX_PROMPT="➜ __PKG__"
+    CLUE_PROMPT="➜ __PKG__"
   fi
 fi
-export NIMBOX_PROMPT
+export CLUE_PROMPT
 
 # Save and set shell prompt for zsh/bash (falls back to PS1); only save once
 if [ -n "$ZSH_VERSION" ]; then
-  if [ -z "$_NIMBOX_OLD_PROMPT" ]; then
-    export _NIMBOX_OLD_PROMPT="$PROMPT"
-    PROMPT="$NIMBOX_PROMPT $PROMPT"
+  if [ -z "$_CLUE_OLD_PROMPT" ]; then
+    export _CLUE_OLD_PROMPT="$PROMPT"
+    PROMPT="$CLUE_PROMPT $PROMPT"
   fi
 elif [ -n "$BASH_VERSION" ]; then
-  if [ -z "$_NIMBOX_OLD_PS1" ]; then
-    export _NIMBOX_OLD_PS1="$PS1"
-    PS1="$NIMBOX_PROMPT $PS1"
+  if [ -z "$_CLUE_OLD_PS1" ]; then
+    export _CLUE_OLD_PS1="$PS1"
+    PS1="$CLUE_PROMPT $PS1"
   fi
 else
-  if [ -z "$_NIMBOX_OLD_PS1" ]; then
-    export _NIMBOX_OLD_PS1="$PS1"
-    PS1="$NIMBOX_PROMPT $PS1"
+  if [ -z "$_CLUE_OLD_PS1" ]; then
+    export _CLUE_OLD_PS1="$PS1"
+    PS1="$CLUE_PROMPT $PS1"
   fi
 fi
 
 # Set venv-specific vars
-export NIMBLE_dir="$NIMBOX_VENV/pkgs"
-export NIMBLE_DIR="$NIMBOX_VENV/pkgs"
+export CLUE_dir="$CLUE_VENV/pkgs"
+export NIMBLE_DIR="$CLUE_VENV/pkgs"
 export PATH="__NIMBIN__:$PATH"
 
 echo "Nimbox venv activated (Nim __VERSION__)"
@@ -558,50 +642,50 @@ echo "  source .env/deactivate"
   let deactivateContents = """
 #!/bin/sh
 # Nimbox virtual environment deactivation script
-# Generated by nimbox venv
+# Generated by clue venv
 
 TARGET_VENV="__VENVDIR__"
 
 # If this venv is not active in this shell, do nothing.
-if [ -z "$NIMBOX_VENV" ] || [ "$NIMBOX_VENV" != "$TARGET_VENV" ]; then
+if [ -z "$CLUE_VENV" ] || [ "$CLUE_VENV" != "$TARGET_VENV" ]; then
   echo "Nimbox venv not active for this directory: $TARGET_VENV"
   return 0
 fi
 
 # Restore previous PATH if present
-if [ -n "$_NIMBOX_OLD_PATH" ]; then
-  export PATH="$_NIMBOX_OLD_PATH"
-  unset _NIMBOX_OLD_PATH
+if [ -n "$_CLUE_OLD_PATH" ]; then
+  export PATH="$_CLUE_OLD_PATH"
+  unset _CLUE_OLD_PATH
 fi
 
 # Restore previous NIMBLE_DIR or unset
-if [ -n "$_NIMBOX_OLD_NIMBLE_DIR" ]; then
-  export NIMBLE_DIR="$_NIMBOX_OLD_NIMBLE_DIR"
-  unset _NIMBOX_OLD_NIMBLE_DIR
+if [ -n "$_CLUE_OLD_NIMBLE_DIR" ]; then
+  export NIMBLE_DIR="$_CLUE_OLD_NIMBLE_DIR"
+  unset _CLUE_OLD_NIMBLE_DIR
 else
   unset NIMBLE_DIR
 fi
 
 # Restore prompt
 if [ -n "$ZSH_VERSION" ]; then
-  if [ -n "$_NIMBOX_OLD_PROMPT" ]; then
-    PROMPT="$_NIMBOX_OLD_PROMPT"
-    unset _NIMBOX_OLD_PROMPT
+  if [ -n "$_CLUE_OLD_PROMPT" ]; then
+    PROMPT="$_CLUE_OLD_PROMPT"
+    unset _CLUE_OLD_PROMPT
   fi
 elif [ -n "$BASH_VERSION" ]; then
-  if [ -n "$_NIMBOX_OLD_PS1" ]; then
-    PS1="$_NIMBOX_OLD_PS1"
-    unset _NIMBOX_OLD_PS1
+  if [ -n "$_CLUE_OLD_PS1" ]; then
+    PS1="$_CLUE_OLD_PS1"
+    unset _CLUE_OLD_PS1
   fi
 else
-  if [ -n "$_NIMBOX_OLD_PS1" ]; then
-    PS1="$_NIMBOX_OLD_PS1"
-    unset _NIMBOX_OLD_PS1
+  if [ -n "$_CLUE_OLD_PS1" ]; then
+    PS1="$_CLUE_OLD_PS1"
+    unset _CLUE_OLD_PS1
   fi
 fi
 
-unset NIMBOX_VENV
-unset NIMBOX_PROMPT
+unset CLUE_VENV
+unset CLUE_PROMPT
 
 echo "Nimbox venv deactivated"
 """
@@ -615,8 +699,8 @@ echo "Nimbox venv deactivated"
   writeFile(deactivateScript, deactivateContents.replace("__VENVDIR__", venvDir))
 
 
-  # write default per-venv prompt file (user can edit or set NIMBOX_PROMPT env var)
-  let promptFile = venvDir / ".nimbox_prompt"
+  # write default per-venv prompt file (user can edit or set CLUE_PROMPT env var)
+  let promptFile = venvDir / ".clue_prompt"
   if not fileExists(promptFile):
     writeFile(promptFile, "🜲 v" & requestedVersion)
 
@@ -632,7 +716,7 @@ To deactivate (in the same shell), run:
   `source .env/deactivate`
 
 Customize the prompt:
-  - Edit .env/.nimbox_prompt to change the prefix (or set NIMBOX_PROMPT).
+  - Edit .env/.clue_prompt to change the prefix (or set CLUE_PROMPT).
   - Activation will prepend that prefix to your current zsh/bash prompt.
 """
   displayInfo(outputMessage)

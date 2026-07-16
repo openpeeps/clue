@@ -1,13 +1,14 @@
 # Clue - A cool toolkit for Nim developers
 #
-# (c) 2026 George Lemon | MIT License
+# (c) 2026 George Lemon | LGPLv3 License
 #          Made by Humans from OpenPeeps
 #          https://github.com/openpeeps/clue
 
 when isMainModule:
   # Build the CLI with Kapsis
   import pkg/kapsis
-  import ./clue/commands/[pkgmanager_commands, docs_commands, kits_commands]
+  import ./clue/commands/[pkgmanager_commands, docs_commands,
+          kits_commands, build_commands, oapi_commands]
 
   initKapsis do:
     commands:
@@ -15,12 +16,17 @@ when isMainModule:
       # Manage local packages when nimble fails
       #
       -- "Package Management"
-      install string(pkg):
-        ## Install a package from remote source
-      uninstall string(pkg):
-        ## Uninstall a package from the system
+      build ?bool("--release"), ?bool("--debug"):
+        ## Build the current Nim package from its nimble file
+
       dump string(pkg):
         ## Dump package info from registry
+
+      install string(pkg):
+        ## Install a package from remote source
+
+      uninstall string(pkg):
+        ## Uninstall a package from the system
 
       -- "Environment Management"
       venv string("--nim"):
@@ -43,26 +49,19 @@ when isMainModule:
       # from your Nim code
       #
       -- "Plugin Kits"
-      plugins:
-        ## Commands for building native plugins
-        py path(module):
-          ## Generate a Python extension
-        php path(module):
-          ## Generate a PHP extension
-        ruby path(module):
-          ## Generate a Ruby extension
-        lua path(module):
-          ## Generate a Lua extension
+      plugins path(module), ?string("--ext"):
+        ## Build a native extension for other languages from Nim code
       
-      # we need to finish github.com/openpeeps/sweetsyntax
-      # in order to create a C to Nim generator
-      # -- "Bindings"
+      -- "Code generator"
       # capi:
       #   ## Generate Nim bindings for a C library
       #   header path(header):
       #     ## Generate bindings from a C header file
       #   package string(pkgname):
       #     ## Generate bindings for a C library as a Nim package
+      
+      openapi path(spec), ?string("--output"), ?string("--dir"):
+        ## Generate a new API client library from OpenAPI spec file
 
       # -- "Bundlers"
       #   ## Commands for bundling plugins for different package managers
@@ -72,9 +71,5 @@ when isMainModule:
       #     ## Bundle a Python extension for publishing on PyPI
       #   pie path(module):
       #     ## Bundle a PHP extension for publishing on PIE (PHP Installer for Extensions)
-
-      # -- "OpenAPI Client Generation"
-      # openapi path(spec):
-      #   ## Generate a new API client library from OpenAPI spec file
 else:
   error("Nothing to see here. Import submodules you need directly")

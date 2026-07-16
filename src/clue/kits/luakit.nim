@@ -1,6 +1,6 @@
 # Clue - A cool toolkit for Nim developers
 #
-# (c) 2026 George Lemon | MIT License
+# (c) 2026 George Lemon | LGPLv3 License
 #          Made by Humans from OpenPeeps
 #          https://github.com/openpeeps/clue
 

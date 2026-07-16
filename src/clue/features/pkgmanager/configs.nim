@@ -1,18 +1,25 @@
-import std/[os, strutils, sequtils, re]
+# Clue - A cool toolkit for Nim developers
+#
+# (c) 2026 George Lemon | LGPLv3 License
+#          Made by Humans from OpenPeeps
+#          https://github.com/openpeeps/clue
 
-import pkg/semver
+import std/os
+
 import pkg/boogie/stores/rdbms
 import pkg/openparser/json
 
 import pkg/kapsis/interactive/prompts
 
+import ./resolver
+
 export rdbms
 
 const
-  nimboxPath* = getHomeDir() / ".nimbox"
-  nimboxDBPath* = nimboxPath / "nimbox.db"
-  nimboxPkgsPath* = nimboxPath / "packages"
-  nimboxPkgsCachePath* = nimboxPkgsPath / "packages" / "_cache"
+  cluePath* = getHomeDir() / ".clue"
+  clueDBPath* = cluePath / "clue.db"
+  cluePkgsPath* = cluePath / "packages"
+  cluePkgsCachePath* = cluePkgsPath / "_cache"
   nimbleLocalPackages* = getHomeDir() / ".nimble" / "packages_official.json"
 
 type
@@ -36,20 +43,41 @@ type
     web*: string
       ## The URL of the package's website or documentation, if available.
 
-var nimboxDB*: Store
+type
+  NimbleDependency* = object
+    name*: string
+    url*: string
+    constraint*: VersionConstraint
+    branch*: string
+    tag*: string
+    isNim*: bool
 
-proc initNimbox*() =
-  ## Initializes the Nimbox environment by creating necessary directories and
-  ## setting up the database if it doesn't already exist.
-  discard existsOrCreateDir(nimboxPath)
-  discard existsOrCreateDir(nimboxPkgsPath)
+  NimbleFile* = object
+    path*: string
+    version*: string
+    author*: string
+    description*: string
+    license*: string
+    srcDir*: string
+    binDir*: string
+    bin*: seq[string]
+    installDirs*: seq[string]
+    installFiles*: seq[string]
+    installExt*: seq[string]
+    requires*: seq[NimbleDependency]
 
-  var hasDatabase = fileExists(nimboxDBPath)
-  nimboxDB = newStore(nimboxDBPath, StorageMode.smDisk,
-                      enableWal = true, walFlushEveryOps = 100'u32)
+var clueDB*: Store
+
+proc initClue*() =
+  discard existsOrCreateDir(cluePath)
+  discard existsOrCreateDir(cluePkgsPath)
+
+  var hasDatabase = fileExists(clueDBPath)
+  clueDB = newStore(clueDBPath, StorageMode.smDisk,
+                    enableWal = true, walFlushEveryOps = 100'u32)
   if not hasDatabase:
-    displayInfo("Initializing Nimbox database...")
-    nimboxDB.createTable(newTable(
+    displayInfo("Initializing Clue database...")
+    clueDB.createTable(newTable(
       name = "packages",
       primaryKey = "id",
       columns = [
@@ -57,22 +85,19 @@ proc initNimbox*() =
         newColumn("name", dtText, false),
         newColumn("url", dtText, false),
         newColumn("method", dtText, false),
-        newColumn("tags", dtJson, false), # Storing tags as JSON array
+        newColumn("tags", dtJson, false),
         newColumn("description", dtText, false),
         newColumn("license", dtText, false),
         newColumn("web", dtText, false)
       ]
     ))
 
-    # Load initial packages from nimbleLocalPackages JSON file
     let nimblePackages = fromJsonFile(nimbleLocalPackages)
-    
-    # Iterate over the packages and insert them into the database
     for localPkg in nimblePackages:
       if localPkg.hasKey("alias") or not localPkg.hasKey("web"):
-        continue # TODO - handle aliases properly instead of skipping them
+        continue
       let mthd = if localPkg.hasKey"method": localPkg["method"].getStr else: ""
-      nimboxDB.insertRow("packages", row({
+      clueDB.insertRow("packages", row({
         "name": newTextValue(localPkg["name"].getStr),
         "url": newTextValue(localPkg["url"].getStr),
         "method": newTextValue(mthd),
@@ -82,70 +107,10 @@ proc initNimbox*() =
         "web": newTextValue(localPkg["web"].getStr)
       }))
 
-    # flush the WAL to disk to ensure data integrity
-    nimboxDB.checkpoint()
+    clueDB.checkpoint()
 
-template withNimboxDB*(stmt) =
-  ## A template that provides a convenient way to access the
-  ## Nimbox database within a block of code.
-  initNimbox()
+template withClueDB*(stmt) =
+  initClue()
   stmt
 
-const nimbleMetaKeys = ["version", "author", "description", "license", "srcDir", "bin", "binDir"]
-
-proc parseNimbleFile*(path: string): JsonNode =
-  ## Parses a nimble file and returns its contents as a JsonNode.
-  let lines = readFile(path).splitLines()
-  var result = newJObject()
-  var requires = newJArray()
-  for line in lines:
-    let l = line.strip()
-    if l.len == 0 or l.startsWith('#'): continue
-    if l.startsWith("requires "):
-      let reqStr = l.split(" ", maxsplit=1)[1].strip(chars={'"', ' '})
-      var dep = newJObject()
-
-      # name#branch
-      if reqStr.contains("#"):
-        let parts = reqStr.split("#", maxsplit=1)
-        dep["name"] = %parts[0].strip()
-        dep["branch"] = %parts[1].strip()
-      else:
-        # name [op version] [op version] ...
-        let toks = reqStr.splitWhitespace()
-        if toks.len > 0:
-          dep["name"] = %toks[0]
-          var constraints = newJArray()
-          var i = 1
-          while i + 1 < toks.len:
-            let op = toks[i]
-            let ver = toks[i + 1].strip(chars={','})
-            if op in ["<", "<=", ">", ">=", "==", "=", "!=", "^", "~>"]: # semver operators to support
-              constraints.add(%*{
-                "operator": op,
-                "version": ver
-              })
-              i += 2
-            else:
-              inc i
-          if constraints.len > 0:
-            dep["constraints"] = constraints
-      requires.add(dep)
-    elif l.contains('='):
-      let parts = l.split('=', maxsplit=1)
-      if parts.len == 2:
-        let k = parts[0].strip()
-        if k notin nimbleMetaKeys:
-          continue
-        var v = parts[1].strip()
-        if v.startsWith("@["):
-          # Parse Nim array syntax: @[...]
-          v = v.strip(chars={'@', '[', ']'})
-          let arr = v.split(',').mapIt(it.strip(chars={'"', ' '}))
-          result[k] = %arr
-        else:
-          v = v.strip(chars={'"'})
-          result[k] = %v
-  if requires.len > 0:
-    result["requires"] = requires
-  result
+# parseNimbleFile is defined in nimbleparser.nim

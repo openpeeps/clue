@@ -1,3 +1,9 @@
+# Clue - A cool toolkit for Nim developers
+#
+# (c) 2026 George Lemon | LGPLv3 License
+#          Made by Humans from OpenPeeps
+#          https://github.com/openpeeps/clue
+
 import std/[os, osproc, json]
 import pkg/kapsis/runtime
 import pkg/kapsis/interactive/prompts
