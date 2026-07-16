@@ -1,0 +1,11 @@
+nimTitle	codegen	clue/features/openapi/codegen.html	module clue/features/openapi/codegen		0
+nim	Generator	clue/features/openapi/codegen.html#Generator	type Generator		42
+nim	genEndpoint	clue/features/openapi/codegen.html#genEndpoint,string,sinkstring	proc genEndpoint(path: string; skipPrefixPath: sink string = ""): tuple[\n    ident, module, endpoint: string]		85
+nim	nimTypeForSchema	clue/features/openapi/codegen.html#nimTypeForSchema,Schema,OrderedTableRef[string,Schema],string	proc nimTypeForSchema(schema: Schema; schemas: OrderedTableRef[string, Schema];\n                 typeNameHint = ""): string		115
+nim	genTypeDefinition	clue/features/openapi/codegen.html#genTypeDefinition,string,Schema,OrderedTableRef[string,Schema]	proc genTypeDefinition(schemaName: string; schema: Schema;\n                  schemas: OrderedTableRef[string, Schema]): string		189
+nim	genTypes	clue/features/openapi/codegen.html#genTypes,OrderedTableRef[string,Schema]	proc genTypes(schemas: OrderedTableRef[string, Schema]): string		223
+nim	genEndpointFile	clue/features/openapi/codegen.html#genEndpointFile,string,seq[tuple[string,string,Operation]],OrderedTableRef[string,Schema],string	proc genEndpointFile(tag: string; ops: seq[tuple[path: string, meth: string,\n    operation: Operation]]; schemas: OrderedTableRef[string, Schema];\n                pkgIdent: string): string		425
+nim	genServers	clue/features/openapi/codegen.html#genServers,seq[Server]	proc genServers(servers: seq[Server]): string		506
+nim	groupOperations	clue/features/openapi/codegen.html#groupOperations,Package	proc groupOperations(pkg: Package): OrderedTableRef[string,\n    seq[tuple[path: string, meth: string, operation: Operation]]]		512
+nim	newGenerator	clue/features/openapi/codegen.html#newGenerator,Package,string	proc newGenerator(pkg: Package; outputDir: string): Generator		545
+nim	generate	clue/features/openapi/codegen.html#generate,Generator	proc generate(gen: Generator)		575

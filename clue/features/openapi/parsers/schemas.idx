@@ -1,0 +1,5 @@
+nimTitle	schemas	clue/features/openapi/parsers/schemas.html	module clue/features/openapi/parsers/schemas		0
+nim	parseSchema	clue/features/openapi/parsers/schemas.html#parseSchema,JsonNode	proc parseSchema(node: JsonNode): Schema		10
+nim	parseProperties	clue/features/openapi/parsers/schemas.html#parseProperties,JsonNode	proc parseProperties(node: JsonNode): OrderedTableRef[string, Schema]		12
+nim	parseSchemaArray	clue/features/openapi/parsers/schemas.html#parseSchemaArray,JsonNode	proc parseSchemaArray(node: JsonNode): seq[Schema]		19
+nim	parseSchemaMap	clue/features/openapi/parsers/schemas.html#parseSchemaMap,JsonNode	proc parseSchemaMap(node: JsonNode): OrderedTableRef[string, Schema]		125

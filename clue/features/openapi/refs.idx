@@ -1,0 +1,2 @@
+nimTitle	refs	clue/features/openapi/refs.html	module clue/features/openapi/refs		0
+nim	resolveRef	clue/features/openapi/refs.html#resolveRef,OpenApi,string	proc resolveRef(oapi: OpenApi; refPath: string): JsonNode		10

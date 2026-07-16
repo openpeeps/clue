@@ -1,0 +1,28 @@
+nimTitle	resolver	clue/features/pkgmanager/resolver.html	module clue/features/pkgmanager/resolver		0
+nim	vcExact	clue/features/pkgmanager/resolver.html#vcExact	VersionConstraintKind.vcExact		14
+nim	vcGte	clue/features/pkgmanager/resolver.html#vcGte	VersionConstraintKind.vcGte		14
+nim	vcGt	clue/features/pkgmanager/resolver.html#vcGt	VersionConstraintKind.vcGt		14
+nim	vcLte	clue/features/pkgmanager/resolver.html#vcLte	VersionConstraintKind.vcLte		14
+nim	vcLt	clue/features/pkgmanager/resolver.html#vcLt	VersionConstraintKind.vcLt		14
+nim	vcTilde	clue/features/pkgmanager/resolver.html#vcTilde	VersionConstraintKind.vcTilde		14
+nim	vcCaret	clue/features/pkgmanager/resolver.html#vcCaret	VersionConstraintKind.vcCaret		14
+nim	vcAny	clue/features/pkgmanager/resolver.html#vcAny	VersionConstraintKind.vcAny		14
+nim	VersionConstraintKind	clue/features/pkgmanager/resolver.html#VersionConstraintKind	enum VersionConstraintKind		14
+nim	VersionConstraint	clue/features/pkgmanager/resolver.html#VersionConstraint	object VersionConstraint		24
+nim	Dependency	clue/features/pkgmanager/resolver.html#Dependency	object Dependency		28
+nim	UnresolvedPackage	clue/features/pkgmanager/resolver.html#UnresolvedPackage	object UnresolvedPackage		32
+nim	ResolvedPackage	clue/features/pkgmanager/resolver.html#ResolvedPackage	object ResolvedPackage		37
+nim	ResolverError	clue/features/pkgmanager/resolver.html#ResolverError	object ResolverError		41
+nim	CircularDependencyError	clue/features/pkgmanager/resolver.html#CircularDependencyError	object CircularDependencyError		42
+nim	VersionConflictError	clue/features/pkgmanager/resolver.html#VersionConflictError	object VersionConflictError		43
+nim	PackageNotFoundError	clue/features/pkgmanager/resolver.html#PackageNotFoundError	object PackageNotFoundError		44
+nim	PackageRegistry	clue/features/pkgmanager/resolver.html#PackageRegistry	type PackageRegistry		47
+nim	parseConstraint	clue/features/pkgmanager/resolver.html#parseConstraint,string	proc parseConstraint(s: string): VersionConstraint		59
+nim	satisfies	clue/features/pkgmanager/resolver.html#satisfies,Version,VersionConstraint	proc satisfies(v: Version; c: VersionConstraint): bool		85
+nim	addPackage	clue/features/pkgmanager/resolver.html#addPackage,PackageRegistry,UnresolvedPackage	proc addPackage(registry: var PackageRegistry; pkg: UnresolvedPackage)		113
+nim	addPackage	clue/features/pkgmanager/resolver.html#addPackage,PackageRegistry,string,Version,seq[Dependency]	proc addPackage(registry: var PackageRegistry; name: string; version: Version;\n           dependencies: seq[Dependency])		121
+nim	resolve	clue/features/pkgmanager/resolver.html#resolve,PackageRegistry,seq[Dependency]	proc resolve(registry: PackageRegistry; roots: seq[Dependency]): seq[ResolvedPackage]		193
+nim	`$`	clue/features/pkgmanager/resolver.html#$,VersionConstraint	proc `$`(c: VersionConstraint): string		210
+nim	`$`	clue/features/pkgmanager/resolver.html#$,ResolvedPackage	proc `$`(rp: ResolvedPackage): string		221
+nimgrp	addpackage	clue/features/pkgmanager/resolver.html#addPackage-procs-all	proc		113
+nimgrp	$	clue/features/pkgmanager/resolver.html#$-procs-all	proc		210

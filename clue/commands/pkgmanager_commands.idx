@@ -1,0 +1,9 @@
+nimTitle	pkgmanager_commands	clue/commands/pkgmanager_commands.html	module clue/commands/pkgmanager_commands		0
+nim	clonePackage	clue/commands/pkgmanager_commands.html#clonePackage,string,string	proc clonePackage(url, dest: string): bool		35
+nim	checkoutTag	clue/commands/pkgmanager_commands.html#checkoutTag,string,string	proc checkoutTag(dest, version: string): bool		46
+nim	findLatestTag	clue/commands/pkgmanager_commands.html#findLatestTag,string	proc findLatestTag(dest: string): string		53
+nim	installPackage	clue/commands/pkgmanager_commands.html#installPackage,string,string	proc installPackage(pkgName: string; pkgRef: string = "")		147
+nim	installCommand	clue/commands/pkgmanager_commands.html#installCommand,Values	proc installCommand(v: Values)		356
+nim	uninstallCommand	clue/commands/pkgmanager_commands.html#uninstallCommand,Values	proc uninstallCommand(v: Values)		383
+nim	dumpCommand	clue/commands/pkgmanager_commands.html#dumpCommand,Values	proc dumpCommand(v: Values)		406
+nim	venvCommand	clue/commands/pkgmanager_commands.html#venvCommand,Values	proc venvCommand(v: Values)		501

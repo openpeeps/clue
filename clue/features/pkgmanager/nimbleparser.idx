@@ -1,0 +1,2 @@
+nimTitle	nimbleparser	clue/features/pkgmanager/nimbleparser.html	module clue/features/pkgmanager/nimbleparser		0
+nim	parseNimbleFile	clue/features/pkgmanager/nimbleparser.html#parseNimbleFile,string	proc parseNimbleFile(path: string): NimbleFile		58

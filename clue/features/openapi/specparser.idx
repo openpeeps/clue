@@ -1,0 +1,7 @@
+nimTitle	specparser	clue/features/openapi/specparser.html	module clue/features/openapi/specparser		0
+nim	PackagePreferences	clue/features/openapi/specparser.html#PackagePreferences	object PackagePreferences		23
+nim	PackageModule	clue/features/openapi/specparser.html#PackageModule	type PackageModule		27
+nim	Package	clue/features/openapi/specparser.html#Package	type Package		31
+nim	reservedWords	clue/features/openapi/specparser.html#reservedWords	const reservedWords		40
+nim	parseSpecification	clue/features/openapi/specparser.html#parseSpecification,Package,JsonNode,PackagePreferences,string	proc parseSpecification(pkg: Package; root: JsonNode; prefs: PackagePreferences;\n                   skipPrefixPath = "")		48
+nim	dumpIR	clue/features/openapi/specparser.html#dumpIR,Package	proc dumpIR(pkg: Package): string		128

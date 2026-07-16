@@ -1,0 +1,2 @@
+nimTitle	kits_commands	clue/commands/kits_commands.html	module clue/commands/kits_commands		0
+nim	pluginsCommand	clue/commands/kits_commands.html#pluginsCommand,Values	proc pluginsCommand(v: Values)		26

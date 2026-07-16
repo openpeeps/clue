@@ -28,36 +28,558 @@
     <label for="nav-toggle" id="nav-overlay"></label>
     <div class="container">
       <h1 class="title">Index</h1>
-      Modules: <a href="index.html">clue</a>, <a href="cluepkg/commands/docs.html">cluepkg/commands/docs</a>, <a href="cluepkg/commands/pkits.html">cluepkg/commands/pkits</a>.<br/><p /><h2>API symbols</h2>
-<dl><dt><a name="docsGenCommand" href="#docsGenCommand"><span>docsGenCommand:</span></a></dt><dd><ul class="simple">
+      Modules: <a href="index.html">clue</a>, <a href="clue/commands/build_commands.html">clue/commands/build_commands</a>, <a href="clue/commands/docs_commands.html">clue/commands/docs_commands</a>, <a href="clue/commands/kits_commands.html">clue/commands/kits_commands</a>, <a href="clue/commands/oapi_commands.html">clue/commands/oapi_commands</a>, <a href="clue/commands/pkgmanager_commands.html">clue/commands/pkgmanager_commands</a>, <a href="clue/features/openapi/codegen.html">clue/features/openapi/codegen</a>, <a href="clue/features/openapi/ir.html">clue/features/openapi/ir</a>, <a href="clue/features/openapi/parsers/components.html">clue/features/openapi/parsers/components</a>, <a href="clue/features/openapi/parsers/parameters.html">clue/features/openapi/parsers/parameters</a>, <a href="clue/features/openapi/parsers/paths.html">clue/features/openapi/parsers/paths</a>, <a href="clue/features/openapi/parsers/requestBodies.html">clue/features/openapi/parsers/requestBodies</a>, <a href="clue/features/openapi/parsers/responses.html">clue/features/openapi/parsers/responses</a>, <a href="clue/features/openapi/parsers/schemas.html">clue/features/openapi/parsers/schemas</a>, <a href="clue/features/openapi/parsers/security.html">clue/features/openapi/parsers/security</a>, <a href="clue/features/openapi/parsers/servers.html">clue/features/openapi/parsers/servers</a>, <a href="clue/features/openapi/refs.html">clue/features/openapi/refs</a>, <a href="clue/features/openapi/specparser.html">clue/features/openapi/specparser</a>, <a href="clue/features/pkgmanager/configs.html">clue/features/pkgmanager/configs</a>, <a href="clue/features/pkgmanager/nimbleparser.html">clue/features/pkgmanager/nimbleparser</a>, <a href="clue/features/pkgmanager/resolver.html">clue/features/pkgmanager/resolver</a>.<br/><p /><h2>API symbols</h2>
+<dl><dt><a name="%60%24%60" href="#%60%24%60"><span>`$`:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="docs: proc docsGenCommand(v: Values)" href="cluepkg/commands/docs.html#docsGenCommand%2CValues">docs: proc docsGenCommand(v: Values)</a></li>
+          data-doc-search-tag="resolver: proc `$`(rp: ResolvedPackage): string" href="clue/features/pkgmanager/resolver.html#%24%2CResolvedPackage">resolver: proc `$`(rp: ResolvedPackage): string</a></li>
+          <li><a class="reference external"
+          data-doc-search-tag="resolver: proc `$`(c: VersionConstraint): string" href="clue/features/pkgmanager/resolver.html#%24%2CVersionConstraint">resolver: proc `$`(c: VersionConstraint): string</a></li>
+          </ul></dd>
+<dt><a name="addPackage" href="#addPackage"><span>addPackage:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: proc addPackage(registry: var PackageRegistry; name: string; version: Version;
+           dependencies: seq[Dependency])" href="clue/features/pkgmanager/resolver.html#addPackage%2CPackageRegistry%2Cstring%2CVersion%2Cseq%5BDependency%5D">resolver: proc addPackage(registry: var PackageRegistry; name: string; version: Version;
+           dependencies: seq[Dependency])</a></li>
+          <li><a class="reference external"
+          data-doc-search-tag="resolver: proc addPackage(registry: var PackageRegistry; pkg: UnresolvedPackage)" href="clue/features/pkgmanager/resolver.html#addPackage%2CPackageRegistry%2CUnresolvedPackage">resolver: proc addPackage(registry: var PackageRegistry; pkg: UnresolvedPackage)</a></li>
+          </ul></dd>
+<dt><a name="buildCommand" href="#buildCommand"><span>buildCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="build_commands: proc buildCommand(v: Values)" href="clue/commands/build_commands.html#buildCommand%2CValues">build_commands: proc buildCommand(v: Values)</a></li>
+          </ul></dd>
+<dt><a name="checkoutTag" href="#checkoutTag"><span>checkoutTag:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="pkgmanager_commands: proc checkoutTag(dest, version: string): bool" href="clue/commands/pkgmanager_commands.html#checkoutTag%2Cstring%2Cstring">pkgmanager_commands: proc checkoutTag(dest, version: string): bool</a></li>
+          </ul></dd>
+<dt><a name="CircularDependencyError" href="#CircularDependencyError"><span>CircularDependencyError:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: object CircularDependencyError" href="clue/features/pkgmanager/resolver.html#CircularDependencyError">resolver: object CircularDependencyError</a></li>
+          </ul></dd>
+<dt><a name="clonePackage" href="#clonePackage"><span>clonePackage:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="pkgmanager_commands: proc clonePackage(url, dest: string): bool" href="clue/commands/pkgmanager_commands.html#clonePackage%2Cstring%2Cstring">pkgmanager_commands: proc clonePackage(url, dest: string): bool</a></li>
+          </ul></dd>
+<dt><a name="clueDB" href="#clueDB"><span>clueDB:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: var clueDB" href="clue/features/pkgmanager/configs.html#clueDB">configs: var clueDB</a></li>
+          </ul></dd>
+<dt><a name="clueDBPath" href="#clueDBPath"><span>clueDBPath:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: const clueDBPath" href="clue/features/pkgmanager/configs.html#clueDBPath">configs: const clueDBPath</a></li>
+          </ul></dd>
+<dt><a name="cluePath" href="#cluePath"><span>cluePath:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: const cluePath" href="clue/features/pkgmanager/configs.html#cluePath">configs: const cluePath</a></li>
+          </ul></dd>
+<dt><a name="cluePkgsCachePath" href="#cluePkgsCachePath"><span>cluePkgsCachePath:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: const cluePkgsCachePath" href="clue/features/pkgmanager/configs.html#cluePkgsCachePath">configs: const cluePkgsCachePath</a></li>
+          </ul></dd>
+<dt><a name="cluePkgsPath" href="#cluePkgsPath"><span>cluePkgsPath:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: const cluePkgsPath" href="clue/features/pkgmanager/configs.html#cluePkgsPath">configs: const cluePkgsPath</a></li>
+          </ul></dd>
+<dt><a name="Components" href="#Components"><span>Components:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: object Components" href="clue/features/openapi/ir.html#Components">ir: object Components</a></li>
+          </ul></dd>
+<dt><a name="Dependency" href="#Dependency"><span>Dependency:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: object Dependency" href="clue/features/pkgmanager/resolver.html#Dependency">resolver: object Dependency</a></li>
+          </ul></dd>
+<dt><a name="docsGenCommand" href="#docsGenCommand"><span>docsGenCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="docs_commands: proc docsGenCommand(v: Values)" href="clue/commands/docs_commands.html#docsGenCommand%2CValues">docs_commands: proc docsGenCommand(v: Values)</a></li>
           </ul></dd>
 <dt><a name="docsOpenCommand" href="#docsOpenCommand"><span>docsOpenCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="docs: proc docsOpenCommand(v: Values)" href="cluepkg/commands/docs.html#docsOpenCommand%2CValues">docs: proc docsOpenCommand(v: Values)</a></li>
+          data-doc-search-tag="docs_commands: proc docsOpenCommand(v: Values)" href="clue/commands/docs_commands.html#docsOpenCommand%2CValues">docs_commands: proc docsOpenCommand(v: Values)</a></li>
           </ul></dd>
-<dt><a name="pluginsLuaCommand" href="#pluginsLuaCommand"><span>pluginsLuaCommand:</span></a></dt><dd><ul class="simple">
+<dt><a name="dumpCommand" href="#dumpCommand"><span>dumpCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="pkits: proc pluginsLuaCommand(v: Values)" href="cluepkg/commands/pkits.html#pluginsLuaCommand%2CValues">pkits: proc pluginsLuaCommand(v: Values)</a></li>
+          data-doc-search-tag="pkgmanager_commands: proc dumpCommand(v: Values)" href="clue/commands/pkgmanager_commands.html#dumpCommand%2CValues">pkgmanager_commands: proc dumpCommand(v: Values)</a></li>
           </ul></dd>
-<dt><a name="pluginsPhpCommand" href="#pluginsPhpCommand"><span>pluginsPhpCommand:</span></a></dt><dd><ul class="simple">
+<dt><a name="dumpIR" href="#dumpIR"><span>dumpIR:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="pkits: proc pluginsPhpCommand(v: Values)" href="cluepkg/commands/pkits.html#pluginsPhpCommand%2CValues">pkits: proc pluginsPhpCommand(v: Values)</a></li>
+          data-doc-search-tag="specparser: proc dumpIR(pkg: Package): string" href="clue/features/openapi/specparser.html#dumpIR%2CPackage">specparser: proc dumpIR(pkg: Package): string</a></li>
           </ul></dd>
-<dt><a name="pluginsPyCommand" href="#pluginsPyCommand"><span>pluginsPyCommand:</span></a></dt><dd><ul class="simple">
+<dt><a name="ExternalDocs" href="#ExternalDocs"><span>ExternalDocs:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="pkits: proc pluginsPyCommand(v: Values)" href="cluepkg/commands/pkits.html#pluginsPyCommand%2CValues">pkits: proc pluginsPyCommand(v: Values)</a></li>
+          data-doc-search-tag="ir: object ExternalDocs" href="clue/features/openapi/ir.html#ExternalDocs">ir: object ExternalDocs</a></li>
           </ul></dd>
-<dt><a name="pluginsRubyCommand" href="#pluginsRubyCommand"><span>pluginsRubyCommand:</span></a></dt><dd><ul class="simple">
+<dt><a name="findLatestTag" href="#findLatestTag"><span>findLatestTag:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="pkits: proc pluginsRubyCommand(v: Values)" href="cluepkg/commands/pkits.html#pluginsRubyCommand%2CValues">pkits: proc pluginsRubyCommand(v: Values)</a></li>
+          data-doc-search-tag="pkgmanager_commands: proc findLatestTag(dest: string): string" href="clue/commands/pkgmanager_commands.html#findLatestTag%2Cstring">pkgmanager_commands: proc findLatestTag(dest: string): string</a></li>
+          </ul></dd>
+<dt><a name="genEndpoint" href="#genEndpoint"><span>genEndpoint:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="codegen: proc genEndpoint(path: string; skipPrefixPath: sink string = &quot;&quot;): tuple[
+    ident, module, endpoint: string]" href="clue/features/openapi/codegen.html#genEndpoint%2Cstring%2Csinkstring">codegen: proc genEndpoint(path: string; skipPrefixPath: sink string = &quot;&quot;): tuple[
+    ident, module, endpoint: string]</a></li>
+          </ul></dd>
+<dt><a name="genEndpointFile" href="#genEndpointFile"><span>genEndpointFile:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="codegen: proc genEndpointFile(tag: string; ops: seq[tuple[path: string, meth: string,
+    operation: Operation]]; schemas: OrderedTableRef[string, Schema];
+                pkgIdent: string): string" href="clue/features/openapi/codegen.html#genEndpointFile%2Cstring%2Cseq%5Btuple%5Bstring%2Cstring%2COperation%5D%5D%2COrderedTableRef%5Bstring%2CSchema%5D%2Cstring">codegen: proc genEndpointFile(tag: string; ops: seq[tuple[path: string, meth: string,
+    operation: Operation]]; schemas: OrderedTableRef[string, Schema];
+                pkgIdent: string): string</a></li>
+          </ul></dd>
+<dt><a name="generate" href="#generate"><span>generate:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="codegen: proc generate(gen: Generator)" href="clue/features/openapi/codegen.html#generate%2CGenerator">codegen: proc generate(gen: Generator)</a></li>
+          </ul></dd>
+<dt><a name="Generator" href="#Generator"><span>Generator:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="codegen: type Generator" href="clue/features/openapi/codegen.html#Generator">codegen: type Generator</a></li>
+          </ul></dd>
+<dt><a name="genServers" href="#genServers"><span>genServers:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="codegen: proc genServers(servers: seq[Server]): string" href="clue/features/openapi/codegen.html#genServers%2Cseq%5BServer%5D">codegen: proc genServers(servers: seq[Server]): string</a></li>
+          </ul></dd>
+<dt><a name="genTypeDefinition" href="#genTypeDefinition"><span>genTypeDefinition:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="codegen: proc genTypeDefinition(schemaName: string; schema: Schema;
+                  schemas: OrderedTableRef[string, Schema]): string" href="clue/features/openapi/codegen.html#genTypeDefinition%2Cstring%2CSchema%2COrderedTableRef%5Bstring%2CSchema%5D">codegen: proc genTypeDefinition(schemaName: string; schema: Schema;
+                  schemas: OrderedTableRef[string, Schema]): string</a></li>
+          </ul></dd>
+<dt><a name="genTypes" href="#genTypes"><span>genTypes:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="codegen: proc genTypes(schemas: OrderedTableRef[string, Schema]): string" href="clue/features/openapi/codegen.html#genTypes%2COrderedTableRef%5Bstring%2CSchema%5D">codegen: proc genTypes(schemas: OrderedTableRef[string, Schema]): string</a></li>
+          </ul></dd>
+<dt><a name="groupOperations" href="#groupOperations"><span>groupOperations:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="codegen: proc groupOperations(pkg: Package): OrderedTableRef[string,
+    seq[tuple[path: string, meth: string, operation: Operation]]]" href="clue/features/openapi/codegen.html#groupOperations%2CPackage">codegen: proc groupOperations(pkg: Package): OrderedTableRef[string,
+    seq[tuple[path: string, meth: string, operation: Operation]]]</a></li>
+          </ul></dd>
+<dt><a name="ifAny" href="#ifAny"><span>ifAny:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: IntegerFormat.ifAny" href="clue/features/openapi/ir.html#ifAny">ir: IntegerFormat.ifAny</a></li>
+          </ul></dd>
+<dt><a name="initClue" href="#initClue"><span>initClue:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc initClue()" href="clue/features/pkgmanager/configs.html#initClue">configs: proc initClue()</a></li>
+          </ul></dd>
+<dt><a name="installCommand" href="#installCommand"><span>installCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="pkgmanager_commands: proc installCommand(v: Values)" href="clue/commands/pkgmanager_commands.html#installCommand%2CValues">pkgmanager_commands: proc installCommand(v: Values)</a></li>
+          </ul></dd>
+<dt><a name="installPackage" href="#installPackage"><span>installPackage:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="pkgmanager_commands: proc installPackage(pkgName: string; pkgRef: string = &quot;&quot;)" href="clue/commands/pkgmanager_commands.html#installPackage%2Cstring%2Cstring">pkgmanager_commands: proc installPackage(pkgName: string; pkgRef: string = &quot;&quot;)</a></li>
+          </ul></dd>
+<dt><a name="int32" href="#int32"><span>int32:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: IntegerFormat.int32" href="clue/features/openapi/ir.html#int32">ir: IntegerFormat.int32</a></li>
+          </ul></dd>
+<dt><a name="int64" href="#int64"><span>int64:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: IntegerFormat.int64" href="clue/features/openapi/ir.html#int64">ir: IntegerFormat.int64</a></li>
+          </ul></dd>
+<dt><a name="IntegerFormat" href="#IntegerFormat"><span>IntegerFormat:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: enum IntegerFormat" href="clue/features/openapi/ir.html#IntegerFormat">ir: enum IntegerFormat</a></li>
+          </ul></dd>
+<dt><a name="MediaType" href="#MediaType"><span>MediaType:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: object MediaType" href="clue/features/openapi/ir.html#MediaType">ir: object MediaType</a></li>
+          </ul></dd>
+<dt><a name="newGenerator" href="#newGenerator"><span>newGenerator:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="codegen: proc newGenerator(pkg: Package; outputDir: string): Generator" href="clue/features/openapi/codegen.html#newGenerator%2CPackage%2Cstring">codegen: proc newGenerator(pkg: Package; outputDir: string): Generator</a></li>
+          </ul></dd>
+<dt><a name="nfAny" href="#nfAny"><span>nfAny:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: NumberFormat.nfAny" href="clue/features/openapi/ir.html#nfAny">ir: NumberFormat.nfAny</a></li>
+          </ul></dd>
+<dt><a name="nfDouble" href="#nfDouble"><span>nfDouble:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: NumberFormat.nfDouble" href="clue/features/openapi/ir.html#nfDouble">ir: NumberFormat.nfDouble</a></li>
+          </ul></dd>
+<dt><a name="nfFloat" href="#nfFloat"><span>nfFloat:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: NumberFormat.nfFloat" href="clue/features/openapi/ir.html#nfFloat">ir: NumberFormat.nfFloat</a></li>
+          </ul></dd>
+<dt><a name="NimbleDependency" href="#NimbleDependency"><span>NimbleDependency:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: object NimbleDependency" href="clue/features/pkgmanager/configs.html#NimbleDependency">configs: object NimbleDependency</a></li>
+          </ul></dd>
+<dt><a name="NimbleFile" href="#NimbleFile"><span>NimbleFile:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: object NimbleFile" href="clue/features/pkgmanager/configs.html#NimbleFile">configs: object NimbleFile</a></li>
+          </ul></dd>
+<dt><a name="nimbleLocalPackages" href="#nimbleLocalPackages"><span>nimbleLocalPackages:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: const nimbleLocalPackages" href="clue/features/pkgmanager/configs.html#nimbleLocalPackages">configs: const nimbleLocalPackages</a></li>
+          </ul></dd>
+<dt><a name="nimTypeForSchema" href="#nimTypeForSchema"><span>nimTypeForSchema:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="codegen: proc nimTypeForSchema(schema: Schema; schemas: OrderedTableRef[string, Schema];
+                 typeNameHint = &quot;&quot;): string" href="clue/features/openapi/codegen.html#nimTypeForSchema%2CSchema%2COrderedTableRef%5Bstring%2CSchema%5D%2Cstring">codegen: proc nimTypeForSchema(schema: Schema; schemas: OrderedTableRef[string, Schema];
+                 typeNameHint = &quot;&quot;): string</a></li>
+          </ul></dd>
+<dt><a name="NumberFormat" href="#NumberFormat"><span>NumberFormat:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: enum NumberFormat" href="clue/features/openapi/ir.html#NumberFormat">ir: enum NumberFormat</a></li>
+          </ul></dd>
+<dt><a name="OpenApi" href="#OpenApi"><span>OpenApi:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: type OpenApi" href="clue/features/openapi/ir.html#OpenApi">ir: type OpenApi</a></li>
+          </ul></dd>
+<dt><a name="openapiCommand" href="#openapiCommand"><span>openapiCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="oapi_commands: proc openapiCommand(v: Values)" href="clue/commands/oapi_commands.html#openapiCommand%2CValues">oapi_commands: proc openapiCommand(v: Values)</a></li>
+          </ul></dd>
+<dt><a name="OpenApiError" href="#OpenApiError"><span>OpenApiError:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: object OpenApiError" href="clue/features/openapi/ir.html#OpenApiError">ir: object OpenApiError</a></li>
+          </ul></dd>
+<dt><a name="OpenApiInfo" href="#OpenApiInfo"><span>OpenApiInfo:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: object OpenApiInfo" href="clue/features/openapi/ir.html#OpenApiInfo">ir: object OpenApiInfo</a></li>
+          </ul></dd>
+<dt><a name="Operation" href="#Operation"><span>Operation:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: type Operation" href="clue/features/openapi/ir.html#Operation">ir: type Operation</a></li>
+          </ul></dd>
+<dt><a name="Package" href="#Package"><span>Package:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="specparser: type Package" href="clue/features/openapi/specparser.html#Package">specparser: type Package</a></li>
+          <li><a class="reference external"
+          data-doc-search-tag="configs: object Package" href="clue/features/pkgmanager/configs.html#Package">configs: object Package</a></li>
+          </ul></dd>
+<dt><a name="PackageModule" href="#PackageModule"><span>PackageModule:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="specparser: type PackageModule" href="clue/features/openapi/specparser.html#PackageModule">specparser: type PackageModule</a></li>
+          </ul></dd>
+<dt><a name="PackageNotFoundError" href="#PackageNotFoundError"><span>PackageNotFoundError:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: object PackageNotFoundError" href="clue/features/pkgmanager/resolver.html#PackageNotFoundError">resolver: object PackageNotFoundError</a></li>
+          </ul></dd>
+<dt><a name="PackagePreferences" href="#PackagePreferences"><span>PackagePreferences:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="specparser: object PackagePreferences" href="clue/features/openapi/specparser.html#PackagePreferences">specparser: object PackagePreferences</a></li>
+          </ul></dd>
+<dt><a name="PackageRegistry" href="#PackageRegistry"><span>PackageRegistry:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: type PackageRegistry" href="clue/features/pkgmanager/resolver.html#PackageRegistry">resolver: type PackageRegistry</a></li>
+          </ul></dd>
+<dt><a name="Parameter" href="#Parameter"><span>Parameter:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: type Parameter" href="clue/features/openapi/ir.html#Parameter">ir: type Parameter</a></li>
+          </ul></dd>
+<dt><a name="ParameterIn" href="#ParameterIn"><span>ParameterIn:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: enum ParameterIn" href="clue/features/openapi/ir.html#ParameterIn">ir: enum ParameterIn</a></li>
+          </ul></dd>
+<dt><a name="parseComponents" href="#parseComponents"><span>parseComponents:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="components: proc parseComponents(node: JsonNode): Components" href="clue/features/openapi/parsers/components.html#parseComponents%2CJsonNode">components: proc parseComponents(node: JsonNode): Components</a></li>
+          </ul></dd>
+<dt><a name="parseConstraint" href="#parseConstraint"><span>parseConstraint:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: proc parseConstraint(s: string): VersionConstraint" href="clue/features/pkgmanager/resolver.html#parseConstraint%2Cstring">resolver: proc parseConstraint(s: string): VersionConstraint</a></li>
+          </ul></dd>
+<dt><a name="parseContent" href="#parseContent"><span>parseContent:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="requestBodies: proc parseContent(node: JsonNode): OrderedTableRef[string, MediaType]" href="clue/features/openapi/parsers/requestBodies.html#parseContent%2CJsonNode">requestBodies: proc parseContent(node: JsonNode): OrderedTableRef[string, MediaType]</a></li>
+          </ul></dd>
+<dt><a name="parseMediaType" href="#parseMediaType"><span>parseMediaType:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="requestBodies: proc parseMediaType(node: JsonNode): MediaType" href="clue/features/openapi/parsers/requestBodies.html#parseMediaType%2CJsonNode">requestBodies: proc parseMediaType(node: JsonNode): MediaType</a></li>
+          </ul></dd>
+<dt><a name="parseNimbleFile" href="#parseNimbleFile"><span>parseNimbleFile:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="nimbleparser: proc parseNimbleFile(path: string): NimbleFile" href="clue/features/pkgmanager/nimbleparser.html#parseNimbleFile%2Cstring">nimbleparser: proc parseNimbleFile(path: string): NimbleFile</a></li>
+          </ul></dd>
+<dt><a name="parseOperation" href="#parseOperation"><span>parseOperation:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="paths: proc parseOperation(node: JsonNode): Operation" href="clue/features/openapi/parsers/paths.html#parseOperation%2CJsonNode">paths: proc parseOperation(node: JsonNode): Operation</a></li>
+          </ul></dd>
+<dt><a name="parseParameter" href="#parseParameter"><span>parseParameter:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="parameters: proc parseParameter(node: JsonNode): Parameter" href="clue/features/openapi/parsers/parameters.html#parseParameter%2CJsonNode">parameters: proc parseParameter(node: JsonNode): Parameter</a></li>
+          </ul></dd>
+<dt><a name="parseParameterMap" href="#parseParameterMap"><span>parseParameterMap:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="parameters: proc parseParameterMap(node: JsonNode): OrderedTableRef[string, Parameter]" href="clue/features/openapi/parsers/parameters.html#parseParameterMap%2CJsonNode">parameters: proc parseParameterMap(node: JsonNode): OrderedTableRef[string, Parameter]</a></li>
+          </ul></dd>
+<dt><a name="parseParameters" href="#parseParameters"><span>parseParameters:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="parameters: proc parseParameters(node: JsonNode): seq[Parameter]" href="clue/features/openapi/parsers/parameters.html#parseParameters%2CJsonNode">parameters: proc parseParameters(node: JsonNode): seq[Parameter]</a></li>
+          </ul></dd>
+<dt><a name="parsePathItem" href="#parsePathItem"><span>parsePathItem:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="paths: proc parsePathItem(path: string; node: JsonNode): PathItem" href="clue/features/openapi/parsers/paths.html#parsePathItem%2Cstring%2CJsonNode">paths: proc parsePathItem(path: string; node: JsonNode): PathItem</a></li>
+          </ul></dd>
+<dt><a name="parsePaths" href="#parsePaths"><span>parsePaths:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="paths: proc parsePaths(node: JsonNode): OrderedTableRef[string, PathItem]" href="clue/features/openapi/parsers/paths.html#parsePaths%2CJsonNode">paths: proc parsePaths(node: JsonNode): OrderedTableRef[string, PathItem]</a></li>
+          </ul></dd>
+<dt><a name="parseProperties" href="#parseProperties"><span>parseProperties:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="schemas: proc parseProperties(node: JsonNode): OrderedTableRef[string, Schema]" href="clue/features/openapi/parsers/schemas.html#parseProperties%2CJsonNode">schemas: proc parseProperties(node: JsonNode): OrderedTableRef[string, Schema]</a></li>
+          </ul></dd>
+<dt><a name="parseRequestBody" href="#parseRequestBody"><span>parseRequestBody:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="requestBodies: proc parseRequestBody(node: JsonNode): RequestBody" href="clue/features/openapi/parsers/requestBodies.html#parseRequestBody%2CJsonNode">requestBodies: proc parseRequestBody(node: JsonNode): RequestBody</a></li>
+          </ul></dd>
+<dt><a name="parseRequestBodyMap" href="#parseRequestBodyMap"><span>parseRequestBodyMap:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="requestBodies: proc parseRequestBodyMap(node: JsonNode): OrderedTableRef[string, RequestBody]" href="clue/features/openapi/parsers/requestBodies.html#parseRequestBodyMap%2CJsonNode">requestBodies: proc parseRequestBodyMap(node: JsonNode): OrderedTableRef[string, RequestBody]</a></li>
+          </ul></dd>
+<dt><a name="parseResponse" href="#parseResponse"><span>parseResponse:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="responses: proc parseResponse(node: JsonNode): Response" href="clue/features/openapi/parsers/responses.html#parseResponse%2CJsonNode">responses: proc parseResponse(node: JsonNode): Response</a></li>
+          </ul></dd>
+<dt><a name="parseResponseMap" href="#parseResponseMap"><span>parseResponseMap:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="responses: proc parseResponseMap(node: JsonNode): OrderedTableRef[string, Response]" href="clue/features/openapi/parsers/responses.html#parseResponseMap%2CJsonNode">responses: proc parseResponseMap(node: JsonNode): OrderedTableRef[string, Response]</a></li>
+          </ul></dd>
+<dt><a name="parseSchema" href="#parseSchema"><span>parseSchema:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="schemas: proc parseSchema(node: JsonNode): Schema" href="clue/features/openapi/parsers/schemas.html#parseSchema%2CJsonNode">schemas: proc parseSchema(node: JsonNode): Schema</a></li>
+          </ul></dd>
+<dt><a name="parseSchemaArray" href="#parseSchemaArray"><span>parseSchemaArray:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="schemas: proc parseSchemaArray(node: JsonNode): seq[Schema]" href="clue/features/openapi/parsers/schemas.html#parseSchemaArray%2CJsonNode">schemas: proc parseSchemaArray(node: JsonNode): seq[Schema]</a></li>
+          </ul></dd>
+<dt><a name="parseSchemaMap" href="#parseSchemaMap"><span>parseSchemaMap:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="schemas: proc parseSchemaMap(node: JsonNode): OrderedTableRef[string, Schema]" href="clue/features/openapi/parsers/schemas.html#parseSchemaMap%2CJsonNode">schemas: proc parseSchemaMap(node: JsonNode): OrderedTableRef[string, Schema]</a></li>
+          </ul></dd>
+<dt><a name="parseSecurityRequirement" href="#parseSecurityRequirement"><span>parseSecurityRequirement:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="security: proc parseSecurityRequirement(node: JsonNode): SecurityRequirement" href="clue/features/openapi/parsers/security.html#parseSecurityRequirement%2CJsonNode">security: proc parseSecurityRequirement(node: JsonNode): SecurityRequirement</a></li>
+          </ul></dd>
+<dt><a name="parseSecurityRequirements" href="#parseSecurityRequirements"><span>parseSecurityRequirements:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="security: proc parseSecurityRequirements(node: JsonNode): seq[SecurityRequirement]" href="clue/features/openapi/parsers/security.html#parseSecurityRequirements%2CJsonNode">security: proc parseSecurityRequirements(node: JsonNode): seq[SecurityRequirement]</a></li>
+          </ul></dd>
+<dt><a name="parseSecurityScheme" href="#parseSecurityScheme"><span>parseSecurityScheme:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="security: proc parseSecurityScheme(node: JsonNode): SecurityScheme" href="clue/features/openapi/parsers/security.html#parseSecurityScheme%2CJsonNode">security: proc parseSecurityScheme(node: JsonNode): SecurityScheme</a></li>
+          </ul></dd>
+<dt><a name="parseSecuritySchemeMap" href="#parseSecuritySchemeMap"><span>parseSecuritySchemeMap:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="security: proc parseSecuritySchemeMap(node: JsonNode): OrderedTableRef[string, SecurityScheme]" href="clue/features/openapi/parsers/security.html#parseSecuritySchemeMap%2CJsonNode">security: proc parseSecuritySchemeMap(node: JsonNode): OrderedTableRef[string, SecurityScheme]</a></li>
+          </ul></dd>
+<dt><a name="parseServer" href="#parseServer"><span>parseServer:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="servers: proc parseServer(node: JsonNode): Server" href="clue/features/openapi/parsers/servers.html#parseServer%2CJsonNode">servers: proc parseServer(node: JsonNode): Server</a></li>
+          </ul></dd>
+<dt><a name="parseServers" href="#parseServers"><span>parseServers:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="servers: proc parseServers(node: JsonNode): seq[Server]" href="clue/features/openapi/parsers/servers.html#parseServers%2CJsonNode">servers: proc parseServers(node: JsonNode): seq[Server]</a></li>
+          </ul></dd>
+<dt><a name="parseServerVariable" href="#parseServerVariable"><span>parseServerVariable:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="servers: proc parseServerVariable(node: JsonNode): ServerVariable" href="clue/features/openapi/parsers/servers.html#parseServerVariable%2CJsonNode">servers: proc parseServerVariable(node: JsonNode): ServerVariable</a></li>
+          </ul></dd>
+<dt><a name="parseServerVariables" href="#parseServerVariables"><span>parseServerVariables:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="servers: proc parseServerVariables(node: JsonNode): OrderedTableRef[string, ServerVariable]" href="clue/features/openapi/parsers/servers.html#parseServerVariables%2CJsonNode">servers: proc parseServerVariables(node: JsonNode): OrderedTableRef[string, ServerVariable]</a></li>
+          </ul></dd>
+<dt><a name="parseSpecification" href="#parseSpecification"><span>parseSpecification:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="specparser: proc parseSpecification(pkg: Package; root: JsonNode; prefs: PackagePreferences;
+                   skipPrefixPath = &quot;&quot;)" href="clue/features/openapi/specparser.html#parseSpecification%2CPackage%2CJsonNode%2CPackagePreferences%2Cstring">specparser: proc parseSpecification(pkg: Package; root: JsonNode; prefs: PackagePreferences;
+                   skipPrefixPath = &quot;&quot;)</a></li>
+          </ul></dd>
+<dt><a name="PathItem" href="#PathItem"><span>PathItem:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: type PathItem" href="clue/features/openapi/ir.html#PathItem">ir: type PathItem</a></li>
+          </ul></dd>
+<dt><a name="pinCookie" href="#pinCookie"><span>pinCookie:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: ParameterIn.pinCookie" href="clue/features/openapi/ir.html#pinCookie">ir: ParameterIn.pinCookie</a></li>
+          </ul></dd>
+<dt><a name="pinHeader" href="#pinHeader"><span>pinHeader:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: ParameterIn.pinHeader" href="clue/features/openapi/ir.html#pinHeader">ir: ParameterIn.pinHeader</a></li>
+          </ul></dd>
+<dt><a name="pinPath" href="#pinPath"><span>pinPath:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: ParameterIn.pinPath" href="clue/features/openapi/ir.html#pinPath">ir: ParameterIn.pinPath</a></li>
+          </ul></dd>
+<dt><a name="pinQuery" href="#pinQuery"><span>pinQuery:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: ParameterIn.pinQuery" href="clue/features/openapi/ir.html#pinQuery">ir: ParameterIn.pinQuery</a></li>
+          </ul></dd>
+<dt><a name="pluginsCommand" href="#pluginsCommand"><span>pluginsCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="kits_commands: proc pluginsCommand(v: Values)" href="clue/commands/kits_commands.html#pluginsCommand%2CValues">kits_commands: proc pluginsCommand(v: Values)</a></li>
+          </ul></dd>
+<dt><a name="RequestBody" href="#RequestBody"><span>RequestBody:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: type RequestBody" href="clue/features/openapi/ir.html#RequestBody">ir: type RequestBody</a></li>
+          </ul></dd>
+<dt><a name="reservedWords" href="#reservedWords"><span>reservedWords:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="specparser: const reservedWords" href="clue/features/openapi/specparser.html#reservedWords">specparser: const reservedWords</a></li>
+          </ul></dd>
+<dt><a name="resolve" href="#resolve"><span>resolve:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: proc resolve(registry: PackageRegistry; roots: seq[Dependency]): seq[ResolvedPackage]" href="clue/features/pkgmanager/resolver.html#resolve%2CPackageRegistry%2Cseq%5BDependency%5D">resolver: proc resolve(registry: PackageRegistry; roots: seq[Dependency]): seq[ResolvedPackage]</a></li>
+          </ul></dd>
+<dt><a name="ResolvedPackage" href="#ResolvedPackage"><span>ResolvedPackage:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: object ResolvedPackage" href="clue/features/pkgmanager/resolver.html#ResolvedPackage">resolver: object ResolvedPackage</a></li>
+          </ul></dd>
+<dt><a name="resolveRef" href="#resolveRef"><span>resolveRef:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="refs: proc resolveRef(oapi: OpenApi; refPath: string): JsonNode" href="clue/features/openapi/refs.html#resolveRef%2COpenApi%2Cstring">refs: proc resolveRef(oapi: OpenApi; refPath: string): JsonNode</a></li>
+          </ul></dd>
+<dt><a name="ResolverError" href="#ResolverError"><span>ResolverError:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: object ResolverError" href="clue/features/pkgmanager/resolver.html#ResolverError">resolver: object ResolverError</a></li>
+          </ul></dd>
+<dt><a name="Response" href="#Response"><span>Response:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: type Response" href="clue/features/openapi/ir.html#Response">ir: type Response</a></li>
+          </ul></dd>
+<dt><a name="satisfies" href="#satisfies"><span>satisfies:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: proc satisfies(v: Version; c: VersionConstraint): bool" href="clue/features/pkgmanager/resolver.html#satisfies%2CVersion%2CVersionConstraint">resolver: proc satisfies(v: Version; c: VersionConstraint): bool</a></li>
+          </ul></dd>
+<dt><a name="Schema" href="#Schema"><span>Schema:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: type Schema" href="clue/features/openapi/ir.html#Schema">ir: type Schema</a></li>
+          </ul></dd>
+<dt><a name="SchemaType" href="#SchemaType"><span>SchemaType:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: enum SchemaType" href="clue/features/openapi/ir.html#SchemaType">ir: enum SchemaType</a></li>
+          </ul></dd>
+<dt><a name="SecurityRequirement" href="#SecurityRequirement"><span>SecurityRequirement:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: type SecurityRequirement" href="clue/features/openapi/ir.html#SecurityRequirement">ir: type SecurityRequirement</a></li>
+          </ul></dd>
+<dt><a name="SecurityScheme" href="#SecurityScheme"><span>SecurityScheme:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: type SecurityScheme" href="clue/features/openapi/ir.html#SecurityScheme">ir: type SecurityScheme</a></li>
+          </ul></dd>
+<dt><a name="SecuritySchemeType" href="#SecuritySchemeType"><span>SecuritySchemeType:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: enum SecuritySchemeType" href="clue/features/openapi/ir.html#SecuritySchemeType">ir: enum SecuritySchemeType</a></li>
+          </ul></dd>
+<dt><a name="Server" href="#Server"><span>Server:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: object Server" href="clue/features/openapi/ir.html#Server">ir: object Server</a></li>
+          </ul></dd>
+<dt><a name="ServerVariable" href="#ServerVariable"><span>ServerVariable:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: object ServerVariable" href="clue/features/openapi/ir.html#ServerVariable">ir: object ServerVariable</a></li>
+          </ul></dd>
+<dt><a name="sstApiKey" href="#sstApiKey"><span>sstApiKey:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: SecuritySchemeType.sstApiKey" href="clue/features/openapi/ir.html#sstApiKey">ir: SecuritySchemeType.sstApiKey</a></li>
+          </ul></dd>
+<dt><a name="sstHttp" href="#sstHttp"><span>sstHttp:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: SecuritySchemeType.sstHttp" href="clue/features/openapi/ir.html#sstHttp">ir: SecuritySchemeType.sstHttp</a></li>
+          </ul></dd>
+<dt><a name="sstOAuth2" href="#sstOAuth2"><span>sstOAuth2:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: SecuritySchemeType.sstOAuth2" href="clue/features/openapi/ir.html#sstOAuth2">ir: SecuritySchemeType.sstOAuth2</a></li>
+          </ul></dd>
+<dt><a name="sstOpenIdConnect" href="#sstOpenIdConnect"><span>sstOpenIdConnect:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: SecuritySchemeType.sstOpenIdConnect" href="clue/features/openapi/ir.html#sstOpenIdConnect">ir: SecuritySchemeType.sstOpenIdConnect</a></li>
+          </ul></dd>
+<dt><a name="stArray" href="#stArray"><span>stArray:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: SchemaType.stArray" href="clue/features/openapi/ir.html#stArray">ir: SchemaType.stArray</a></li>
+          </ul></dd>
+<dt><a name="stBoolean" href="#stBoolean"><span>stBoolean:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: SchemaType.stBoolean" href="clue/features/openapi/ir.html#stBoolean">ir: SchemaType.stBoolean</a></li>
+          </ul></dd>
+<dt><a name="stInteger" href="#stInteger"><span>stInteger:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: SchemaType.stInteger" href="clue/features/openapi/ir.html#stInteger">ir: SchemaType.stInteger</a></li>
+          </ul></dd>
+<dt><a name="stNumber" href="#stNumber"><span>stNumber:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: SchemaType.stNumber" href="clue/features/openapi/ir.html#stNumber">ir: SchemaType.stNumber</a></li>
+          </ul></dd>
+<dt><a name="stObject" href="#stObject"><span>stObject:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: SchemaType.stObject" href="clue/features/openapi/ir.html#stObject">ir: SchemaType.stObject</a></li>
+          </ul></dd>
+<dt><a name="stString" href="#stString"><span>stString:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: SchemaType.stString" href="clue/features/openapi/ir.html#stString">ir: SchemaType.stString</a></li>
+          </ul></dd>
+<dt><a name="Tag" href="#Tag"><span>Tag:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="ir: object Tag" href="clue/features/openapi/ir.html#Tag">ir: object Tag</a></li>
+          </ul></dd>
+<dt><a name="uninstallCommand" href="#uninstallCommand"><span>uninstallCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="pkgmanager_commands: proc uninstallCommand(v: Values)" href="clue/commands/pkgmanager_commands.html#uninstallCommand%2CValues">pkgmanager_commands: proc uninstallCommand(v: Values)</a></li>
+          </ul></dd>
+<dt><a name="UnresolvedPackage" href="#UnresolvedPackage"><span>UnresolvedPackage:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: object UnresolvedPackage" href="clue/features/pkgmanager/resolver.html#UnresolvedPackage">resolver: object UnresolvedPackage</a></li>
+          </ul></dd>
+<dt><a name="vcAny" href="#vcAny"><span>vcAny:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: VersionConstraintKind.vcAny" href="clue/features/pkgmanager/resolver.html#vcAny">resolver: VersionConstraintKind.vcAny</a></li>
+          </ul></dd>
+<dt><a name="vcCaret" href="#vcCaret"><span>vcCaret:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: VersionConstraintKind.vcCaret" href="clue/features/pkgmanager/resolver.html#vcCaret">resolver: VersionConstraintKind.vcCaret</a></li>
+          </ul></dd>
+<dt><a name="vcExact" href="#vcExact"><span>vcExact:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: VersionConstraintKind.vcExact" href="clue/features/pkgmanager/resolver.html#vcExact">resolver: VersionConstraintKind.vcExact</a></li>
+          </ul></dd>
+<dt><a name="vcGt" href="#vcGt"><span>vcGt:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: VersionConstraintKind.vcGt" href="clue/features/pkgmanager/resolver.html#vcGt">resolver: VersionConstraintKind.vcGt</a></li>
+          </ul></dd>
+<dt><a name="vcGte" href="#vcGte"><span>vcGte:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: VersionConstraintKind.vcGte" href="clue/features/pkgmanager/resolver.html#vcGte">resolver: VersionConstraintKind.vcGte</a></li>
+          </ul></dd>
+<dt><a name="vcLt" href="#vcLt"><span>vcLt:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: VersionConstraintKind.vcLt" href="clue/features/pkgmanager/resolver.html#vcLt">resolver: VersionConstraintKind.vcLt</a></li>
+          </ul></dd>
+<dt><a name="vcLte" href="#vcLte"><span>vcLte:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: VersionConstraintKind.vcLte" href="clue/features/pkgmanager/resolver.html#vcLte">resolver: VersionConstraintKind.vcLte</a></li>
+          </ul></dd>
+<dt><a name="vcTilde" href="#vcTilde"><span>vcTilde:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: VersionConstraintKind.vcTilde" href="clue/features/pkgmanager/resolver.html#vcTilde">resolver: VersionConstraintKind.vcTilde</a></li>
+          </ul></dd>
+<dt><a name="venvCommand" href="#venvCommand"><span>venvCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="pkgmanager_commands: proc venvCommand(v: Values)" href="clue/commands/pkgmanager_commands.html#venvCommand%2CValues">pkgmanager_commands: proc venvCommand(v: Values)</a></li>
+          </ul></dd>
+<dt><a name="VersionConflictError" href="#VersionConflictError"><span>VersionConflictError:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: object VersionConflictError" href="clue/features/pkgmanager/resolver.html#VersionConflictError">resolver: object VersionConflictError</a></li>
+          </ul></dd>
+<dt><a name="VersionConstraint" href="#VersionConstraint"><span>VersionConstraint:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: object VersionConstraint" href="clue/features/pkgmanager/resolver.html#VersionConstraint">resolver: object VersionConstraint</a></li>
+          </ul></dd>
+<dt><a name="VersionConstraintKind" href="#VersionConstraintKind"><span>VersionConstraintKind:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="resolver: enum VersionConstraintKind" href="clue/features/pkgmanager/resolver.html#VersionConstraintKind">resolver: enum VersionConstraintKind</a></li>
+          </ul></dd>
+<dt><a name="withClueDB" href="#withClueDB"><span>withClueDB:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: template withClueDB(stmt)" href="clue/features/pkgmanager/configs.html#withClueDB.t">configs: template withClueDB(stmt)</a></li>
           </ul></dd>
 </dl>
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-07-05 10:08:29 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-07-16 20:08:21 UTC</small>
       </div>
     </div>
   </div>

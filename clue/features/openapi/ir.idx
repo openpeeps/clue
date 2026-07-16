@@ -1,0 +1,43 @@
+nimTitle	ir	clue/features/openapi/ir.html	module clue/features/openapi/ir		0
+nim	ServerVariable	clue/features/openapi/ir.html#ServerVariable	object ServerVariable		11
+nim	Server	clue/features/openapi/ir.html#Server	object Server		16
+nim	OpenApiInfo	clue/features/openapi/ir.html#OpenApiInfo	object OpenApiInfo		21
+nim	stObject	clue/features/openapi/ir.html#stObject	SchemaType.stObject		29
+nim	stArray	clue/features/openapi/ir.html#stArray	SchemaType.stArray		29
+nim	stString	clue/features/openapi/ir.html#stString	SchemaType.stString		29
+nim	stInteger	clue/features/openapi/ir.html#stInteger	SchemaType.stInteger		29
+nim	stNumber	clue/features/openapi/ir.html#stNumber	SchemaType.stNumber		29
+nim	stBoolean	clue/features/openapi/ir.html#stBoolean	SchemaType.stBoolean		29
+nim	SchemaType	clue/features/openapi/ir.html#SchemaType	enum SchemaType		29
+nim	ifAny	clue/features/openapi/ir.html#ifAny	IntegerFormat.ifAny		37
+nim	int32	clue/features/openapi/ir.html#int32	IntegerFormat.int32		37
+nim	int64	clue/features/openapi/ir.html#int64	IntegerFormat.int64		37
+nim	IntegerFormat	clue/features/openapi/ir.html#IntegerFormat	enum IntegerFormat		37
+nim	nfAny	clue/features/openapi/ir.html#nfAny	NumberFormat.nfAny		42
+nim	nfFloat	clue/features/openapi/ir.html#nfFloat	NumberFormat.nfFloat		42
+nim	nfDouble	clue/features/openapi/ir.html#nfDouble	NumberFormat.nfDouble		42
+nim	NumberFormat	clue/features/openapi/ir.html#NumberFormat	enum NumberFormat		42
+nim	Schema	clue/features/openapi/ir.html#Schema	type Schema		47
+nim	pinQuery	clue/features/openapi/ir.html#pinQuery	ParameterIn.pinQuery		75
+nim	pinHeader	clue/features/openapi/ir.html#pinHeader	ParameterIn.pinHeader		75
+nim	pinPath	clue/features/openapi/ir.html#pinPath	ParameterIn.pinPath		75
+nim	pinCookie	clue/features/openapi/ir.html#pinCookie	ParameterIn.pinCookie		75
+nim	ParameterIn	clue/features/openapi/ir.html#ParameterIn	enum ParameterIn		75
+nim	Parameter	clue/features/openapi/ir.html#Parameter	type Parameter		81
+nim	MediaType	clue/features/openapi/ir.html#MediaType	object MediaType		92
+nim	RequestBody	clue/features/openapi/ir.html#RequestBody	type RequestBody		96
+nim	Response	clue/features/openapi/ir.html#Response	type Response		102
+nim	Operation	clue/features/openapi/ir.html#Operation	type Operation		108
+nim	PathItem	clue/features/openapi/ir.html#PathItem	type PathItem		120
+nim	sstApiKey	clue/features/openapi/ir.html#sstApiKey	SecuritySchemeType.sstApiKey		133
+nim	sstHttp	clue/features/openapi/ir.html#sstHttp	SecuritySchemeType.sstHttp		133
+nim	sstOAuth2	clue/features/openapi/ir.html#sstOAuth2	SecuritySchemeType.sstOAuth2		133
+nim	sstOpenIdConnect	clue/features/openapi/ir.html#sstOpenIdConnect	SecuritySchemeType.sstOpenIdConnect		133
+nim	SecuritySchemeType	clue/features/openapi/ir.html#SecuritySchemeType	enum SecuritySchemeType		133
+nim	SecurityScheme	clue/features/openapi/ir.html#SecurityScheme	type SecurityScheme		139
+nim	SecurityRequirement	clue/features/openapi/ir.html#SecurityRequirement	type SecurityRequirement		150
+nim	Components	clue/features/openapi/ir.html#Components	object Components		152
+nim	ExternalDocs	clue/features/openapi/ir.html#ExternalDocs	object ExternalDocs		160
+nim	Tag	clue/features/openapi/ir.html#Tag	object Tag		164
+nim	OpenApi	clue/features/openapi/ir.html#OpenApi	type OpenApi		169
+nim	OpenApiError	clue/features/openapi/ir.html#OpenApiError	object OpenApiError		179

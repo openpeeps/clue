@@ -1,0 +1,2 @@
+nimTitle	build_commands	clue/commands/build_commands.html	module clue/commands/build_commands		0
+nim	buildCommand	clue/commands/build_commands.html#buildCommand,Values	proc buildCommand(v: Values)		32

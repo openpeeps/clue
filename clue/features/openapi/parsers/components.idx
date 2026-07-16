@@ -1,0 +1,2 @@
+nimTitle	components	clue/features/openapi/parsers/components.html	module clue/features/openapi/parsers/components		0
+nim	parseComponents	clue/features/openapi/parsers/components.html#parseComponents,JsonNode	proc parseComponents(node: JsonNode): Components		11

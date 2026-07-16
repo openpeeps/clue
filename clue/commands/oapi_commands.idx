@@ -1,0 +1,2 @@
+nimTitle	oapi_commands	clue/commands/oapi_commands.html	module clue/commands/oapi_commands		0
+nim	openapiCommand	clue/commands/oapi_commands.html#openapiCommand,Values	proc openapiCommand(v: Values)		23

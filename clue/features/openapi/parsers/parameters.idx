@@ -1,0 +1,4 @@
+nimTitle	parameters	clue/features/openapi/parsers/parameters.html	module clue/features/openapi/parsers/parameters		0
+nim	parseParameter	clue/features/openapi/parsers/parameters.html#parseParameter,JsonNode	proc parseParameter(node: JsonNode): Parameter		11
+nim	parseParameters	clue/features/openapi/parsers/parameters.html#parseParameters,JsonNode	proc parseParameters(node: JsonNode): seq[Parameter]		38
+nim	parseParameterMap	clue/features/openapi/parsers/parameters.html#parseParameterMap,JsonNode	proc parseParameterMap(node: JsonNode): OrderedTableRef[string, Parameter]		46

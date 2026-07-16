@@ -1,5 +1,0 @@
-nimTitle	pkits	cluepkg/commands/pkits.html	module cluepkg/commands/pkits		0
-nim	pluginsPhpCommand	cluepkg/commands/pkits.html#pluginsPhpCommand,Values	proc pluginsPhpCommand(v: Values)		20
-nim	pluginsRubyCommand	cluepkg/commands/pkits.html#pluginsRubyCommand,Values	proc pluginsRubyCommand(v: Values)		23
-nim	pluginsLuaCommand	cluepkg/commands/pkits.html#pluginsLuaCommand,Values	proc pluginsLuaCommand(v: Values)		26
-nim	pluginsPyCommand	cluepkg/commands/pkits.html#pluginsPyCommand,Values	proc pluginsPyCommand(v: Values)		29

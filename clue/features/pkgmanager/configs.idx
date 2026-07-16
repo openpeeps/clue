@@ -1,0 +1,12 @@
+nimTitle	configs	clue/features/pkgmanager/configs.html	module clue/features/pkgmanager/configs		0
+nim	cluePath	clue/features/pkgmanager/configs.html#cluePath	const cluePath		19
+nim	clueDBPath	clue/features/pkgmanager/configs.html#clueDBPath	const clueDBPath		20
+nim	cluePkgsPath	clue/features/pkgmanager/configs.html#cluePkgsPath	const cluePkgsPath		21
+nim	cluePkgsCachePath	clue/features/pkgmanager/configs.html#cluePkgsCachePath	const cluePkgsCachePath		22
+nim	nimbleLocalPackages	clue/features/pkgmanager/configs.html#nimbleLocalPackages	const nimbleLocalPackages		23
+nim	Package	clue/features/pkgmanager/configs.html#Package	object Package		26
+nim	NimbleDependency	clue/features/pkgmanager/configs.html#NimbleDependency	object NimbleDependency		47
+nim	NimbleFile	clue/features/pkgmanager/configs.html#NimbleFile	object NimbleFile		55
+nim	clueDB	clue/features/pkgmanager/configs.html#clueDB	var clueDB		69
+nim	initClue	clue/features/pkgmanager/configs.html#initClue	proc initClue()		71
+nim	withClueDB	clue/features/pkgmanager/configs.html#withClueDB.t	template withClueDB(stmt)		112

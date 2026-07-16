@@ -1,3 +1,0 @@
-nimTitle	docs	cluepkg/commands/docs.html	module cluepkg/commands/docs		0
-nim	docsGenCommand	cluepkg/commands/docs.html#docsGenCommand,Values	proc docsGenCommand(v: Values)		5
-nim	docsOpenCommand	cluepkg/commands/docs.html#docsOpenCommand,Values	proc docsOpenCommand(v: Values)		15

@@ -1,0 +1,5 @@
+nimTitle	security	clue/features/openapi/parsers/security.html	module clue/features/openapi/parsers/security		0
+nim	parseSecurityScheme	clue/features/openapi/parsers/security.html#parseSecurityScheme,JsonNode	proc parseSecurityScheme(node: JsonNode): SecurityScheme		10
+nim	parseSecuritySchemeMap	clue/features/openapi/parsers/security.html#parseSecuritySchemeMap,JsonNode	proc parseSecuritySchemeMap(node: JsonNode): OrderedTableRef[string, SecurityScheme]		37
+nim	parseSecurityRequirement	clue/features/openapi/parsers/security.html#parseSecurityRequirement,JsonNode	proc parseSecurityRequirement(node: JsonNode): SecurityRequirement		44
+nim	parseSecurityRequirements	clue/features/openapi/parsers/security.html#parseSecurityRequirements,JsonNode	proc parseSecurityRequirements(node: JsonNode): seq[SecurityRequirement]		55

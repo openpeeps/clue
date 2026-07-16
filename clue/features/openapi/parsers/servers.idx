@@ -1,0 +1,5 @@
+nimTitle	servers	clue/features/openapi/parsers/servers.html	module clue/features/openapi/parsers/servers		0
+nim	parseServerVariable	clue/features/openapi/parsers/servers.html#parseServerVariable,JsonNode	proc parseServerVariable(node: JsonNode): ServerVariable		10
+nim	parseServerVariables	clue/features/openapi/parsers/servers.html#parseServerVariables,JsonNode	proc parseServerVariables(node: JsonNode): OrderedTableRef[string, ServerVariable]		21
+nim	parseServer	clue/features/openapi/parsers/servers.html#parseServer,JsonNode	proc parseServer(node: JsonNode): Server		28
+nim	parseServers	clue/features/openapi/parsers/servers.html#parseServers,JsonNode	proc parseServers(node: JsonNode): seq[Server]		38

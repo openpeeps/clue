@@ -1,0 +1,4 @@
+nimTitle	paths	clue/features/openapi/parsers/paths.html	module clue/features/openapi/parsers/paths		0
+nim	parseOperation	clue/features/openapi/parsers/paths.html#parseOperation,JsonNode	proc parseOperation(node: JsonNode): Operation		11
+nim	parsePathItem	clue/features/openapi/parsers/paths.html#parsePathItem,string,JsonNode	proc parsePathItem(path: string; node: JsonNode): PathItem		37
+nim	parsePaths	clue/features/openapi/parsers/paths.html#parsePaths,JsonNode	proc parsePaths(node: JsonNode): OrderedTableRef[string, PathItem]		64

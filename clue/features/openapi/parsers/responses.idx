@@ -1,0 +1,3 @@
+nimTitle	responses	clue/features/openapi/parsers/responses.html	module clue/features/openapi/parsers/responses		0
+nim	parseResponse	clue/features/openapi/parsers/responses.html#parseResponse,JsonNode	proc parseResponse(node: JsonNode): Response		11
+nim	parseResponseMap	clue/features/openapi/parsers/responses.html#parseResponseMap,JsonNode	proc parseResponseMap(node: JsonNode): OrderedTableRef[string, Response]		25
