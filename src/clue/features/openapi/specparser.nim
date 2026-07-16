@@ -45,31 +45,13 @@ const reservedWords* = ["addr","and","as","asm","bind","block","break","case","c
   "ref","return","shl","shr","static","template","try","tuple","type","using", "var",
   "when","while","xor","yield"]
 
-proc parseSpecification*(pkg: Package, content: string,
-  prefs: PackagePreferences,
-  parseAsYaml = false,
+proc parseSpecification*(pkg: Package; root: JsonNode;
+  prefs: PackagePreferences;
   skipPrefixPath = ""
 ) =
   pkg.prefs = prefs
   pkg.enums = PackageGlobalEnums()
   pkg.preparedSchemas = newOrderedTable[string, Schema]()
-
-  var root: JsonNode
-  if parseAsYaml:
-    try:
-      root = openjson.fromJson(content)
-      if root.isNil:
-        displayError("Failed to parse YAML spec")
-        return
-    except:
-      displayError("Failed to parse YAML spec: " & getCurrentExceptionMsg())
-      return
-  else:
-    try:
-      root = openjson.fromJson(content)
-    except:
-      displayError("Failed to parse JSON spec: " & getCurrentExceptionMsg())
-      return
 
   if root.isNil or root.kind != JObject:
     displayError("Spec content is empty or not a valid JSON object")
@@ -137,10 +119,11 @@ proc parseSpecification*(pkg: Package, content: string,
   else:
     displayInfo(&"Parsed OpenAPI v{pkg.oapi.openapi}")
 
-  for schemaName, spec in pkg.oapi.components.schemas.pairs:
-    pkg.preparedSchemas[schemaName] = spec
-    if prefs.verbose:
-      displayInfo("  schema: " & schemaName)
+  if pkg.oapi.components.schemas != nil:
+    for schemaName, spec in pkg.oapi.components.schemas.pairs:
+      pkg.preparedSchemas[schemaName] = spec
+      if prefs.verbose:
+        displayInfo("  schema: " & schemaName)
 
 proc dumpIR*(pkg: Package): string =
   if pkg.oapi.isNil:
@@ -160,10 +143,9 @@ when isMainModule:
     license: "MIT",
     outputPath: "./examples/hetzner_client"
   )
-  let specContent = readFile("examples/openapi/hetzner.spec.json")
+  let root = openjson.fromJson(readFile("examples/openapi/hetzner.spec.json"))
   pkg.parseSpecification(
-    specContent,
-    prefs = PackagePreferences(verbose: true, skipComponentSchemas: false),
-    parseAsYaml = false
+    root,
+    prefs = PackagePreferences(verbose: true, skipComponentSchemas: false)
   )
   echo dumpIR(pkg)

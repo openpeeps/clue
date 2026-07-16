@@ -8,6 +8,7 @@ import std/[os, osproc, strutils, httpclient]
 
 import pkg/kapsis/runtime
 import pkg/kapsis/interactive/prompts
+import pkg/openparser/json as openjson
 
 import ../features/openapi/specparser
 import ../features/openapi/codegen
@@ -32,13 +33,33 @@ proc openapiCommand*(v: Values) =
 
   let specpath = v.get("spec").getPath.path
 
-  var content: string
+  var root: openjson.JsonNode
   if specpath.fileExists:
-    content = readFile(specpath)
+    if specpath.endsWith(".yml") or specpath.endsWith(".yaml"):
+      let content = readFile(specpath)
+      try:
+        root = openjson.fromJson(content)
+        if root.isNil:
+          displayError("Failed to parse YAML spec")
+          return
+      except:
+        displayError("Failed to parse YAML spec: " & getCurrentExceptionMsg())
+        return
+    else:
+      try:
+        root = openjson.fromJsonFile(specpath)
+      except:
+        displayError("Failed to parse JSON spec: " & getCurrentExceptionMsg())
+        return
   elif specpath.startsWith("http://") or specpath.startsWith("https://"):
     var httpClient = newHttpClient()
     try:
-      content = httpClient.getContent(specpath)
+      let content = httpClient.getContent(specpath)
+      try:
+        root = openjson.fromJson(content)
+      except:
+        displayError("Failed to parse spec: " & getCurrentExceptionMsg())
+        return
     finally:
       httpClient.close()
   else:
@@ -54,12 +75,11 @@ proc openapiCommand*(v: Values) =
     )
 
     pkg.parseSpecification(
-      content,
+      root,
       prefs = PackagePreferences(
         verbose: outputDir.len == 0 and outputPath.len == 0,
         skipComponentSchemas: v.has("--skipComponentSchemas")
-      ),
-      parseAsYaml = specpath.endsWith(".yml") or specpath.endsWith(".yaml")
+      )
     )
 
     pkg.id = derivePkgId(pkg)

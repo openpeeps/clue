@@ -33,6 +33,7 @@ proc fmtDocComment(indent: string, desc: string; maxWidth = 80): string =
 
 const
   stubMetaclient = staticRead("stubs/metaclient.nim")
+  stubMetaclientOAuth2 = staticRead("stubs/metaclient_oauth2.nim")
   stubReadme = staticRead("stubs/readme.md")
   stubNimble = staticRead("stubs/pkg.nimble")
   stubHeader = staticRead("stubs/header.txt")
@@ -46,11 +47,14 @@ type
     baseUri*: string
     genTime*: string
     schemas*: OrderedTableRef[string, Schema]
+    authType*: string
+    oauthTokenUrl*: string
+    oauthAuthUrl*: string
 
 proc toPascalCase(s: string): string =
   var nextUpper = true
   for c in s:
-    if c == '_' or c == '-' or c == '/':
+    if c in {'_', '-', '/', ':'}:
       nextUpper = true
     elif nextUpper:
       add result, c.toUpperAscii
@@ -70,7 +74,7 @@ proc toSnakeCase(s: string): string =
 proc toCamelCase(s: string): string =
   var nextUpper = false
   for c in s:
-    if c == '_' or c == '-' or c == '/':
+    if c in {'_', '-', '/', ':'}:
       nextUpper = true
     elif nextUpper:
       add result, c.toUpperAscii
@@ -135,6 +139,35 @@ proc nimTypeForSchema*(schema: Schema, schemas: OrderedTableRef[string, Schema];
     if schema.name.len > 0:
       return schemaNameToTypeName(schema.name)
     return "JsonNode"
+
+proc pascalSingular(tag: string): string =
+  let singular =
+    if tag.endsWith("s"): tag[0..^2]
+    else: tag
+  toPascalCase(singular)
+
+proc paramHasEnum(param: Parameter): bool =
+  param.schema != nil and param.schema.enumValues.len > 0
+
+proc paramIsSimpleArray(param: Parameter): bool =
+  param.schema != nil and param.schema.fieldType == stArray and
+    param.schema.items != nil and param.schema.items.enumValues.len == 0
+
+proc enumParamNimType(param: Parameter; tag: string): string =
+  let enumName = safeIdent(pascalSingular(tag) & toPascalCase(param.name) & "Option")
+  "set[" & enumName & "]"
+
+proc enumParamDefault(param: Parameter; tag: string): string =
+  if paramHasEnum(param): "{}"
+  elif paramIsSimpleArray(param): "@[]"
+  else: ""
+
+proc genEnumForQueryParam(param: Parameter; tag: string): string =
+  let enumName = safeIdent(pascalSingular(tag) & toPascalCase(param.name) & "Option")
+  result = &"  {enumName}* = enum\n"
+  for val in param.schema.enumValues:
+    let fieldName = toCamelCase(param.name) & toPascalCase(val)
+    result &= &"    {fieldName} = \"{val}\"\n"
 
 proc genTypeDefinition*(schemaName: string, schema: Schema, schemas: OrderedTableRef[string, Schema]): string =
   if schema.refPath.len > 0:
@@ -207,17 +240,10 @@ proc genRequestType(ident: string, bodySchema: Schema, schemas: OrderedTableRef[
       result.setLen(result.len - 1)
 
 proc genResponseType(ident: string, httpMeth: string, responseSchema: Schema, schemas: OrderedTableRef[string, Schema]): string =
-  if responseSchema.isNil:
-    return
-  let typeName = httpMeth.toLowerAscii.toUpperAscii[0] & httpMeth.toLowerAscii[1..^1] & ident & "Response"
-  if responseSchema.refPath.len > 0:
-    let parts = responseSchema.refPath.split("/")
-    let refName = parts[parts.high]
-    result = &"  {typeName}* = {schemaNameToTypeName(refName)}\n"
-    if responseSchema.description.len > 0:
-      result &= &"    ## {responseSchema.description}\n"
+  if responseSchema.isNil or responseSchema.refPath.len > 0:
     return
   if responseSchema.fieldType == stObject and not responseSchema.properties.isNil:
+    let typeName = httpMeth.toLowerAscii.toUpperAscii[0] & httpMeth.toLowerAscii[1..^1] & ident & "Response"
     let desc = fmtDocComment("    ", responseSchema.description)
     result = &"  {typeName}* = object\n"
     result &= desc
@@ -231,7 +257,7 @@ proc genResponseType(ident: string, httpMeth: string, responseSchema: Schema, sc
 
 proc genEndpointProc(httpMeth: string; path: string; operation: Operation;
   schemas: OrderedTableRef[string, Schema];
-  pkgIdent: string): string =
+  pkgIdent: string; tag: string): string =
   let ep = genEndpoint(path)
   let httpMethod = httpMeth.toLowerAscii
   let procName = httpMethod & ep.ident
@@ -283,22 +309,23 @@ proc genEndpointProc(httpMeth: string; path: string; operation: Operation;
       "AsyncResponse"
 
   result = "\n"
-  if operation.summary.len > 0:
-    result &= &"## {operation.summary}\n"
   result &= &"proc {procName}*(client: {pkgIdent}Client"
 
   for param in operation.parameters:
     if param.isNil: continue
     let paramName = safeIdent(toCamelCase(param.name))
-    let paramType = nimTypeForSchema(param.schema, schemas)
     case param.kind
     of pinPath:
-      result &= &", {paramName}: {paramType}"
+      result &= &", {paramName}: {nimTypeForSchema(param.schema, schemas)}"
     of pinQuery:
-      if param.required:
-        result &= &", {paramName}: {paramType}"
+      if paramHasEnum(param):
+        result &= &", {paramName}: {enumParamNimType(param, tag)} = {enumParamDefault(param, tag)}"
+      elif paramIsSimpleArray(param):
+        result &= &", {paramName}: seq[string] = @[]"
+      elif param.required:
+        result &= &", {paramName}: {nimTypeForSchema(param.schema, schemas)}"
       else:
-        result &= &", {paramName}: {paramType} = default({paramType})"
+        result &= &", {paramName}: {nimTypeForSchema(param.schema, schemas)} = default({nimTypeForSchema(param.schema, schemas)})"
     else: discard
 
   if hasBody:
@@ -309,11 +336,23 @@ proc genEndpointProc(httpMeth: string; path: string; operation: Operation;
 
   result &= &"): Future[{respTypeName}] {{.async.}} =\n"
 
+  let docDesc =
+    if operation.description.len > 0:
+      fmtDocComment("  ", operation.description.strip)
+    elif operation.summary.len > 0:
+      fmtDocComment("  ", operation.summary)
+    else: ""
+  if docDesc.len > 0:
+    result &= docDesc & "\n"
+
   if queryParams.len > 0:
     result &= "  var q = initOrderedTable[string, string]()\n"
     for param in queryParams:
       let paramName = safeIdent(toCamelCase(param.name))
-      result &= &"  q[\"{param.name}\"] = ${paramName}\n"
+      if paramHasEnum(param) or paramIsSimpleArray(param):
+        result &= &"  for v in {paramName}: q[\"{param.name}\"] = $v\n"
+      else:
+        result &= &"  q[\"{param.name}\"] = ${paramName}\n"
 
   if pathParams.len > 0:
     var fmtPath = ep.endpoint
@@ -351,8 +390,8 @@ proc genEndpointFile*(tag: string, ops: seq[tuple[path: string, meth: string, op
   result &= "import std/[strformat, options, json]\n"
   result &= "import ./metaclient\n"
   result &= "import ./types\n\n"
-  result &= "type\n"
 
+  var hasTypes = false
   var firstType = true
   for (path, meth, operation) in ops:
     let ep = genEndpoint(path)
@@ -365,6 +404,9 @@ proc genEndpointFile*(tag: string, ops: seq[tuple[path: string, meth: string, op
     if not bodySchema.isNil and bodySchema.refPath.len == 0 and bodySchema.fieldType == stObject and not bodySchema.properties.isNil:
       let reqType = genRequestType(ep.ident, bodySchema, schemas)
       if reqType.len > 0:
+        if not hasTypes:
+          result &= "type\n"
+          hasTypes = true
         if not firstType:
           result &= "\n"
         result &= reqType
@@ -375,16 +417,58 @@ proc genEndpointFile*(tag: string, ops: seq[tuple[path: string, meth: string, op
           if mediaType == "application/json" and not mt.schema.isNil:
             let respType = genResponseType(ep.ident, meth, mt.schema, schemas)
             if respType.len > 0:
+              if not hasTypes:
+                result &= "type\n"
+                hasTypes = true
               if not firstType:
                 result &= "\n"
               result &= respType
               firstType = false
 
-  if not firstType:
+  var emittedEnums: seq[string]
+  for (path, meth, operation) in ops:
+    for param in operation.parameters:
+      if param != nil and param.kind == pinQuery and paramHasEnum(param):
+        let enumName = pascalSingular(tag) & toPascalCase(param.name) & "Option"
+        if enumName notin emittedEnums:
+          emittedEnums.add(enumName)
+          let enumDef = genEnumForQueryParam(param, tag)
+          if enumDef.len > 0:
+            if not hasTypes:
+              result &= "type\n"
+              hasTypes = true
+            if not firstType:
+              result &= "\n"
+            result &= enumDef
+            firstType = false
+
+  if hasTypes:
     result &= "\n"
 
   for (path, meth, operation) in ops:
-    result &= genEndpointProc(meth, path, operation, schemas, pkgIdent)
+    result &= genEndpointProc(meth, path, operation, schemas, pkgIdent, tag)
+
+proc serverIdent(description, url: string): string =
+  let src =
+    if description.len > 0: description
+    else: url
+  result = ""
+  var nextUpper = true
+  for c in src:
+    if c == ' ' or c == '-' or c == '_' or c == '/' or c == '.' or c == ':':
+      nextUpper = true
+    elif c.isAlphaAscii or c.isDigit:
+      if nextUpper:
+        result.add(c.toUpperAscii)
+        nextUpper = false
+      else:
+        result.add(c)
+
+proc genServers*(servers: seq[Server]): string =
+  result = "const\n"
+  for i, srv in servers:
+    let name = "server" & serverIdent(srv.description, srv.url)
+    result &= &"  {name}* = \"{srv.url}\"\n"
 
 proc groupOperations*(pkg: Package): OrderedTableRef[string, seq[tuple[path: string, meth: string, operation: Operation]]] =
   new(result)
@@ -410,6 +494,15 @@ proc groupOperations*(pkg: Package): OrderedTableRef[string, seq[tuple[path: str
         result[tag] = newSeq[tuple[path: string, meth: string, operation: Operation]]()
       result[tag].add((curPath, httpMeth, op))
 
+proc detectOAuthUrl(scheme: SecurityScheme, kind: string): string =
+  if scheme.isNil or scheme.flows.isNil or scheme.flows.kind != JObject:
+    return
+  for flowName in ["authorizationCode", "implicit", "password", "clientCredentials"]:
+    if scheme.flows.hasKey(flowName) and scheme.flows[flowName].kind == JObject:
+      let flow = scheme.flows[flowName]
+      if flow.hasKey(kind) and flow[kind].kind == JString:
+        return flow[kind].getStr
+
 proc newGenerator*(pkg: Package, outputDir: string): Generator =
   new(result)
   result.pkg = pkg
@@ -417,11 +510,19 @@ proc newGenerator*(pkg: Package, outputDir: string): Generator =
   result.pkgName = if pkg.id.len > 0: pkg.id else: "client"
   result.pkgIdent = toPascalCase(result.pkgName)
   result.genTime = $now()
+  result.authType = "bearer"
   if pkg.oapi != nil:
     if pkg.oapi.servers.len > 0:
       result.baseUri = pkg.oapi.servers[0].url
     if pkg.oapi.components.schemas != nil:
       result.schemas = pkg.oapi.components.schemas
+    if pkg.oapi.components.securitySchemes != nil:
+      for name, scheme in pkg.oapi.components.securitySchemes.pairs:
+        if scheme != nil and scheme.schemeType == sstOAuth2:
+          result.authType = "oauth2"
+          result.oauthTokenUrl = detectOAuthUrl(scheme, "tokenUrl")
+          result.oauthAuthUrl = detectOAuthUrl(scheme, "authorizationUrl")
+          break
 
 proc fillTemplate(tmpl: string, vars: Table[string, string]): string =
   result = tmpl
@@ -443,6 +544,10 @@ proc generate*(gen: Generator) =
       else: gen.baseUri
     else: ""
 
+  let oauth2Require =
+    if gen.authType == "oauth2": "\nrequires \"oauth2\""
+    else: ""
+
   let vars = {
     "clue_pkg_name": gen.pkgName,
     "clue_client_ident": gen.pkgIdent & "Client",
@@ -451,18 +556,30 @@ proc generate*(gen: Generator) =
     "clue_pkg_license": gen.pkg.license,
     "clue_pkg_desc": gen.pkg.description,
     "clue_base_uri": serverUrl,
+    "clue_oauth_token_url": gen.oauthTokenUrl,
+    "clue_oauth_auth_url": gen.oauthAuthUrl,
+    "clue_requires_oauth2": oauth2Require,
     "pkgVersion": gen.pkg.openApiVersion,
     "pkgAuthor": gen.pkg.author,
     "pkgDesc": gen.pkg.description,
     "pkgLicense": gen.pkg.license,
   }.toTable
 
-  writeFile(srcPkgDir / "metaclient.nim", fillTemplate(stubMetaclient, vars))
+  let metaclientStub =
+    if gen.authType == "oauth2": stubMetaclientOAuth2
+    else: stubMetaclient
+  writeFile(srcPkgDir / "metaclient.nim", fillTemplate(metaclientStub, vars))
   writeFile(gen.outputDir / "README.md", fillTemplate(stubReadme, vars))
 
   if not gen.schemas.isNil and gen.schemas.len > 0:
     let typesCode = genTypes(gen.schemas)
     writeFile(srcPkgDir / "types.nim", typesCode)
+
+  var hasServers = false
+  if not gen.pkg.oapi.isNil and gen.pkg.oapi.servers.len > 1:
+    let serversCode = genServers(gen.pkg.oapi.servers)
+    writeFile(srcPkgDir / "server_urls.nim", serversCode)
+    hasServers = true
 
   let groups = groupOperations(gen.pkg)
   if not groups.isNil:
@@ -480,6 +597,9 @@ proc generate*(gen: Generator) =
   mainExports.add("types")
   mainImports.add(&"import ./{gen.pkgName}/metaclient")
   mainExports.add("metaclient")
+  if hasServers:
+    mainImports.add(&"import ./{gen.pkgName}/server_urls")
+    mainExports.add("server_urls")
 
   let mainCode = mainImports.join("\n") & "\n\n" &
     "export " & mainExports.join(", ") & "\n"
