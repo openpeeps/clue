@@ -162,6 +162,23 @@ proc enumParamDefault(param: Parameter; tag: string): string =
   elif paramIsSimpleArray(param): "@[]"
   else: ""
 
+proc paramDefaultValue(param: Parameter): string =
+  if param.schema.isNil or param.schema.default.isNil or param.schema.default.kind == JNull:
+    return
+  let d = param.schema.default
+  case param.schema.fieldType
+  of stString:
+    result = "\"" & d.getStr & "\""
+  of stInteger:
+    if d.kind == JInt:
+      result = $d.getInt
+  of stNumber:
+    if d.kind == JFloat:
+      result = $d.getFloat
+  of stBoolean:
+    result = if d.getBool: "true" else: "false"
+  else: discard
+
 proc genEnumForQueryParam(param: Parameter; tag: string): string =
   let enumName = safeIdent(pascalSingular(tag) & toPascalCase(param.name) & "Option")
   result = &"  {enumName}* = enum\n"
@@ -309,32 +326,54 @@ proc genEndpointProc(httpMeth: string; path: string; operation: Operation;
       "AsyncResponse"
 
   result = "\n"
-  result &= &"proc {procName}*(client: {pkgIdent}Client"
 
+  var paramStrs: seq[string]
+  paramStrs.add("client: " & pkgIdent & "Client")
   for param in operation.parameters:
     if param.isNil: continue
     let paramName = safeIdent(toCamelCase(param.name))
+    let nimType = nimTypeForSchema(param.schema, schemas)
     case param.kind
     of pinPath:
-      result &= &", {paramName}: {nimTypeForSchema(param.schema, schemas)}"
+      paramStrs.add(paramName & ": " & nimType)
     of pinQuery:
-      if paramHasEnum(param):
-        result &= &", {paramName}: {enumParamNimType(param, tag)} = {enumParamDefault(param, tag)}"
+      let defaultVal = paramDefaultValue(param)
+      if defaultVal.len > 0:
+        paramStrs.add(paramName & ": " & nimType & " = " & defaultVal)
+      elif paramHasEnum(param):
+        paramStrs.add(paramName & ": " & enumParamNimType(param, tag) & " = {}")
       elif paramIsSimpleArray(param):
-        result &= &", {paramName}: seq[string] = @[]"
+        paramStrs.add(paramName & ": seq[string] = @[]")
       elif param.required:
-        result &= &", {paramName}: {nimTypeForSchema(param.schema, schemas)}"
+        paramStrs.add(paramName & ": " & nimType)
       else:
-        result &= &", {paramName}: {nimTypeForSchema(param.schema, schemas)} = default({nimTypeForSchema(param.schema, schemas)})"
+        paramStrs.add(paramName & ": " & nimType & " = default(" & nimType & ")")
     else: discard
 
   if hasBody:
     if bodyRefName.len > 0:
-      result &= &", body: {bodyRefName}"
+      paramStrs.add("body: " & bodyRefName)
     elif bodyNeedsRequestType:
-      result &= &", body: {ep.ident}Request"
+      paramStrs.add("body: " & ep.ident & "Request")
 
-  result &= &"): Future[{respTypeName}] {{.async.}} =\n"
+  let procPrefix = "proc " & procName & "*("
+  let suffix = ": Future[" & respTypeName & "] {.async.} =\n"
+  const maxLine = 80
+  let align = procPrefix.len
+  result &= procPrefix
+  var lineLen = procPrefix.len
+  for i, p in paramStrs:
+    let comma = if i > 0: ", " else: ""
+    let totalLen = comma.len + p.len
+    if lineLen + totalLen > maxLine and i > 0:
+      result &= ",\n" & spaces(align)
+      lineLen = align
+    elif i > 0:
+      result &= ", "
+      lineLen += 2
+    result &= p
+    lineLen += p.len
+  result &= ")" & suffix
 
   let docDesc =
     if operation.description.len > 0:
