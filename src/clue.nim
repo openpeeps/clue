@@ -39,10 +39,19 @@ when isMainModule:
       docs:
         ## Generate Nim docs for local packages
         gen string(pkgname):
-          ## Generate documentation for a specific package
+          ## Build documentation for a Nim package
 
         open string(pkgname):
-          ## Open specified pkg docs in the browser
+          ## Open built docs in the browser
+
+        rebuild:
+          ## Rebuild docs for all documented packages
+
+        list:
+          ## List all documented packages
+
+        overview:
+          ## Regenerate the docs overview page
       
       #
       # Build native extensions for other languages
@@ -60,8 +69,11 @@ when isMainModule:
       #   package string(pkgname):
       #     ## Generate bindings for a C library as a Nim package
       
-      openapi path(spec), ?string("--output"), ?string("--dir"):
-        ## Generate a new API client library from OpenAPI spec file
+      oapi_init:
+        ## Initialize a default clue.openapi.config.yaml file
+
+      openapi path(spec), string("output"), ?string("--config"), ?bool("-y"):
+        ## Generate a new API client library from OpenAPI 3.0 spec file
 
       # -- "Bundlers"
       #   ## Commands for bundling plugins for different package managers
