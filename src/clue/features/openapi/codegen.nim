@@ -50,6 +50,7 @@ type
     authType*: string
     oauthTokenUrl*: string
     oauthAuthUrl*: string
+    skipPrefixPath*: string
 
 proc toPascalCase(s: string): string =
   var nextUpper = true
@@ -90,13 +91,22 @@ proc genEndpoint*(path: string, skipPrefixPath: sink string = ""): tuple[ident, 
       if i != 0:
         add result.module, '_'
       inc i
-      while i <= path.high and path[i] notin {'a'..'z'}:
+      while i <= path.high and path[i] notin Letters:
         inc i
       if i <= path.high:
         add result.ident, path[i].toUpperAscii
         add result.module, path[i]
     of '{', '}':
       discard
+    of '#', '=', '.':
+      if i != 0:
+        add result.module, '_'
+      inc i
+      while i <= path.high and path[i] notin Letters:
+        inc i
+      if i <= path.high:
+        add result.ident, path[i].toUpperAscii
+        add result.module, path[i]
     else:
       add result.ident, path[i]
       add result.module, path[i]
@@ -179,6 +189,21 @@ proc paramDefaultValue(param: Parameter): string =
     result = if d.getBool: "true" else: "false"
   else: discard
 
+proc isRefSchemaNullable(refPath: string; schemas: OrderedTableRef[string, Schema]): bool =
+  if refPath.len == 0: return false
+  let parts = refPath.split("/")
+  let name = parts[^1]
+  schemas.hasKey(name) and schemas[name] != nil and schemas[name].nullable
+
+proc isOptionalField(propName: string; propSchema: Schema; schema: Schema;
+                     schemas: OrderedTableRef[string, Schema]): bool =
+  if propName notin schema.required:
+    return true
+  if propSchema.nullable:
+    return true
+  if isRefSchemaNullable(propSchema.refPath, schemas):
+    return true
+
 proc genEnumForQueryParam(param: Parameter; tag: string): string =
   let enumName = safeIdent(pascalSingular(tag) & toPascalCase(param.name) & "Option")
   result = &"  {enumName}* = enum\n"
@@ -203,11 +228,10 @@ proc genTypeDefinition*(schemaName: string, schema: Schema, schemas: OrderedTabl
       for propName, propSchema in schema.properties.pairs:
         let nimName = safeIdent(toSnakeCase(propName))
         let nimType = nimTypeForSchema(propSchema, schemas)
-        let isRequired = propName in schema.required
-        if isRequired:
-          result &= &"    {nimName}*: {nimType}\n"
-        else:
+        if isOptionalField(propName, propSchema, schema, schemas):
           result &= &"    {nimName}*: Option[{nimType}]\n"
+        else:
+          result &= &"    {nimName}*: {nimType}\n"
         result &= fmtDocComment("      ", propSchema.description)
   of stString:
     if schema.enumValues.len > 0:
@@ -248,11 +272,10 @@ proc genRequestType(ident: string, bodySchema: Schema, schemas: OrderedTableRef[
     for propName, propSchema in bodySchema.properties.pairs:
       let nimName = safeIdent(toSnakeCase(propName))
       let nimType = nimTypeForSchema(propSchema, schemas)
-      let isRequired = propName in bodySchema.required
-      if isRequired:
-        result &= &"    {nimName}: {nimType}\n"
-      else:
+      if isOptionalField(propName, propSchema, bodySchema, schemas):
         result &= &"    {nimName}: Option[{nimType}]\n"
+      else:
+        result &= &"    {nimName}: {nimType}\n"
     if result.endsWith("\n"):
       result.setLen(result.len - 1)
 
@@ -274,8 +297,9 @@ proc genResponseType(ident: string, httpMeth: string, responseSchema: Schema, sc
 
 proc genEndpointProc(httpMeth: string; path: string; operation: Operation;
   schemas: OrderedTableRef[string, Schema];
-  pkgIdent: string; tag: string): string =
-  let ep = genEndpoint(path)
+  pkgIdent: string; tag: string;
+  skipPrefixPath: sink string = ""): string =
+  let ep = genEndpoint(path, skipPrefixPath)
   let httpMethod = httpMeth.toLowerAscii
   let procName = httpMethod & ep.ident
   let errType = &"{pkgIdent}ClientError"
@@ -424,7 +448,8 @@ proc genEndpointProc(httpMeth: string; path: string; operation: Operation;
 
 proc genEndpointFile*(tag: string, ops: seq[tuple[path: string, meth: string, operation: Operation]],
   schemas: OrderedTableRef[string, Schema];
-  pkgIdent: string): string =
+  pkgIdent: string;
+  skipPrefixPath: sink string = ""): string =
   result = stubHeader
   result &= "import std/[strformat, options, json]\n"
   result &= "import ./metaclient\n"
@@ -433,7 +458,7 @@ proc genEndpointFile*(tag: string, ops: seq[tuple[path: string, meth: string, op
   var hasTypes = false
   var firstType = true
   for (path, meth, operation) in ops:
-    let ep = genEndpoint(path)
+    let ep = genEndpoint(path, skipPrefixPath)
     var bodySchema: Schema
     if not operation.requestBody.isNil and not operation.requestBody.content.isNil:
       for mediaType, mt in operation.requestBody.content.pairs:
@@ -485,7 +510,7 @@ proc genEndpointFile*(tag: string, ops: seq[tuple[path: string, meth: string, op
     result &= "\n"
 
   for (path, meth, operation) in ops:
-    result &= genEndpointProc(meth, path, operation, schemas, pkgIdent, tag)
+    result &= genEndpointProc(meth, path, operation, schemas, pkgIdent, tag, skipPrefixPath)
 
 proc serverIdent(description, url: string): string =
   let src =
@@ -542,7 +567,7 @@ proc detectOAuthUrl(scheme: SecurityScheme, kind: string): string =
       if flow.hasKey(kind) and flow[kind].kind == JString:
         return flow[kind].getStr
 
-proc newGenerator*(pkg: Package, outputDir: string): Generator =
+proc newGenerator*(pkg: Package, outputDir: string, skipPrefixPath = ""): Generator =
   new(result)
   result.pkg = pkg
   result.outputDir = outputDir
@@ -550,6 +575,7 @@ proc newGenerator*(pkg: Package, outputDir: string): Generator =
   result.pkgIdent = toPascalCase(result.pkgName)
   result.genTime = $now()
   result.authType = "bearer"
+  result.skipPrefixPath = skipPrefixPath
   if pkg.oapi != nil:
     if pkg.oapi.servers.len > 0:
       result.baseUri = pkg.oapi.servers[0].url
@@ -624,24 +650,58 @@ proc generate*(gen: Generator) =
   if not groups.isNil:
     for tag, ops in groups.pairs:
       let fileName = tag & ".nim"
-      let endpointCode = fillTemplate(genEndpointFile(tag, ops, gen.schemas, gen.pkgIdent), vars)
+      let endpointCode = fillTemplate(genEndpointFile(tag, ops, gen.schemas, gen.pkgIdent, gen.skipPrefixPath), vars)
       writeFile(srcPkgDir / fileName, endpointCode)
 
-  var mainImports: seq[string]
+  var modules: seq[string]
   var mainExports: seq[string]
   for tag, _ in groups.pairs:
-    mainImports.add(&"import ./{gen.pkgName}/{tag}")
+    modules.add(tag)
     mainExports.add(tag)
-  mainImports.add(&"import ./{gen.pkgName}/types")
+  modules.add("types")
   mainExports.add("types")
-  mainImports.add(&"import ./{gen.pkgName}/metaclient")
+  modules.add("metaclient")
   mainExports.add("metaclient")
   if hasServers:
-    mainImports.add(&"import ./{gen.pkgName}/server_urls")
+    modules.add("server_urls")
     mainExports.add("server_urls")
 
-  let mainCode = mainImports.join("\n") & "\n\n" &
-    "export " & mainExports.join(", ") & "\n"
+  let importPrefix = "import ./" & gen.pkgName & "/["
+  let importIndent = " ".repeat(importPrefix.len)
+
+  let importLine =
+    if modules.len <= 5:
+      importPrefix & modules.join(", ") & "]\n"
+    else:
+      var lines: seq[string]
+      var i = 0
+      while i < modules.len:
+        let chunk = modules[i..min(i + 4, modules.high)]
+        if i == 0:
+          lines.add(importPrefix & chunk.join(", ") & ",")
+        else:
+          lines.add(importIndent & chunk.join(", ") & ",")
+        i += 5
+      lines[^1] = lines[^1][0..^2] & "]"
+      lines.join("\n") & "\n"
+
+  let exportLine =
+    if mainExports.len <= 5:
+      "export " & mainExports.join(", ") & "\n"
+    else:
+      var lines: seq[string]
+      var i = 0
+      while i < mainExports.len:
+        let chunk = mainExports[i..min(i + 4, mainExports.high)]
+        if i == 0:
+          lines.add("export " & chunk.join(", ") & ",")
+        else:
+          lines.add("       " & chunk.join(", ") & ",")
+        i += 5
+      lines[^1] = lines[^1][0..^2]
+      lines.join("\n") & "\n"
+
+  let mainCode = fillTemplate(stubHeader, vars) & importLine & "\n\n" & exportLine
   writeFile(srcDir / &"{gen.pkgName}.nim", mainCode)
 
   writeFile(gen.outputDir / &"{gen.pkgName}.nimble", fillTemplate(stubNimble, vars))

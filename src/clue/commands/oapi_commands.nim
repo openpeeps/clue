@@ -12,6 +12,7 @@ import pkg/openparser/json as openjson
 
 import ../features/openapi/specparser
 import ../features/openapi/codegen
+import ../features/openapi/cluesettings
 
 proc derivePkgId(pkg: Package): string =
   if pkg.oapi.isNil: return "client"
@@ -22,16 +23,29 @@ proc derivePkgId(pkg: Package): string =
 
 proc openapiCommand*(v: Values) =
   ## Generate a new API client library from OpenAPI spec file
-  let outputPath =
-    if v.has("--output"):
-      v.get("--output").getStr
-    else: ""
-  let outputDir =
-    if v.has("--dir"):
-      v.get("--dir").getStr
-    else: ""
-
   let specpath = v.get("spec").getPath.path
+  let outputDir = v.get("output").getStr
+
+  if dirExists(outputDir):
+    if v.has("-y"):
+      removeDir(outputDir)
+    else:
+      displayWarning("Output directory already exists: " & outputDir)
+      if not promptConfirm("Overwrite existing directory?"):
+        displayInfo("Aborted")
+        return
+      removeDir(outputDir)
+
+  var skipPrefixPath = ""
+  if v.has("--config"):
+    let configPath = v.get("--config").getStr
+    if fileExists(configPath):
+      let configContent = readFile(configPath)
+      try:
+        let settings = parseClueSettings(configContent)
+        skipPrefixPath = settings.prefilters.routePrefix
+      except CatchableError as e:
+        displayWarning("Failed to parse config, using defaults: " & e.msg)
 
   var root: openjson.JsonNode
   if specpath.fileExists:
@@ -77,9 +91,10 @@ proc openapiCommand*(v: Values) =
     pkg.parseSpecification(
       root,
       prefs = PackagePreferences(
-        verbose: outputDir.len == 0 and outputPath.len == 0,
+        verbose: false,
         skipComponentSchemas: v.has("--skipComponentSchemas")
-      )
+      ),
+      skipPrefixPath = skipPrefixPath
     )
 
     pkg.id = derivePkgId(pkg)
@@ -88,16 +103,21 @@ proc openapiCommand*(v: Values) =
       let (gitName, _) = execCmdEx("git config user.name")
       pkg.author = gitName.strip()
 
-    if outputPath.len > 0:
-      writeFile(outputPath, dumpIR(pkg))
-      displaySuccess("IR written to " & outputPath)
-
-    if outputDir.len > 0:
-      let gen = newGenerator(pkg, outputDir)
-      gen.generate()
-      displaySuccess("Client package generated at " & outputDir)
-    elif outputPath.len == 0:
-      displayInfo("Use --dir <path> to generate the client package")
+    let gen = newGenerator(pkg, outputDir, skipPrefixPath)
+    gen.generate()
+    displaySuccess("Client package generated at " & outputDir)
 
   except CatchableError as e:
     displayError("Failed to parse spec: " & e.msg)
+
+proc oapiInitCommand*(v: Values) =
+  ## Initialize a default clue.openapi.config.yaml file
+  let configPath = "clue.openapi.config.yaml"
+  if fileExists(configPath):
+    displayWarning("Config file already exists: " & configPath)
+    if not promptConfirm("Overwrite existing file?"):
+      displayInfo("Aborted")
+      return
+  let content = dumpDefaultSettings()
+  writeFile(configPath, content)
+  displaySuccess("Created " & configPath)
