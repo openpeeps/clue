@@ -10,8 +10,9 @@
 ## extensions in Nim. Real C functions are imported via `{.importc, header}`
 ## pragmas. C macros are provided as Nim templates with identical names.
 
-{.passC: "-I/opt/local/Library/Frameworks/Python.framework/Versions/3.11/include/python3.11 -I/opt/local/Library/Frameworks/Python.framework/Versions/3.11/include/python3.11".}
-{.passL: "-L/opt/local/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/config-3.11-darwin -lpython3.11 -ldl -framework CoreFoundation -Wl,-undefined,dynamic_lookup".}
+when defined(macosx):
+  {.passC: "-I/opt/local/Library/Frameworks/Python.framework/Versions/3.11/include/python3.11".}
+  {.passL: "-L/opt/local/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/config-3.11-darwin -lpython3.11 -ldl -framework CoreFoundation -Wl,-undefined,dynamic_lookup".}
 
 type
   PyObject* {.importc: "PyObject", header: "Python.h", incompleteStruct.} = object

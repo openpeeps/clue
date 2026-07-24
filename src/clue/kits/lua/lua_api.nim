@@ -10,8 +10,9 @@
 ## extensions in Nim. Real C functions are imported via `{.importc, header}`
 ## pragmas. C macros are provided as Nim templates with identical names.
 
-{.passC: "-I/opt/local/include/luajit-2.1".}
-{.passL: "-L/opt/local/lib -lluajit-5.1 -Wl,-undefined,dynamic_lookup".}
+when defined(macosx):
+  {.passC: "-I/opt/local/include/luajit-2.1".}
+  {.passL: "-L/opt/local/lib -lluajit-5.1 -Wl,-undefined,dynamic_lookup".}
 
 type
   lua_State* {.importc: "lua_State", header: "lua.h", incompleteStruct.} = object

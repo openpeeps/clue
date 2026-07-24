@@ -5,8 +5,9 @@
 #          https://github.com/openpeeps/clue
 
 # this should be passed to the dev plugin to be included
-{.passC: "-I/opt/local/include/php83/php -I/opt/local/include/php83/php/main -I/opt/local/include/php83/php/TSRM -I/opt/local/include/php83/php/Zend -I/opt/local/include/php83/php/ext -I/opt/local/include/php83/php/ext/date/lib -I/opt/local/include".}
-{.passL: "-Wl,-undefined,dynamic_lookup".}
+when defined(macosx):
+  {.passC: "-I/opt/local/include/php83/php -I/opt/local/include/php83/php/main -I/opt/local/include/php83/php/TSRM -I/opt/local/include/php83/php/Zend -I/opt/local/include/php83/php/ext -I/opt/local/include/php83/php/ext/date/lib -I/opt/local/include".}
+  {.passL: "-Wl,-undefined,dynamic_lookup".}
 
 ## This module provides the low-level C API bindings to PHP API, which can be used to implement
 ## higher-level wrappers and DSLs for defining PHP extensions in Nim
