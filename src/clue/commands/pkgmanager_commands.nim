@@ -4,292 +4,119 @@
 #          Made by Humans from OpenPeeps
 #          https://github.com/openpeeps/clue
 
-import std/[sequtils, options, tables, strformat, sets,
-          streams, times, strutils, os, osproc, threadpool]
+import std/[sequtils, options, tables, sets, strformat, strutils,
+          streams, times, os, osproc]
 
 import pkg/[semver, openparser/json]
 import pkg/kapsis/[runtime, interactive/prompts]
 
 import ../features/pkgmanager/resolver
 import ../features/pkgmanager/configs
+import ../features/pkgmanager/versions
 import ../features/pkgmanager/nimbleparser
 
-type
-  PkgDepInfo = tuple[name: string, constraint: VersionConstraint, refStr: string]
-  PkgRef = object
-    name: string
-    refStr: string  # explicit branch/tag only — "" = default branch
-    url: string
+proc depName(d: NimbleDependency): string =
+  if d.name.len > 0: d.name else: d.url
 
-proc fetchPkgMeta(pkgName: string): Option[PkgRef] =
-  withClueDB do:
-    let res = clueDB.getTable("packages")
-                      .get()
-                      .where("name", newTextValue(pkgName))
-                      .toSeq()
-    if res.len == 0:
-      return none(PkgRef)
-    return some(PkgRef(name: pkgName, url: $(res[0][1]["url"]), refStr: ""))
-  none(PkgRef)
+proc parseFeatureFlags*(s: string): seq[string] =
+  for f in s.split(','):
+    let ff = f.strip()
+    if ff.len > 0:
+      result.add(ff)
 
-proc clonePackage*(url, dest: string): bool =
-  if dirExists(dest):
-    return true
-  let cmd = "git clone " & url & " " & dest
-  let (output, exitCode) = execCmdEx(cmd)
-  if exitCode != 0:
-    displayWarning("Failed to clone " & url & ": " & output)
-    return false
-  discard execCmdEx("git -C " & dest & " fetch --tags --quiet")
-  true
-
-proc checkoutTag*(dest, version: string): bool =
-  let tags = ["v" & version, version]
-  for tag in tags:
-    let (output, code) = execCmdEx("git -C " & dest & " checkout " & tag & " --quiet 2>/dev/null")
-    if code == 0: return true
-  false
-
-proc findLatestTag*(dest: string): string =
-  let (output, exitCode) = execCmdEx("git -C " & dest & " tag --list")
-  if exitCode != 0: return ""
-  var latest: Version
-  for line in output.splitLines():
-    let tag = line.strip()
-    if tag.len == 0: continue
-    let verStr = if tag.startsWith("v"): tag[1..^1] else: tag
-    try:
-      let ver = parseVersion(verStr)
-      if latest.major == 0 and latest.minor == 0 and latest.patch == 0 or ver > latest:
-        latest = ver
-    except:
-      discard
-  if latest.major == 0 and latest.minor == 0 and latest.patch == 0:
-    ""
-  else:
-    $latest
-
-proc checkGitTag(dest, version: string): bool =
-  let p = startProcess("git",
-    args = ["-C", dest, "tag", "--list"],
-    options = {poUsePath, poStdErrToStdOut})
-  let tags = p.outputStream.readAll()
-  let exitCode = p.waitForExit()
-  p.close()
-  if exitCode != 0: return false
-  let tagList = tags.splitLines().mapIt(it.strip()).filterIt(it.len > 0)
-  result = ("v" & version) in tagList or version in tagList
-
-proc parseDepsFromNimble(pkgName: string, pkgRefs: var Table[string, PkgRef]): tuple[version: string, deps: seq[PkgDepInfo]] =
-  let nimbleFilePath = cluePkgsCachePath / pkgName / pkgName.changeFileExt("nimble")
-  if not fileExists(nimbleFilePath):
-    return ("0.0.0", @[])
-
-  let pkgNimble = parseNimbleFile(nimbleFilePath)
-  let pkgVersion = pkgNimble.version
-
-  var deps: seq[PkgDepInfo] = @[]
-
-  for dep in pkgNimble.requires:
-    if dep.isNim: continue
-
-    let depName = dep.name
-    let depUrl = dep.url
-    var constraint = dep.constraint
-    var depRef =
-      if dep.branch.len > 0: dep.branch
-      elif dep.tag.len > 0: dep.tag
-      else: ""
-
-    let lookupName =
-      if depName.len > 0: depName
-      else: depUrl
-
-    if depRef == "head": depRef = ""
-
-    if lookupName notin pkgRefs:
-      let metaOpt = fetchPkgMeta(lookupName)
-      if metaOpt.isSome:
-        var meta = metaOpt.get()
-        meta.refStr = depRef
-        pkgRefs[lookupName] = meta
-      else:
-        displayWarning("Unknown package in registry: " & lookupName)
-
-    deps.add((name: lookupName, constraint: constraint, refStr: depRef))
-
-  (pkgVersion, deps)
-
-proc printDepTree(name: string, version: string, deps: seq[PkgDepInfo],
-  indent: int = 0,
-  isLast: bool = true
-) =
-  ## Print a single node + its direct deps with tree-style indentation.
-  let prefix =
-    if indent == 0: ""
-    else:
-      repeat("│  ", indent - 1) & (if isLast: "└─ " else: "├─ ")
-  let versionStr =
-    if version != "0.0.0": " v" & version
-    else: ""
-  echo prefix & name & versionStr
-
-  for i, dep in deps:
-    let depIsLast = i == deps.high
-    let childPrefix =
-      if indent == 0: repeat("│  ", indent) & (if depIsLast: "└─ " else: "├─ ")
-      else: repeat("│  ", indent) & (if depIsLast: "└─ " else: "├─ ")
-    let constraintStr =
-      if dep.refStr.len > 0: " @" & dep.refStr
-      else: " " & $dep.constraint
-    echo childPrefix & dep.name & constraintStr
-
-proc installPackage*(pkgName: string, pkgRef: string = "") =
+proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
+    features: seq[string] = @[]) =
+  ## Install a package and its dependencies into ~/.clue/packages.
+  ## Uses fast, cached version discovery and only installs versions that
+  ## satisfy the resolved constraints. Prunes orphans afterwards.
+  ## `features` activates the root package's `feature "name":` requires.
   withClueDB do:
     let rootMetaOpt = fetchPkgMeta(pkgName)
     if rootMetaOpt.isNone:
       displayError("Package not found in registry: " & pkgName)
       return
-
-    var pkgRefs: Table[string, PkgRef]
     var rootMeta = rootMetaOpt.get()
-    rootMeta.refStr = pkgRef
-    pkgRefs[pkgName] = rootMeta
 
-    # Clone root to cache (full repo with all tags)
+    # 1. Ensure root clone exists (full clone kept in cache)
     let rootDest = cluePkgsCachePath / pkgName
     if not dirExists(rootDest):
-      echo "Fetching " & pkgName & "..."
+      displayInfo("Fetching " & pkgName & "...")
       if not clonePackage(rootMeta.url, rootDest):
         return
     else:
-      echo "Using cached " & pkgName
+      displayInfo("Using cached " & pkgName)
+      if refresh:
+        discard clonePackage(rootMeta.url, rootDest)
 
-    # Determine target version: specified ref or latest git tag
-    let targetRef =
-      if pkgRef.len > 0: pkgRef
-      else:
-        let latest = findLatestTag(rootDest)
-        if latest.len > 0: latest
-        else: ""
-    if targetRef.len > 0:
-      if not checkoutTag(rootDest, targetRef):
-        displayWarning("Could not checkout " & targetRef & " in " & pkgName)
-      else:
-        display("  " & cyan(pkgName & "@" & targetRef))
+    # 2. Root constraint: explicit semver ref, else latest (vcAny).
+    #    Non-semver refs (git branches/tags via `pkg@ref` / `#ref`) install
+    #    the ref directly. Feature refs (`pkg[feat]`) are NOT git refs.
+    var rootConstraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0))
+    if pkgRef.len > 0:
+      try:
+        rootConstraint = VersionConstraint(kind: vcExact, version: parseVersion(pkgRef))
+      except CatchableError:
+        rootMeta.refStr = pkgRef
+        display("  " & cyan(pkgName & "@" & pkgRef))
 
-    # bfs wave by wave concurrent cloning
+    # 3. Register root versions (constraints are enforced by findBestMatch)
     var registry: PackageRegistry
-    var visited: HashSet[string]
-    var depTree: Table[string, tuple[version: string, deps: seq[PkgDepInfo]]]
-    visited.incl(pkgName)
+    var pkgRefs = initTable[string, PkgRef]()
+    pkgRefs[pkgName] = rootMeta
+    let rootVersions = discoverVersions(pkgName, rootMeta.url, refresh)
+    if rootVersions.len == 0:
+      registry.addPackage(UnresolvedPackage(name: pkgName, version: headVersion(pkgName), dependencies: @[]))
+    else:
+      for v in rootVersions:
+        registry.addPackage(UnresolvedPackage(name: pkgName, version: v.version, dependencies: @[]))
 
-    let (rootVersion, rootDeps) = parseDepsFromNimble(pkgName, pkgRefs)
-    depTree[pkgName] = (rootVersion, rootDeps)
-    registry.addPackage(UnresolvedPackage(
-      name: pkgName,
-      version: parseVersion(rootVersion),
-      dependencies: rootDeps.mapIt(Dependency(name: it.name, constraint: it.constraint))
-    ))
-
-    var wave: seq[tuple[name: string, refStr: string]] = @[]
-    for d in rootDeps:
-      if d.name notin visited:
-        visited.incl(d.name)
-        wave.add((d.name, d.refStr))
-
-    while wave.len > 0:
-      displayInfo("Cloning " & $wave.len & " package(s)...")
-      var futs: seq[FlowVar[bool]] = @[]
-      for w in wave:
-        let meta = pkgRefs.getOrDefault(w.name, PkgRef())
+    # 4. Lazy dep provider: expands the graph on demand, registering
+    #    only in-range / reachable versions into the registry. Also records
+    #    the features each package was resolved with (for the manifest).
+    var activeFeatOf = initTable[string, seq[string]]()
+    proc provider(name: string, version: Version, feats: seq[string]): seq[Dependency] =
+      activeFeatOf[name] = feats
+      let deps = getDeps(name, $version, feats, refresh)
+      result = @[]
+      for d in deps:
+        let dn = depName(d)
+        # ensure we know the package URL
+        var meta = pkgRefs.getOrDefault(dn, PkgRef())
         if meta.url.len == 0:
-          displayWarning("No URL for " & w.name & ", skipping.")
-          futs.add(spawn (proc(): bool = false)())
+          let m = fetchPkgMeta(dn)
+          if m.isSome:
+            meta = m.get()
+            pkgRefs[dn] = meta
+        if meta.url.len == 0:
+          displayWarning("Unknown package in registry, skipping: " & dn)
           continue
-        let dest = cluePkgsCachePath / w.name
-        if dirExists(dest):
-          display("  " & cyan(w.name) & " (cached)")
-          futs.add(spawn (proc(): bool = true)())
+        # register versions on first sight
+        if dn notin registry:
+          if d.branch.len > 0 or d.tag.len > 0:
+            # genuine git ref dep (`pkg#ref` / url#ref): no semver resolution
+            var m = meta
+            m.refStr = if d.branch.len > 0: d.branch else: d.tag
+            pkgRefs[dn] = m
+            registry.addPackage(UnresolvedPackage(name: dn, version: newVersion(0, 0, 0), dependencies: @[]))
+          else:
+            let versions = discoverVersions(dn, meta.url, refresh)
+            if versions.len == 0:
+              registry.addPackage(UnresolvedPackage(name: dn, version: headVersion(dn), dependencies: @[]))
+            else:
+              for v in versions:
+                registry.addPackage(UnresolvedPackage(name: dn, version: v.version, dependencies: @[]))
+        if d.branch.len > 0 or d.tag.len > 0:
+          result.add(Dependency(name: dn,
+            constraint: VersionConstraint(kind: vcExact, version: newVersion(0, 0, 0)),
+            features: d.features))
         else:
-          futs.add(spawn clonePackage(meta.url, dest))
-          display("  " & cyan(meta.url))
-      sync()
+          result.add(Dependency(name: dn, constraint: d.constraint, features: d.features))
 
-      var nextWave: seq[tuple[name: string, refStr: string]] = @[]
-      for i, w in wave:
-        if not (^futs[i]):
-          echo "  skipping deps of " & w.name & " (clone failed)"
-          continue
-
-        let dest = cluePkgsCachePath / w.name
-        let meta = pkgRefs.getOrDefault(w.name, PkgRef())
-        if meta.refStr.len > 0:
-          discard checkoutTag(dest, meta.refStr)
-
-        let (ver, deps) = parseDepsFromNimble(w.name, pkgRefs)
-        depTree[w.name] = (ver, deps)
-        # Register HEAD version
-        registry.addPackage(UnresolvedPackage(
-          name: w.name,
-          version: parseVersion(ver),
-          dependencies: deps.mapIt(Dependency(name: it.name, constraint: it.constraint))
-        ))
-        # Also register all tagged semver versions so the resolver can match constraints
-        let (tagOutput, tagCode) = execCmdEx("git -C " & dest & " tag --list")
-        if tagCode == 0:
-          for tagLine in tagOutput.splitLines():
-            let tag = tagLine.strip()
-            if tag.len == 0: continue
-            let verStr = if tag.startsWith("v"): tag[1..^1] else: tag
-            try:
-              let tagVer = parseVersion(verStr)
-              registry.addPackage(UnresolvedPackage(
-                name: w.name,
-                version: tagVer,
-                dependencies: deps.mapIt(Dependency(name: it.name, constraint: it.constraint))
-              ))
-            except:
-              discard
-
-        for d in deps:
-          if d.name notin visited:
-            visited.incl(d.name)
-            nextWave.add((d.name, d.refStr))
-
-      wave = nextWave
-
-    echo ""
-    displayInfo("Dependency tree:")
-    proc printTree(name: string, indent: int, isLast: bool) =
-      let (ver, deps) = depTree.getOrDefault(name, ("0.0.0", @[]))
-      let branch =
-        if indent == 0: ""
-        else: repeat("│  ", indent - 1) & (if isLast: "└─ " else: "├─ ")
-      let vStr = if ver != "0.0.0": " v" & ver else: ""
-      echo branch & name & vStr
-
-      for i, dep in deps:
-        let childIsLast = i == deps.high
-        let constraintStr =
-          if dep.refStr.len > 0: " @" & dep.refStr
-          else: " " & $dep.constraint
-        if dep.name in depTree:
-          printTree(dep.name, indent + 1, childIsLast)
-        else:
-          let childBranch = repeat("│  ", indent) & (if childIsLast: "└─ " else: "├─ ")
-          echo childBranch & dep.name & constraintStr
-
-    printTree(pkgName, 0, true)
-    echo ""
-
-    # Resolve versions
-    let roots = @[Dependency(name: pkgName,
-                             constraint: VersionConstraint(kind: vcAny,
-                                         version: newVersion(0, 0, 0)))]
+    # 5. Resolve
+    let roots = @[Dependency(name: pkgName, constraint: rootConstraint, features: features)]
     var resolved: seq[ResolvedPackage]
     try:
-      resolved = registry.resolve(roots)
+      resolved = registry.resolve(roots, provider)
     except CircularDependencyError as e:
       displayError("Circular dependency: " & e.msg); return
     except VersionConflictError as e:
@@ -297,67 +124,107 @@ proc installPackage*(pkgName: string, pkgRef: string = "") =
     except PackageNotFoundError as e:
       displayError("Package not found during resolution: " & e.msg); return
 
-    displayInfo("Resolved " & $resolved.len & " package(s). Verifying git tags...")
-
-    # Concurrently verify git tags
-    type TagCheck = tuple[name: string, version: string, dest: string]
-    var tagChecks: seq[TagCheck] = @[]
-    var tagFuts: seq[FlowVar[bool]] = @[]
-
+    var name2ver: Table[string, string]
     for rp in resolved:
-      let meta = pkgRefs.getOrDefault(rp.name, PkgRef())
-      if meta.refStr.len == 0 and $rp.version != "0.0.0":
-        let dest = cluePkgsCachePath / rp.name
-        let ver = $rp.version
-        tagChecks.add((rp.name, ver, dest))
-        tagFuts.add(spawn checkGitTag(dest, ver))
+      name2ver[rp.name] = $rp.version
+    displayInfo("Resolved " & $resolved.len & " package(s):")
+    for rp in resolved:
+      var label = cyan(rp.name) & " @" & $rp.version
+      let feats = activeFeatOf.getOrDefault(rp.name)
+      if feats.len > 0:
+        label.add(" (features: " & feats.join(", ") & ")")
+      display("  " & label)
 
-    sync()
-    var tagErrors = false
-    for i, tc in tagChecks:
-      if not (^tagFuts[i]):
-        echo "  no git tag for " & tc.name & " matching v" & tc.version & " or " & tc.version
-        tagErrors = true
-
-    if tagErrors:
-      displayWarning("Some packages have no matching git tag (cloned at HEAD)")
-
-    # Finalize: checkout version tag in cache, then copy to ~/.clue/packages/<name>/<version>/
+    # 6. Install each resolved package from the cache (clean, flat layout)
     var installedCount = 0
     for rp in resolved:
-      let ver = $rp.version
-      if ver == "0.0.0": continue
+      let meta = pkgRefs.getOrDefault(rp.name, PkgRef())
+      let verStr =
+        if meta.refStr.len > 0: meta.refStr
+        else: $rp.version
       let cacheDir = cluePkgsCachePath / rp.name
       if not dirExists(cacheDir):
-        displayWarning("Cache missing for " & rp.name & ", skipping install")
-        continue
-      let verDir = cluePkgsPath / rp.name / ver
+        let m = fetchPkgMeta(rp.name)
+        if m.isNone:
+          displayWarning("No URL for " & rp.name & ", skipping")
+          continue
+        if not clonePackage(m.get().url, cacheDir):
+          continue
+      # checkout the exact resolved ref/tag
+      if meta.refStr.len > 0:
+        discard checkoutRef(cacheDir, meta.refStr)
+      elif verStr != "0.0.0":
+        let tag = tagForVersion(cacheDir, verStr)
+        if tag.len > 0:
+          discard checkoutTag(cacheDir, tag)
+
+      let verDir = cluePkgsPath / rp.name / verStr
       if dirExists(verDir):
-        display("  " & cyan(rp.name) & " v" & ver & " (already installed)")
+        display("  " & cyan(rp.name) & " v" & verStr & " (already installed)")
         installedCount.inc
         continue
-      # Checkout the resolved version tag
-      let meta = pkgRefs.getOrDefault(rp.name, PkgRef())
-      if meta.refStr.len == 0 and ver != "0.0.0":
-        if not checkoutTag(cacheDir, ver):
-          displayWarning("Could not checkout v" & ver & " for " & rp.name & ", installing from HEAD")
       try:
-        createDir(verDir)
-        copyDir(cacheDir, verDir)
-        removeDir(verDir / ".git")
+        let nimblePath = cacheDir / rp.name.changeFileExt("nimble")
+        var pkgNimble = NimbleFile(srcDir: "")
+        if fileExists(nimblePath):
+          pkgNimble = parseNimbleFile(nimblePath)
+        installCleanCopy(cacheDir, verDir, pkgNimble)
         installedCount.inc
-        displaySuccess("Installed " & rp.name & " v" & ver)
-      except:
-        displayWarning("Failed to install " & rp.name & " v" & ver)
+        displaySuccess("Installed " & rp.name & " v" & verStr)
+      except CatchableError:
+        displayWarning("Failed to install " & rp.name & " v" & verStr)
+
+    # 7. Record install manifests (resolved dep graph, used for pruning).
+    #    Only the explicitly-installed package is a root; transitive deps
+    #    are pruned when no longer reachable from any root.
+    for rp in resolved:
+      let meta = pkgRefs.getOrDefault(rp.name, PkgRef())
+      let verStr = if meta.refStr.len > 0: meta.refStr else: $rp.version
+      let feats = activeFeatOf.getOrDefault(rp.name)
+      var deps: seq[DepEntry]
+      for d in getDeps(rp.name, $rp.version, feats):
+        let dn = depName(d)
+        if d.branch.len > 0:
+          deps.add((dn, d.branch))
+        elif name2ver.hasKey(dn):
+          deps.add((dn, name2ver[dn]))
+      recordInstall(rp.name, verStr, deps, root = rp.name == pkgName, features = feats)
 
     if installedCount > 0:
       displaySuccess("Installed " & $installedCount & " package(s) to " & cluePkgsPath)
+
+    # 8. Prune orphans / out-of-range versions
+    pruneOrphans()
 
 proc installCommand*(v: Values) =
   let pkgInput = split(v.get("pkg").getStr, "@")
   let pkgName = pkgInput[0]
   let pkgRef = if pkgInput.len > 1 and pkgInput[1] != "head": pkgInput[1] else: ""
-  installPackage(pkgName, pkgRef)
+  let refresh = v.has("--refresh")
+  var features: seq[string]
+  if v.has("--features"):
+    features = parseFeatureFlags(v.get("--features").getStr)
+  installPackage(pkgName, pkgRef, refresh, features)
+
+proc versionsCommand*(v: Values) =
+  ## Show available versions for a package.
+  let pkgName = v.get("pkg").getStr
+  let metaOpt = fetchPkgMeta(pkgName)
+  if metaOpt.isNone:
+    displayError("Package not found in registry: " & pkgName)
+    return
+  let meta = metaOpt.get()
+  let versions = discoverVersions(pkgName, meta.url, v.has("--refresh"))
+  if versions.len == 0:
+    displayInfo("No semver tags found for " & pkgName)
+    return
+  displayInfo("Available versions for " & pkgName & ":")
+  for v in versions:
+    echo "  " & $v.version
+
+proc pruneCommand*(v: Values) =
+  ## Prune orphaned or out-of-range installed packages.
+  pruneOrphans()
 
 template whenPackageExists(pkgName: string, body: untyped): untyped =
   let pkgBase = cluePkgsPath / pkgName
@@ -390,6 +257,7 @@ proc uninstallCommand*(v: Values) =
       if dirExists(verDir):
         if promptConfirm("Remove " & pkgName & "@" & pkgVersion & "?"):
           removeDir(verDir)
+          unrecordInstall(pkgName, pkgVersion)
           displaySuccess("Removed " & pkgName & "@" & pkgVersion)
         else:
           displayInfo("Removal cancelled.")
@@ -399,9 +267,11 @@ proc uninstallCommand*(v: Values) =
       whenPackageExists pkgName:
         if promptConfirm("Remove all versions of " & cyan(pkgName) & "?"):
           removeDir(cluePkgsPath / pkgName)
+          unrecordInstall(pkgName, "")
           displaySuccess("All versions of " & pkgName & " removed")
         else:
           displayInfo("Uninstallation cancelled.")
+    pruneOrphans()
 
 proc dumpCommand*(v: Values) =
   ## Dump package info from registry
@@ -424,19 +294,6 @@ proc dumpCommand*(v: Values) =
           "tags": fromJson(pkgData[1]["tags"].jsonVal)
         }
         display(pretty(pkgInfo))
-
-# proc searchCommand*(v: Values) =
-#   ## Search command to find packages by name or tags
-#   withClueDB do:
-#     let query = v.get("query").getStr
-#     let res = clueDB.getTable("packages")
-#                       .get()
-#                       .where("name", newTextValue(query), opContains)
-#                       .orWhere("tags", newTextValue(query), opContains)
-#                       .toSeq()
-#     if res.len == 0:
-#       displayInfo("No packages found matching: " & query)
-#       return
 
 
 type
@@ -485,7 +342,6 @@ proc parseChoosenimShow(output: string): ChoosenimInfo =
       let v = trimmed.replace("*", "").strip()
       if v.len > 0:
         result.versions.add(v)
-  echo result.versions
 
 proc getChoosenimInfo(): Option[ChoosenimInfo] =
   # Run `choosenim show` and parse the output

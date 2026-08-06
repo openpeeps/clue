@@ -1,7 +1,7 @@
 # Package
 
 version       = "0.1.5"
-author        = "George Lemon"
+author        = "OpenPeeps"
 description   = "A cool toolkit for Nim developers"
 license       = "MIT"
 srcDir        = "src"

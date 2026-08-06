@@ -23,7 +23,7 @@ proc buildModule(v: Values, extName, outputExt: string) =
   if code != 0:
     displayError(&"Build failed for {extName} extension (exit code: {code})")
 
-proc pluginsCommand*(v: Values) =
+proc extensionCommand*(v: Values) =
   let extArg = v.get("--ext").getStr
   let extension =
     if extArg.len == 0: "py"

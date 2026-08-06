@@ -16,17 +16,19 @@ when isMainModule:
       # Manage local packages when nimble fails
       #
       -- "Package Management"
-      build ?bool("--release"), ?bool("--debug"):
+      build ?bool("--release"), ?bool("--debug"), ?string("--features"):
         ## Build the current Nim package from its nimble file
-
-      dump string(pkg):
-        ## Dump package info from registry
-
-      install string(pkg):
+      install string(pkg), ?bool("--refresh"), ?string("--features"):
         ## Install a package from remote source
-
       uninstall string(pkg):
         ## Uninstall a package from the system
+      dump string(pkg):
+        ## Dump package info from registry
+      versions string(pkg), ?bool("--refresh"):
+        ## List available versions for a package
+
+      prune:
+        ## Remove orphaned or out-of-range installed packages
 
       -- "Environment Management"
       venv string("--nim"):
@@ -40,25 +42,15 @@ when isMainModule:
         ## Generate Nim docs for local packages
         gen string(pkgname):
           ## Build documentation for a Nim package
-
         open string(pkgname):
           ## Open built docs in the browser
-
-        rebuild:
-          ## Rebuild docs for all documented packages
-
-        list:
-          ## List all documented packages
-
-        overview:
-          ## Regenerate the docs overview page
       
       #
       # Build native extensions for other languages
       # from your Nim code
       #
-      -- "Plugin Kits"
-      plugins path(module), ?string("--ext"):
+      -- "Native Extensions"
+      extension path(module), ?string("--ext"):
         ## Build a native extension for other languages from Nim code
       
       -- "Code generator"
@@ -71,7 +63,6 @@ when isMainModule:
       
       oapi_init:
         ## Initialize a default clue.openapi.config.yaml file
-
       openapi path(spec), string("output"), ?string("--config"), ?bool("-y"):
         ## Generate a new API client library from OpenAPI 3.0 spec file
 

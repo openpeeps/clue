@@ -24,30 +24,74 @@ proc normalizeVersion(v: string): string =
   for i in parts.len..<3:
     result.add(".0")
 
-proc parseRequiresArg(arg: string): NimbleDependency =
+proc splitDepParts(s: string): seq[string] =
+  ## Split a multi-dependency string on commas, ignoring commas that are
+  ## inside `[feature]` brackets. e.g. `"a[f1, f2], b >= 1.0"` → 2 parts.
+  var depth = 0
+  var current = ""
+  for c in s:
+    case c
+    of '[':
+      inc depth
+      current.add(c)
+    of ']':
+      if depth > 0: dec depth
+      current.add(c)
+    of ',':
+      if depth == 0:
+        result.add(current)
+        current = ""
+      else:
+        current.add(c)
+    else:
+      current.add(c)
+  if current.strip().len > 0:
+    result.add(current)
+
+proc parseFeaturesFrom(arg: var string): seq[string] =
+  ## Strip a trailing `[f1, f2]` feature list and return it.
+  arg = arg.strip()
+  if arg.endsWith("]"):
+    let bracketPos = arg.rfind('[')
+    if bracketPos >= 0:
+      for f in arg[bracketPos+1 .. ^2].split(','):
+        let ff = f.strip()
+        if ff.len > 0:
+          result.add(ff)
+      arg = arg[0 ..< bracketPos].strip()
+
+proc parseRequiresArg*(arg: string): NimbleDependency =
+  var arg = arg.strip()
+  result.features = parseFeaturesFrom(arg)
+
+  # URL deps: `https://...#ref`
   if arg.contains("://"):
     let hashPos = arg.find('#')
     if hashPos >= 0:
       result = NimbleDependency(
-        url: arg[0..<hashPos], tag: arg[hashPos+1..^1])
+        url: arg[0..<hashPos], tag: arg[hashPos+1..^1], features: result.features)
     else:
       let parts = arg.splitWhitespace()
       if parts.len >= 3 and parts[1] in ["==", ">=", ">", "<=", "<", "^", "~>"]:
         let op = if parts[1] == "==": "=" else: parts[1]
         result = NimbleDependency(
           url: parts[0],
-          constraint: parseConstraint(op & normalizeVersion(parts[2])))
+          constraint: parseConstraint(op & normalizeVersion(parts[2])),
+          features: result.features)
       else:
-        result = NimbleDependency(url: arg)
+        result = NimbleDependency(url: arg, features: result.features)
     return
-  let hashPos = arg.find('#')
-  if hashPos >= 0:
-    let name = arg[0..<hashPos].strip()
-    let refStr = arg[hashPos+1..^1].strip()
-    result = NimbleDependency(name: name, branch: refStr)
-    return
+
+  # name[#ref] and optional `>= constraint`
   let parts = arg.splitWhitespace()
-  result = NimbleDependency(name: parts[0])
+  var namePart = parts[0]
+  var refStr = ""
+  let hashPos = namePart.find('#')
+  if hashPos >= 0:
+    refStr = namePart[hashPos+1..^1].strip()
+    namePart = namePart[0..<hashPos].strip()
+
+  result = NimbleDependency(name: namePart, branch: refStr, features: result.features)
   if parts.len >= 3 and parts[1] in ["==", ">=", ">", "<=", "<", "^", "~>"]:
     let op = if parts[1] == "==": "=" else: parts[1]
     result.constraint = parseConstraint(op & normalizeVersion(parts[2]))
@@ -55,9 +99,93 @@ proc parseRequiresArg(arg: string): NimbleDependency =
     result.constraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0))
   result.isNim = result.name == "nim"
 
-proc parseNimbleFile*(path: string): NimbleFile =
-  result = NimbleFile(path: path)
-  let code = readFile(path)
+proc parseRequiresLine(deps: var seq[NimbleDependency], line: string) =
+  ## Parse a `requires "a[f], b >= 1.0"` line into dependencies.
+  let trimmed = line.strip()
+  let quotePos = trimmed.find('"')
+  if quotePos >= 0:
+    let endPos = trimmed.rfind('"')
+    if endPos > quotePos:
+      for part in splitDepParts(trimmed[quotePos+1 ..< endPos]):
+        deps.add(parseRequiresArg(part.strip()))
+
+proc parseNimbleFileFallback(result: var NimbleFile, code: string) =
+  ## Minimal line-based fallback for nimble files that sweetsyntax
+  ## cannot parse (conditionals, exotic syntax, etc.). Also used as a
+  ## fill-missing pass after sweetsyntax, so it only sets empty fields
+  ## and only parses `requires` when none were captured yet.
+  for line in code.splitLines():
+    let trimmed = line.strip()
+    if trimmed.len == 0 or trimmed.startsWith("#"): continue
+    if trimmed.startsWith("requires"):
+      if result.requires.len == 0:
+        parseRequiresLine(result.requires, trimmed)
+      continue
+    let eq = trimmed.find('=')
+    if eq <= 0: continue
+    let key = trimmed[0..<eq].strip()
+    let value = trimmed[eq+1..^1].strip()
+    case key
+    of "version", "author", "description", "license", "srcDir", "binDir":
+      case key
+      of "version":
+        if result.version.len == 0: result.version = stripQuotes(value)
+      of "author":
+        if result.author.len == 0: result.author = stripQuotes(value)
+      of "description":
+        if result.description.len == 0: result.description = stripQuotes(value)
+      of "license":
+        if result.license.len == 0: result.license = stripQuotes(value)
+      of "srcDir":
+        if result.srcDir.len == 0: result.srcDir = stripQuotes(value)
+      of "binDir":
+        if result.binDir.len == 0: result.binDir = stripQuotes(value)
+      else: discard
+    of "bin", "installDirs", "installFiles", "installExt",
+       "skipDirs", "skipFiles", "skipExt":
+      var items: seq[string]
+      let content = value.replace("@", "").strip()
+      if content.startsWith("["):
+        for part in splitDepParts(content[1 .. ^2]):
+          items.add(stripQuotes(part.strip()))
+      else:
+        items.add(stripQuotes(content))
+      case key
+      of "bin": result.bin = items
+      of "installDirs": result.installDirs = items
+      of "installFiles": result.installFiles = items
+      of "installExt": result.installExt = items
+      of "skipDirs": result.skipDirs = items
+      of "skipFiles": result.skipFiles = items
+      of "skipExt": result.skipExt = items
+      else: discard
+    else: discard
+
+proc parseFeatureBlocks(result: var NimbleFile, code: string) =
+  ## Capture `feature "name":` and `dev:` blocks into `result.features`.
+  var currentFeature = ""
+  for line in code.splitLines():
+    if line.strip().len == 0 or line.strip().startsWith("#"): continue
+    let indent = line.len - line.strip(leading = true).len
+    let trimmed = line.strip()
+    if indent == 0:
+      if trimmed.startsWith("feature "):
+        let q1 = trimmed.find('"')
+        let q2 = trimmed.rfind('"')
+        if q1 >= 0 and q2 > q1:
+          currentFeature = trimmed[q1+1 ..< q2]
+          if not result.features.hasKey(currentFeature):
+            result.features[currentFeature] = @[]
+      elif trimmed.startsWith("dev:"):
+        currentFeature = "dev"
+        if not result.features.hasKey("dev"):
+          result.features["dev"] = @[]
+      else:
+        currentFeature = ""
+    elif currentFeature.len > 0 and trimmed.startsWith("requires"):
+      parseRequiresLine(result.features[currentFeature], trimmed)
+
+proc parseNimbleFileSweetsyntax(result: var NimbleFile, path: string, code: string) =
   let syntax = getKnownSyntax(KnownSyntax.nim)
   var p = compile(syntax.spec)
   p.lexer = initLexer(syntax.spec, code)
@@ -99,7 +227,8 @@ proc parseNimbleFile*(path: string): NimbleFile =
           if valNode.kind == nkLitString: result.srcDir = stripQuotes(valNode.valStr)
         of "binDir":
           if valNode.kind == nkLitString: result.binDir = stripQuotes(valNode.valStr)
-        of "bin", "installDirs", "installFiles", "installExt":
+        of "bin", "installDirs", "installFiles", "installExt",
+           "skipDirs", "skipFiles", "skipExt":
           var items: seq[string]
           proc extractArrayElems(n: Node, items: var seq[string]) =
             case n.kind
@@ -120,6 +249,9 @@ proc parseNimbleFile*(path: string): NimbleFile =
           of "installDirs": result.installDirs = items
           of "installFiles": result.installFiles = items
           of "installExt": result.installExt = items
+          of "skipDirs": result.skipDirs = items
+          of "skipFiles": result.skipFiles = items
+          of "skipExt": result.skipExt = items
           else: discard
         else: discard
     of nkCall:
@@ -128,3 +260,16 @@ proc parseNimbleFile*(path: string): NimbleFile =
           if node.children[i].kind == nkLitString:
             result.requires.add(parseRequiresArg(stripQuotes(node.children[i].valStr)))
     else: discard
+
+proc parseNimbleFile*(path: string): NimbleFile =
+  result = NimbleFile(path: path)
+  let code = readFile(path)
+  try:
+    parseNimbleFileSweetsyntax(result, path, code)
+  except CatchableError as e:
+    result = NimbleFile(path: path)
+  # always run the fill-missing pass: sweetsyntax can skip fields like
+  # `srcDir` (tokenized as a non-identifier), so capture any that are empty.
+  parseNimbleFileFallback(result, code)
+  # feature blocks are independent of sweetsyntax's AST handling
+  parseFeatureBlocks(result, code)

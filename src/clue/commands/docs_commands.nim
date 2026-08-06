@@ -1,9 +1,9 @@
-import std/[os, osproc, tables, sequtils, algorithm]
+import std/[os, osproc, tables]
 
 import pkg/kapsis/runtime
 import pkg/kapsis/interactive/prompts
 
-import ../features/docbuilder/[configs, builder, overviewgen]
+import ../features/docbuilder/[configs, builder]
 
 proc docsGenCommand*(v: Values) =
   let pkgName = v.get("pkgname").getStr
@@ -34,27 +34,3 @@ proc docsOpenCommand*(v: Values) =
       displayError("Documentation not found in " & docDir)
       return
     discard execCmdEx("open \"" & fullPath & "\"")
-
-proc docsRebuildCommand*(v: Values) =
-  rebuildDocs()
-
-proc docsListCommand*(v: Values) =
-  withDocsDB do:
-    let docsTable = getDocsTable()
-    var latestByName: Table[string, RowData]
-    for (pk, row) in docsTable.allRows():
-      let name = row["name"].strVal
-      if not latestByName.hasKey(name) or row["built_at"].strVal > latestByName[name]["built_at"].strVal:
-        latestByName[name] = row
-    if latestByName.len == 0:
-      displayInfo("No documented packages")
-      return
-    var names = toSeq(latestByName.keys)
-    names.sort()
-    displayInfo("Documented packages:")
-    for name in names:
-      let row = latestByName[name]
-      echo "  " & name & " v" & row["version"].strVal & "  [" & row["built_at"].strVal & "]"
-
-proc docsOverviewCommand*(v: Values) =
-  generateOverview()
