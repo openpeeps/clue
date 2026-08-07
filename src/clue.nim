@@ -55,17 +55,14 @@ when isMainModule:
         ## Build a native extension for other languages from Nim code
       
       -- "Code generator"
-      # capi:
-      #   ## Generate Nim bindings for a C library
-      #   header path(header):
-      #     ## Generate bindings from a C header file
-      #   package string(pkgname):
-      #     ## Generate bindings for a C library as a Nim package
-      
-      oapi_init:
-        ## Initialize a default clue.openapi.config.yaml file
-      openapi path(spec), string("output"), ?string("--config"), ?bool("-y"):
-        ## Generate a new API client library from OpenAPI 3.0 spec file
+      openapi:
+        ## OpenAPI 3.x utilities
+        init:
+          ## Initialize a default clue.openapi.config.yaml file
+        gen path(spec), string("output"), ?string("--config"), ?bool("-y"):
+          ## Generate a new API client library from OpenAPI 3.x spec file
+        mock path(spec), ?string("--host"), ?string("--port"):
+          ## Spin up a local mock server from OpenAPI 3.x spec file
 
       # -- "Bundlers"
       #   ## Commands for bundling plugins for different package managers

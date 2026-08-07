@@ -13,6 +13,7 @@ import pkg/openparser/json as openjson
 import ../features/openapi/specparser
 import ../features/openapi/codegen
 import ../features/openapi/cluesettings
+import ../features/openapi/mockserver
 
 proc derivePkgId(pkg: Package): string =
   if pkg.oapi.isNil: return "client"
@@ -21,7 +22,40 @@ proc derivePkgId(pkg: Package): string =
   if parts.len == 0: return "client"
   result = parts[0]
 
-proc openapiCommand*(v: Values) =
+proc loadOpenApiSpec(specpath: string): openjson.JsonNode =
+  ## Load and parse an OpenAPI spec from a JSON file, YAML file, or URL.
+  if specpath.fileExists:
+    if specpath.endsWith(".yml") or specpath.endsWith(".yaml"):
+      let content = readFile(specpath)
+      try:
+        result = openjson.fromJson(content)
+        if result.isNil:
+          displayError("Failed to parse YAML spec")
+          return
+      except:
+        displayError("Failed to parse YAML spec: " & getCurrentExceptionMsg())
+        return
+    else:
+      try:
+        result = openjson.fromJsonFile(specpath)
+      except:
+        displayError("Failed to parse JSON spec: " & getCurrentExceptionMsg())
+        return
+  elif specpath.startsWith("http://") or specpath.startsWith("https://"):
+    var httpClient = newHttpClient()
+    try:
+      let content = httpClient.getContent(specpath)
+      try:
+        result = openjson.fromJson(content)
+      except:
+        displayError("Failed to parse spec: " & getCurrentExceptionMsg())
+        return
+    finally:
+      httpClient.close()
+  else:
+    displayError("Spec file not found: " & specpath)
+
+proc openApiGenCommand*(v: Values) =
   ## Generate a new API client library from OpenAPI spec file
   let specpath = v.get("spec").getPath.path
   let outputDir = v.get("output").getStr
@@ -47,37 +81,8 @@ proc openapiCommand*(v: Values) =
       except CatchableError as e:
         displayWarning("Failed to parse config, using defaults: " & e.msg)
 
-  var root: openjson.JsonNode
-  if specpath.fileExists:
-    if specpath.endsWith(".yml") or specpath.endsWith(".yaml"):
-      let content = readFile(specpath)
-      try:
-        root = openjson.fromJson(content)
-        if root.isNil:
-          displayError("Failed to parse YAML spec")
-          return
-      except:
-        displayError("Failed to parse YAML spec: " & getCurrentExceptionMsg())
-        return
-    else:
-      try:
-        root = openjson.fromJsonFile(specpath)
-      except:
-        displayError("Failed to parse JSON spec: " & getCurrentExceptionMsg())
-        return
-  elif specpath.startsWith("http://") or specpath.startsWith("https://"):
-    var httpClient = newHttpClient()
-    try:
-      let content = httpClient.getContent(specpath)
-      try:
-        root = openjson.fromJson(content)
-      except:
-        displayError("Failed to parse spec: " & getCurrentExceptionMsg())
-        return
-    finally:
-      httpClient.close()
-  else:
-    displayError("Spec file not found: " & specpath)
+  let root = loadOpenApiSpec(specpath)
+  if root.isNil:
     return
 
   try:
@@ -103,14 +108,14 @@ proc openapiCommand*(v: Values) =
       let (gitName, _) = execCmdEx("git config user.name")
       pkg.author = gitName.strip()
 
-    let gen = newGenerator(pkg, outputDir, skipPrefixPath)
+    let gen = newGenerator(pkg, outputDir, skipPrefixPath, root)
     gen.generate()
     displaySuccess("Client package generated at " & outputDir)
 
   except CatchableError as e:
     displayError("Failed to parse spec: " & e.msg)
 
-proc oapiInitCommand*(v: Values) =
+proc openApiInitCommand*(v: Values) =
   ## Initialize a default clue.openapi.config.yaml file
   let configPath = "clue.openapi.config.yaml"
   if fileExists(configPath):
@@ -121,3 +126,23 @@ proc oapiInitCommand*(v: Values) =
   let content = dumpDefaultSettings()
   writeFile(configPath, content)
   displaySuccess("Created " & configPath)
+
+proc openApiMockCommand*(v: Values) =
+  ## Command for starting a local mock server from OpenAPI 3.x spec
+  let specpath = v.get("spec").getPath.path
+  let host =
+    if v.has("--host"):
+      v.get("--host").getStr
+    else:
+      "127.0.0.1"
+  var port = Port(8080)
+  if v.has("--port"):
+    try:
+      port = Port(parseInt(v.get("--port").getStr))
+    except:
+      displayError("Invalid --port value: " & v.get("--port").getStr)
+      return
+  let root = loadOpenApiSpec(specpath)
+  if root.isNil:
+    return
+  startMockServer(root, host, port)

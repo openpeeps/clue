@@ -37,6 +37,7 @@ const
   stubReadme = staticRead("stubs/readme.md")
   stubNimble = staticRead("stubs/pkg.nimble")
   stubHeader = staticRead("stubs/header.txt")
+  stubMockserver = staticRead("mockserver.nim")
 
 type
   Generator* = ref object
@@ -51,6 +52,7 @@ type
     oauthTokenUrl*: string
     oauthAuthUrl*: string
     skipPrefixPath*: string
+    spec*: openjson.JsonNode
 
 proc toPascalCase(s: string): string =
   var nextUpper = true
@@ -755,7 +757,8 @@ proc detectOAuthUrl(scheme: SecurityScheme, kind: string): string =
       if flow.hasKey(kind) and flow[kind].kind == JString:
         return flow[kind].getStr
 
-proc newGenerator*(pkg: Package, outputDir: string, skipPrefixPath = ""): Generator =
+proc newGenerator*(pkg: Package, outputDir: string, skipPrefixPath = "";
+    spec: openjson.JsonNode = nil): Generator =
   new(result)
   result.pkg = pkg
   result.outputDir = outputDir
@@ -764,6 +767,7 @@ proc newGenerator*(pkg: Package, outputDir: string, skipPrefixPath = ""): Genera
   result.genTime = $now()
   result.authType = "bearer"
   result.skipPrefixPath = skipPrefixPath
+  result.spec = spec
   if pkg.oapi != nil:
     if pkg.oapi.servers.len > 0:
       result.baseUri = pkg.oapi.servers[0].url
@@ -785,6 +789,303 @@ proc fillTemplate(tmpl: string, vars: Table[string, string]): string =
 proc ensureDir(path: string) =
   if not dirExists(path):
     createDir(path)
+
+proc genSpecConst(spec: openjson.JsonNode): string =
+  ## Embed the raw spec as a compact, escaped Nim string literal.
+  result = openjson.toJson(spec)
+  result = openjson.toJson(result)
+
+proc sampleFieldValue(propName: string; propSchema: Schema;
+    schemas: OrderedTableRef[string, Schema];
+    typeNames: Table[string, string]): string =
+  ## A Nim expression with a sample value for a required object field,
+  ## or "" when the field should be left at its default.
+  if propSchema.isNil:
+    return
+  var target = propSchema
+  if propSchema.refPath.len > 0:
+    let parts = propSchema.refPath.split("/")
+    let name = parts[^1]
+    if schemas != nil and schemas.hasKey(name):
+      target = schemas[name]
+    else:
+      return
+    if target.isNil:
+      return
+  case target.fieldType
+  of stString:
+    if target.enumValues.len > 0: return
+    return "\"sample\""
+  of stInteger:
+    return "1"
+  of stNumber:
+    return "1.0"
+  of stBoolean:
+    return "true"
+  of stArray:
+    return "@[]"
+  of stObject:
+    if propSchema.refPath.len > 0:
+      let parts = propSchema.refPath.split("/")
+      return &"new{typeNameOf(typeNames, parts[^1])}()"
+    if target.name.len == 0:
+      return "openjson.newJObject()"
+    return
+  else:
+    return
+
+proc genDataBuilder(schemaName: string; schema: Schema;
+    schemas: OrderedTableRef[string, Schema];
+    typeNames: Table[string, string]; qualifier: string): string =
+  ## A `new<Type>()` fixture builder for a component object schema, shared
+  ## by every module test to avoid duplicating sample data. Type references
+  ## are module-qualified (`pkg.Type`) to avoid collisions with stdlib names.
+  let typeName = typeNameOf(typeNames, schemaName)
+  let qType = qualifier & typeName
+  result = &"proc new{typeName}*(): {qType} =\n"
+  result &= &"  result = {qType}()\n"
+  if not schema.properties.isNil:
+    for propName, propSchema in schema.properties.pairs:
+      if propName in schema.required and
+          not isOptionalField(propName, propSchema, schema, schemas):
+        let sample = sampleFieldValue(propName, propSchema, schemas, typeNames)
+        if sample.len > 0:
+          let fname = safeIdent(nimFieldName(propName))
+          result &= &"  result.{fname} = {sample}\n"
+  result &= "\n"
+
+proc genCommonFile(gen: Generator): string =
+  ## Generate `tests/common.nim`: embedded spec, mock-server bootstrap, and
+  ## shared data builders for every component object schema.
+  let typeNames = computeTypeNames(gen.schemas)
+  let qualifier = gen.pkgName & "."
+  result = fillTemplate(stubHeader, {
+    "clue_pkg_name": gen.pkgName,
+    "clue_pkg_generation_time": gen.genTime,
+    "clue_pkg_license": gen.pkg.license,
+  }.toTable)
+  result &= "import std/net\n"
+  result &= "from std/asyncdispatch import waitFor, asyncCheck\n"
+  result &= "import pkg/openparser/json as openjson\n"
+  result &= &"import {gen.pkgName}\n"
+  result &= "import ./mockserver except File\n\n"
+  result &= "const specJson* = " & genSpecConst(gen.spec) & "\n\n"
+  result &= "proc spec*(): openjson.JsonNode =\n"
+  result &= "  openjson.fromJson(specJson)\n\n"
+  result &= "var mockServers*: seq[MockServer]\n\n"
+  result &= "proc startMock*(): Port =\n"
+  result &= "  ## Start a mock server backed by the embedded spec on an ephemeral port.\n"
+  result &= "  let s = newMockServer(spec(), \"127.0.0.1\", Port(0))\n"
+  result &= "  waitFor s.open()\n"
+  result &= "  asyncCheck s.serve()\n"
+  result &= "  mockServers.add(s)\n"
+  result &= "  result = s.port\n\n"
+  if not gen.schemas.isNil:
+    var builderNames: seq[string]
+    for schemaName, schema in gen.schemas.pairs:
+      if schema != nil and schema.refPath.len == 0 and schema.fieldType == stObject:
+        builderNames.add(typeNameOf(typeNames, schemaName))
+    for name in builderNames:
+      result &= &"proc new{name}*(): {qualifier}{name}\n"
+    if builderNames.len > 0:
+      result &= "\n"
+    for schemaName, schema in gen.schemas.pairs:
+      if schema != nil and schema.refPath.len == 0 and schema.fieldType == stObject:
+        result &= genDataBuilder(schemaName, schema, gen.schemas, typeNames, qualifier)
+
+proc collectSchemaRefs(schema: Schema; refs: var HashSet[string]) =
+  if schema.isNil: return
+  if schema.refPath.len > 0:
+    let parts = schema.refPath.split("/")
+    if parts.len > 0:
+      refs.incl(parts[^1])
+    return
+  case schema.fieldType
+  of stObject:
+    if not schema.properties.isNil:
+      for p in schema.properties.values:
+        collectSchemaRefs(p, refs)
+  of stArray:
+    collectSchemaRefs(schema.items, refs)
+  else: discard
+
+proc opRefs(op: Operation): HashSet[string] =
+  result = initHashSet[string]()
+  if op.isNil: return
+  for p in op.parameters:
+    if p != nil:
+      collectSchemaRefs(p.schema, result)
+  if op.requestBody != nil and not op.requestBody.content.isNil:
+    for mt in op.requestBody.content.values:
+      collectSchemaRefs(mt.schema, result)
+  if not op.responses.isNil:
+    for resp in op.responses.values:
+      if resp != nil and not resp.content.isNil:
+        for mt in resp.content.values:
+          collectSchemaRefs(mt.schema, result)
+
+proc successResponseSchema(operation: Operation): Schema =
+  ## The first 2xx `application/json` response schema, mirroring the client proc.
+  if operation.isNil or operation.responses.isNil:
+    return
+  for statusCode, response in operation.responses.pairs:
+    if statusCode.startsWith("2") and not response.content.isNil:
+      for mediaType, mt in response.content.pairs:
+        if mediaType == "application/json" and not mt.schema.isNil:
+          return mt.schema
+      break
+
+proc resolveParamTarget(param: Parameter;
+    schemas: OrderedTableRef[string, Schema]): Schema =
+  if param.isNil or param.schema.isNil:
+    return
+  if param.schema.refPath.len > 0:
+    let parts = param.schema.refPath.split("/")
+    let name = parts[^1]
+    if schemas != nil and schemas.hasKey(name):
+      return schemas[name]
+    return nil
+  return param.schema
+
+proc sampleParamArg(param: Parameter; tag: string;
+    schemas: OrderedTableRef[string, Schema];
+    typeNames: Table[string, string]): string =
+  ## A sample call argument for a path/query parameter, or "" if unsampleable.
+  ## Arguments must line up positionally with the generated proc signature.
+  if param.kind == pinQuery and paramHasEnum(param):
+    return "{}"
+  let target = resolveParamTarget(param, schemas)
+  if target.isNil:
+    return
+  case target.fieldType
+  of stString:
+    if target.enumValues.len > 0: return
+    return "\"test\""
+  of stInteger:
+    return "1"
+  of stNumber:
+    return "1.0"
+  of stBoolean:
+    return "true"
+  of stArray:
+    if paramIsSimpleArray(param): return "@[\"test\"]"
+    return
+  of stObject:
+    if param.schema.refPath.len > 0:
+      let parts = param.schema.refPath.split("/")
+      let name = typeNameOf(typeNames, parts[^1])
+      return &"new{name}()"
+    if param.schema.name.len == 0:
+      return "openjson.newJObject()"
+    return
+  else:
+    return
+
+proc genModuleTest(tag: string; ops: seq[tuple[path: string, meth: string, operation: Operation]];
+    gen: Generator; typeNames: Table[string, string]): string =
+  ## Generate `tests/test_<tag>.nim`: serialization round-trips for the types
+  ## the module touches plus mock-server integration tests for its endpoints.
+  let pkgName = gen.pkgName
+  let clientIdent = gen.pkgIdent & "Client"
+
+  result = fillTemplate(stubHeader, {
+    "clue_pkg_name": gen.pkgName,
+    "clue_pkg_generation_time": gen.genTime,
+    "clue_pkg_license": gen.pkg.license,
+  }.toTable)
+  result &= "import std/[asyncdispatch, options, json]\n"
+  result &= "import unittest\n"
+  result &= "import pkg/openparser/json as openjson\n"
+  result &= &"import {pkgName}\n"
+  result &= "import ./common\n\n"
+
+  let qualifier = pkgName & "."
+
+  result &= &"suite \"{tag} serialization\":\n"
+  var hasSerTest = false
+  var refs = initHashSet[string]()
+  for (_, _, operation) in ops:
+    for r in opRefs(operation):
+      refs.incl(r)
+  for r in refs:
+    if gen.schemas != nil and gen.schemas.hasKey(r) and gen.schemas[r] != nil and
+        gen.schemas[r].refPath.len == 0 and gen.schemas[r].fieldType == stObject:
+      let typeName = typeNameOf(typeNames, r)
+      result &= &"  test \"round-trips {typeName}\":\n"
+      result &= &"    let obj = new{typeName}()\n"
+      result &= &"    check openjson.toJson(openjson.fromJson(openjson.toJson(obj), {qualifier}{typeName})) == openjson.toJson(obj)\n"
+      result &= "\n"
+      hasSerTest = true
+
+  var emittedResp = initHashSet[string]()
+  for (path, meth, operation) in ops:
+    let ep = genEndpoint(path, gen.skipPrefixPath)
+    let successSchema = successResponseSchema(operation)
+    if not successSchema.isNil and successSchema.refPath.len == 0 and
+        successSchema.fieldType == stObject and not successSchema.properties.isNil:
+      let typeName = meth.toLowerAscii.toUpperAscii[0] & meth.toLowerAscii[1..^1] & ep.ident & "Response"
+      if typeName notin emittedResp:
+        emittedResp.incl(typeName)
+        result &= &"  test \"round-trips {typeName}\":\n"
+        result &= &"    let obj = {qualifier}{typeName}()\n"
+        result &= &"    check openjson.toJson(openjson.fromJson(openjson.toJson(obj), {qualifier}{typeName})) == openjson.toJson(obj)\n"
+        result &= "\n"
+        hasSerTest = true
+
+  if not hasSerTest:
+    result &= "  test \"module imports cleanly\":\n"
+    result &= "    check true\n\n"
+
+  result &= &"suite \"{tag} endpoints\":\n"
+  var emitted = 0
+  for (path, meth, operation) in ops:
+    let ep = genEndpoint(path, gen.skipPrefixPath)
+    let procName = meth.toLowerAscii & ep.ident
+    var args: seq[string]
+    var skip = false
+    for param in operation.parameters:
+      if param.isNil: continue
+      case param.kind
+      of pinPath, pinQuery:
+        let sample = sampleParamArg(param, tag, gen.schemas, typeNames)
+        if sample.len == 0:
+          skip = true
+          break
+        args.add(sample)
+      else: discard
+    if skip: continue
+    var bodyArg = ""
+    if not operation.requestBody.isNil and not operation.requestBody.content.isNil:
+      for mediaType, mt in operation.requestBody.content.pairs:
+        if mediaType == "application/json" and not mt.schema.isNil:
+          if mt.schema.refPath.len > 0:
+            let parts = mt.schema.refPath.split("/")
+            let target =
+              if gen.schemas != nil and gen.schemas.hasKey(parts[^1]): gen.schemas[parts[^1]]
+              else: nil
+            if target != nil and target.fieldType == stObject:
+              bodyArg = &"new{typeNameOf(typeNames, parts[^1])}()"
+            else:
+              skip = true
+          elif mt.schema.fieldType == stObject and not mt.schema.properties.isNil:
+            skip = true  # inline private request type
+          break
+    if skip: continue
+    if bodyArg.len > 0:
+      args.add(bodyArg)
+    let callArgs = args.join(", ")
+    let initArg = if gen.authType == "oauth2": "()" else: "(\"test-key\")"
+    result &= &"  test \"{meth} {path}\":\n"
+    result &= &"    let client = init{clientIdent}{initArg}\n"
+    result &= "    client.baseUri = \"http://127.0.0.1:\" & $int(startMock())\n"
+    result &= &"    discard waitFor client.{procName}({callArgs})\n"
+    result &= "\n"
+    inc emitted
+
+  if emitted == 0:
+    result &= "  test \"module has no sampleable endpoints\":\n"
+    result &= "    check true\n\n"
+
 
 proc generate*(gen: Generator) =
   let srcDir = gen.outputDir / "src"
@@ -850,6 +1151,16 @@ proc generate*(gen: Generator) =
       let fileName = tag & ".nim"
       let endpointCode = fillTemplate(genEndpointFile(tag, ops, gen.schemas, typeNames, gen.pkgIdent, gen.skipPrefixPath), vars)
       writeFile(srcPkgDir / fileName, endpointCode)
+
+    if not gen.spec.isNil:
+      let testsDir = gen.outputDir / "tests"
+      ensureDir(testsDir)
+      writeFile(testsDir / "config.nims", "switch(\"path\", \"$projectDir/../src\")\n")
+      writeFile(testsDir / "mockserver.nim", stubMockserver)
+      writeFile(testsDir / "common.nim", genCommonFile(gen))
+      for tag, ops in groups.pairs:
+        let testCode = genModuleTest(tag, ops, gen, typeNames)
+        writeFile(testsDir / &"test_{tag}.nim", testCode)
 
   var modules: seq[string]
   var mainExports: seq[string]
