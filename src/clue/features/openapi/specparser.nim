@@ -88,6 +88,8 @@ proc parseSpecification*(pkg: Package; root: JsonNode;
   if root.hasKey("components"):
     pkg.oapi.components = parseComponents(root["components"])
 
+  pkg.oapi.resolveOperationRefs()
+
   if root.hasKey("tags") and root["tags"].kind == JArray:
     for t in root["tags"].elems:
       if t.kind == JObject:

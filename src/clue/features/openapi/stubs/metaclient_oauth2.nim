@@ -11,6 +11,7 @@ import std/[asyncdispatch, httpclient, tables,
 
 import pkg/oauth2
 import pkg/openparser/json
+{clue_renames_import}
 
 export asyncdispatch, httpclient, json, options, times, oauth2, tables, sequtils
 

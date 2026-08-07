@@ -16,7 +16,8 @@ when isMainModule:
       # Manage local packages when nimble fails
       #
       -- "Package Management"
-      build ?bool("--release"), ?bool("--debug"), ?string("--features"):
+      build ?bool("--release"), ?bool("--debug"), ?string("--features"),
+            ?bool("--verbose"):
         ## Build the current Nim package from its nimble file
       install string(pkg), ?bool("--refresh"), ?string("--features"):
         ## Install a package from remote source

@@ -4,7 +4,7 @@
 #          Made by Humans from OpenPeeps
 #          https://github.com/openpeeps/clue
 
-import std/[tables, json, strformat, strutils, os, times, sequtils, wordwrap]
+import std/[tables, json, strformat, strutils, os, times, sequtils, wordwrap, sets]
 import pkg/openparser/json as openjson
 import ./ir, ./specparser
 
@@ -55,13 +55,14 @@ type
 proc toPascalCase(s: string): string =
   var nextUpper = true
   for c in s:
-    if c in {'_', '-', '/', ':'}:
-      nextUpper = true
-    elif nextUpper:
-      add result, c.toUpperAscii
-      nextUpper = false
+    if c.isAlphaAscii or c.isDigit:
+      if nextUpper:
+        add result, c.toUpperAscii
+        nextUpper = false
+      else:
+        add result, c
     else:
-      add result, c
+      nextUpper = true
 
 proc toSnakeCase(s: string): string =
   for i, c in s:
@@ -72,16 +73,89 @@ proc toSnakeCase(s: string): string =
     else:
       add result, c
 
+proc nimFieldName(propName: string): string =
+  ## A valid Nim object field identifier for a schema property: snake_case,
+  ## leading underscores stripped (`_tag` -> `tag`) and every other
+  ## non-alphanumeric character collapsed to `_` (`$schema` -> `schema`).
+  ## Guards against empty and digit-leading identifiers.
+  result = toSnakeCase(propName)
+  var cleaned = ""
+  var prevUnd = false
+  for c in result:
+    if c.isAlphaAscii or c.isDigit:
+      cleaned.add(c)
+      prevUnd = false
+    elif not prevUnd:
+      cleaned.add('_')
+      prevUnd = true
+  if cleaned.len > 0 and cleaned[^1] == '_':
+    cleaned.setLen(cleaned.len - 1)
+  result = cleaned
+  while result.len > 0 and result[0] == '_':
+    result = result[1 .. ^1]
+  if result.len == 0:
+    result = "field"
+  if result[0].isDigit:
+    result = "f" & result
+
 proc toCamelCase(s: string): string =
   var nextUpper = false
   for c in s:
-    if c in {'_', '-', '/', ':'}:
-      nextUpper = true
-    elif nextUpper:
-      add result, c.toUpperAscii
-      nextUpper = false
+    if c.isAlphaAscii or c.isDigit:
+      if nextUpper:
+        add result, c.toUpperAscii
+        nextUpper = false
+      else:
+        add result, c
     else:
-      add result, c
+      nextUpper = true
+
+proc sanitizeIdent(s: string): string =
+  ## Coerce any string into a valid Nim identifier: non-alphanumeric chars
+  ## become underscores (runs collapsed), leading/trailing underscores
+  ## stripped, digit-leading and empty results guarded.
+  var prevUnd = false
+  for c in s:
+    if c.isAlphaAscii or c.isDigit:
+      result.add(c)
+      prevUnd = false
+    elif not prevUnd:
+      result.add('_')
+      prevUnd = true
+  if result.len > 0 and result[^1] == '_':
+    result.setLen(result.len - 1)
+  if result.len == 0:
+    result = "field"
+  if result[0].isDigit:
+    result = "f" & result
+
+proc paramIdent(name: string): string =
+  ## A valid Nim identifier for a parameter: camelCase, sanitized
+  ## (`location[directory]` -> `locationDirectory`).
+  safeIdent(sanitizeIdent(toCamelCase(name)))
+
+proc enumFieldName(val: string): string =
+  ## A valid Nim enum field identifier for an enum value: camelCase,
+  ## sanitized (`2EBOX` -> `f2EBOX`, `4_72` -> `f472`).
+  sanitizeIdent(toCamelCase(val))
+
+proc toModuleName(tag: string): string =
+  ## Convert an arbitrary tag/group name into a valid Nim module identifier:
+  ## lowercased, with every non-alphanumeric character collapsed to `_`.
+  ## e.g. "opencode HttpApi" -> "opencode_httpapi", "session questions" ->
+  ## "session_questions". Guards against empty names and digit-leading idents.
+  var prevSep = true
+  for c in tag.toLowerAscii:
+    if c.isAlphaAscii or c.isDigit:
+      result.add(c)
+      prevSep = false
+    elif not prevSep:
+      result.add('_')
+      prevSep = true
+  if result.len > 0 and result[^1] == '_':
+    result.setLen(result.len - 1)
+  if result.len == 0 or result[0].isDigit:
+    result = "_" & result
 
 proc genEndpoint*(path: string, skipPrefixPath: sink string = ""): tuple[ident, module, endpoint: string] =
   var i = 0
@@ -122,10 +196,37 @@ proc schemaNameToTypeName(name: string): string =
 proc schemaNameToEnumName(name: string): string =
   toPascalCase(name)
 
-proc nimTypeForSchema*(schema: Schema, schemas: OrderedTableRef[string, Schema]; typeNameHint = ""): string =
+proc computeTypeNames(schemas: OrderedTableRef[string, Schema]): Table[string, string] =
+  ## Deterministic mapping of schema name -> unique Nim type name. Schema names
+  ## that sanitize to the same PascalCase identifier (e.g. `QuestionReplied`
+  ## and `question.replied`) get a numeric suffix so generated types never
+  ## collide.
+  result = initTable[string, string]()
+  if schemas.isNil:
+    return
+  var used = initHashSet[string]()
+  for schemaName, schema in schemas.pairs:
+    let base = schemaNameToTypeName(schemaName)
+    var candidate = base
+    var n = 2
+    while candidate in used:
+      candidate = base & $n
+      inc n
+    used.incl(candidate)
+    result[schemaName] = candidate
+
+proc typeNameOf(typeNames: Table[string, string], name: string): string =
+  typeNames.getOrDefault(name, schemaNameToTypeName(name))
+
+proc nimTypeForSchema*(schema: Schema, schemas: OrderedTableRef[string, Schema];
+    typeNames: Table[string, string] = initTable[string, string]();
+    typeNameHint = ""; qualify = false): string =
+  if schema.isNil:
+    return "JsonNode"
   if schema.refPath.len > 0:
     let parts = schema.refPath.split("/")
-    return schemaNameToTypeName(parts[^1])
+    let name = typeNameOf(typeNames, parts[^1])
+    return (if qualify: "types." & name else: name)
   case schema.fieldType
   of stString:
     if schema.enumValues.len > 0:
@@ -143,11 +244,12 @@ proc nimTypeForSchema*(schema: Schema, schemas: OrderedTableRef[string, Schema];
     return "bool"
   of stArray:
     if not schema.items.isNil:
-      return &"seq[{nimTypeForSchema(schema.items, schemas)}]"
+      return &"seq[{nimTypeForSchema(schema.items, schemas, typeNames, qualify = qualify)}]"
     return "seq[JsonNode]"
   of stObject:
     if schema.name.len > 0:
-      return schemaNameToTypeName(schema.name)
+      let name = typeNameOf(typeNames, schema.name)
+      return (if qualify: "types." & name else: name)
     return "JsonNode"
 
 proc pascalSingular(tag: string): string =
@@ -208,26 +310,45 @@ proc genEnumForQueryParam(param: Parameter; tag: string): string =
   let enumName = safeIdent(pascalSingular(tag) & toPascalCase(param.name) & "Option")
   result = &"  {enumName}* = enum\n"
   for val in param.schema.enumValues:
-    let fieldName = toCamelCase(param.name) & toPascalCase(val)
+    let fieldName = sanitizeIdent(toCamelCase(param.name) & toPascalCase(val))
     result &= &"    {fieldName} = \"{val}\"\n"
 
-proc genTypeDefinition*(schemaName: string, schema: Schema, schemas: OrderedTableRef[string, Schema]): string =
+proc normIdent(s: string): string =
+  ## Normalize an identifier for Nim's style-insensitive name comparison
+  ## (case- and underscore-insensitive): lowercase, underscores removed.
+  result = s.toLowerAscii
+  result = result.replace("_", "")
+
+proc enumFieldNameUnique(val: string, enumName: string,
+    reserved: HashSet[string]): string =
+  ## A valid Nim enum field identifier that does not collide
+  ## (style-insensitively) with any type name in the module.
+  result = enumFieldName(val)
+  var n = 2
+  let base = result
+  while normIdent(result) in reserved:
+    result = base & $n
+    inc n
+
+proc genTypeDefinition*(schemaName: string, schema: Schema, schemas: OrderedTableRef[string, Schema];
+    typeNames: Table[string, string] = initTable[string, string]();
+    reserved: HashSet[string] = initHashSet[string]()): string =
   if schema.refPath.len > 0:
     let refParts = schema.refPath.split("/")
-    let targetType = schemaNameToTypeName(refParts[refParts.high])
-    let typeName = schemaNameToTypeName(schemaName)
+    let targetType = typeNameOf(typeNames, refParts[refParts.high])
+    let typeName = typeNameOf(typeNames, schemaName)
     if typeName != targetType:
       result = &"  {typeName}* = {targetType}\n"
     return
   case schema.fieldType
   of stObject:
-    let typeName = schemaNameToTypeName(schemaName)
+    let typeName = typeNameOf(typeNames, schemaName)
     result = &"  {typeName}* = ref object of RootObj\n"
     result &= fmtDocComment("    ", schema.description)
     if not schema.properties.isNil:
       for propName, propSchema in schema.properties.pairs:
-        let nimName = safeIdent(toSnakeCase(propName))
-        let nimType = nimTypeForSchema(propSchema, schemas)
+        let nimName = safeIdent(nimFieldName(propName))
+        let nimType = nimTypeForSchema(propSchema, schemas, typeNames)
         if isOptionalField(propName, propSchema, schema, schemas):
           result &= &"    {nimName}*: Option[{nimType}]\n"
         else:
@@ -239,39 +360,98 @@ proc genTypeDefinition*(schemaName: string, schema: Schema, schemas: OrderedTabl
       result = &"  {enumName}* = enum\n"
       result &= fmtDocComment("    ", schema.description)
       for val in schema.enumValues:
-        let fieldName = toCamelCase(val)
+        let fieldName = enumFieldNameUnique(val, enumName, reserved)
         result &= &"    {fieldName} = \"{val}\"\n"
+    else:
+      # primitive alias (e.g. a `$ref`d string schema)
+      result = &"  {typeNameOf(typeNames, schemaName)}* = string\n"
   else:
-    discard
+    # emit an alias for non-object/non-enum schemas (arrays, scalars) so
+    # `$ref` references to them resolve (e.g. `QuestionAnswer* = seq[string]`).
+    let baseType = nimTypeForSchema(schema, schemas, typeNames)
+    if baseType.len > 0:
+      result = &"  {typeNameOf(typeNames, schemaName)}* = {baseType}\n"
 
 proc genTypes*(schemas: OrderedTableRef[string, Schema]): string =
+  let typeNames = computeTypeNames(schemas)
+  var reserved = initHashSet[string]()
+  if not schemas.isNil:
+    for schemaName, schema in schemas.pairs:
+      reserved.incl(normIdent(typeNameOf(typeNames, schemaName)))
+      reserved.incl(normIdent(schemaNameToEnumName(schemaName)))
   result = "import std/[options, json]\n"
-  result &= "import ./metaclient\n\n"
+  result &= "\n"
   result &= "type\n"
   var first = true
   for schemaName, schema in schemas.pairs:
-    let typeDef = genTypeDefinition(schemaName, schema, schemas)
+    let typeDef = genTypeDefinition(schemaName, schema, schemas, typeNames, reserved)
     if typeDef.len > 0:
       if not first:
         result &= "\n"
       result &= typeDef
       first = false
 
+proc schemasNeedRenames(schemas: OrderedTableRef[string, Schema]): bool =
+  ## True when any schema object property needs a renameHook mapping (i.e. its
+  ## wire name differs from the generated Nim field name, e.g. `_tag` -> `tag`).
+  if schemas.isNil:
+    return false
+  for schemaName, schema in schemas.pairs:
+    if schema.isNil or schema.properties.isNil:
+      continue
+    for propName, propSchema in schema.properties.pairs:
+      if nimFieldName(propName) != propName:
+        return true
+  false
+
+proc genRenamesCode(schemas: OrderedTableRef[string, Schema]): string =
+  ## Generate the `renames.nim` module: a per-type `renameHook` for every
+  ## object schema whose property wire names differ from their Nim fields.
+  ## The hook is an involution so it works for both parsing (`_tag` -> `tag`)
+  ## and dumping (`tag` -> `_tag`).
+  if not schemasNeedRenames(schemas):
+    return
+  let typeNames = computeTypeNames(schemas)
+  result = "import ./types\n\n"
+  for schemaName, schema in schemas.pairs:
+    if schema.isNil or schema.properties.isNil:
+      continue
+    var renames: seq[tuple[wire, nim: string]]
+    for propName, propSchema in schema.properties.pairs:
+      let nimName = nimFieldName(propName)
+      if nimName != propName:
+        renames.add((propName, nimName))
+    if renames.len == 0:
+      continue
+    let typeName = typeNameOf(typeNames, schemaName)
+    result &= "proc renameHook*(v: " & typeName & ", fieldName: var string) {.inline.} =\n"
+    var first = true
+    for (wire, nim) in renames:
+      let cond = if first: "if" else: "elif"
+      result &= "  " & cond & " fieldName == \"" & wire & "\":\n"
+      result &= "    fieldName = \"" & nim & "\"\n"
+      result &= "  elif fieldName == \"" & nim & "\":\n"
+      result &= "    fieldName = \"" & wire & "\"\n"
+      first = false
+    result &= "\n"
+
 proc genEnumType(schemaName: string, schema: Schema): string =
   let enumName = schemaNameToEnumName(schemaName)
   result = &"  {enumName}* = enum\n"
   for val in schema.enumValues:
-    let fieldName = toCamelCase(val)
+    let fieldName = enumFieldName(val)
     result &= &"    {fieldName} = \"{val}\"\n"
 
-proc genRequestType(ident: string, bodySchema: Schema, schemas: OrderedTableRef[string, Schema]): string =
+proc genRequestType(ident: string, httpMeth: string, bodySchema: Schema, schemas: OrderedTableRef[string, Schema];
+    typeNames: Table[string, string]): string =
   if bodySchema.isNil or bodySchema.refPath.len > 0:
     return ""
   if bodySchema.fieldType == stObject and not bodySchema.properties.isNil:
-    result = &"  {ident}Request = object\n"
+    let typeName = httpMeth.toLowerAscii.toUpperAscii[0] & httpMeth.toLowerAscii[1..^1] & ident & "Request"
+    result = &"  {typeName} = object\n"
     for propName, propSchema in bodySchema.properties.pairs:
-      let nimName = safeIdent(toSnakeCase(propName))
-      let nimType = nimTypeForSchema(propSchema, schemas)
+      let nimName = safeIdent(nimFieldName(propName))
+      let nimType = nimTypeForSchema(propSchema, schemas, typeNames, qualify = true)
       if isOptionalField(propName, propSchema, bodySchema, schemas):
         result &= &"    {nimName}: Option[{nimType}]\n"
       else:
@@ -279,7 +459,8 @@ proc genRequestType(ident: string, bodySchema: Schema, schemas: OrderedTableRef[
     if result.endsWith("\n"):
       result.setLen(result.len - 1)
 
-proc genResponseType(ident: string, httpMeth: string, responseSchema: Schema, schemas: OrderedTableRef[string, Schema]): string =
+proc genResponseType(ident: string, httpMeth: string, responseSchema: Schema, schemas: OrderedTableRef[string, Schema];
+    typeNames: Table[string, string]): string =
   if responseSchema.isNil or responseSchema.refPath.len > 0:
     return
   if responseSchema.fieldType == stObject and not responseSchema.properties.isNil:
@@ -288,8 +469,8 @@ proc genResponseType(ident: string, httpMeth: string, responseSchema: Schema, sc
     result = &"  {typeName}* = object\n"
     result &= desc
     for propName, propSchema in responseSchema.properties.pairs:
-      let nimName = safeIdent(toSnakeCase(propName))
-      let nimType = nimTypeForSchema(propSchema, schemas)
+      let nimName = safeIdent(nimFieldName(propName))
+      let nimType = nimTypeForSchema(propSchema, schemas, typeNames, qualify = true)
       result &= &"    {nimName}: {nimType}\n"
       result &= fmtDocComment("      ", propSchema.description)
     if result.endsWith("\n"):
@@ -297,6 +478,7 @@ proc genResponseType(ident: string, httpMeth: string, responseSchema: Schema, sc
 
 proc genEndpointProc(httpMeth: string; path: string; operation: Operation;
   schemas: OrderedTableRef[string, Schema];
+  typeNames: Table[string, string];
   pkgIdent: string; tag: string;
   skipPrefixPath: sink string = ""): string =
   let ep = genEndpoint(path, skipPrefixPath)
@@ -327,7 +509,7 @@ proc genEndpointProc(httpMeth: string; path: string; operation: Operation;
         hasBody = true
         if bodySchema.refPath.len > 0:
           let refParts = bodySchema.refPath.split("/")
-          bodyRefName = schemaNameToTypeName(refParts[refParts.high])
+          bodyRefName = "types." & typeNameOf(typeNames, refParts[refParts.high])
         elif bodySchema.fieldType == stObject and not bodySchema.properties.isNil:
           bodyNeedsRequestType = true
 
@@ -341,13 +523,15 @@ proc genEndpointProc(httpMeth: string; path: string; operation: Operation;
     if successCode.len > 0: break
 
   let respTypeName =
-    if successSchema != nil and successSchema.refPath.len > 0:
+    if successSchema.isNil:
+      "AsyncResponse"
+    elif successSchema.refPath.len > 0:
       let parts = successSchema.refPath.split("/")
-      schemaNameToTypeName(parts[parts.high])
-    elif successSchema != nil:
+      "types." & typeNameOf(typeNames, parts[parts.high])
+    elif successSchema.fieldType == stObject and not successSchema.properties.isNil:
       httpMeth.toLowerAscii.toUpperAscii[0] & httpMeth.toLowerAscii[1..^1] & ep.ident & "Response"
     else:
-      "AsyncResponse"
+      nimTypeForSchema(successSchema, schemas, typeNames, qualify = true)
 
   result = "\n"
 
@@ -355,8 +539,8 @@ proc genEndpointProc(httpMeth: string; path: string; operation: Operation;
   paramStrs.add("client: " & pkgIdent & "Client")
   for param in operation.parameters:
     if param.isNil: continue
-    let paramName = safeIdent(toCamelCase(param.name))
-    let nimType = nimTypeForSchema(param.schema, schemas)
+    let paramName = paramIdent(param.name)
+    let nimType = nimTypeForSchema(param.schema, schemas, typeNames, qualify = true)
     case param.kind
     of pinPath:
       paramStrs.add(paramName & ": " & nimType)
@@ -378,7 +562,7 @@ proc genEndpointProc(httpMeth: string; path: string; operation: Operation;
     if bodyRefName.len > 0:
       paramStrs.add("body: " & bodyRefName)
     elif bodyNeedsRequestType:
-      paramStrs.add("body: " & ep.ident & "Request")
+      paramStrs.add("body: " & httpMeth.toLowerAscii.toUpperAscii[0] & httpMeth.toLowerAscii[1..^1] & ep.ident & "Request")
 
   let procPrefix = "proc " & procName & "*("
   let suffix = ": Future[" & respTypeName & "] {.async.} =\n"
@@ -411,7 +595,7 @@ proc genEndpointProc(httpMeth: string; path: string; operation: Operation;
   if queryParams.len > 0:
     result &= "  var q = initOrderedTable[string, string]()\n"
     for param in queryParams:
-      let paramName = safeIdent(toCamelCase(param.name))
+      let paramName = paramIdent(param.name)
       if paramHasEnum(param) or paramIsSimpleArray(param):
         result &= &"  for v in {paramName}: q[\"{param.name}\"] = $v\n"
       else:
@@ -420,7 +604,7 @@ proc genEndpointProc(httpMeth: string; path: string; operation: Operation;
   if pathParams.len > 0:
     var fmtPath = ep.endpoint
     for param in pathParams:
-      let paramName = safeIdent(toCamelCase(param.name))
+      let paramName = paramIdent(param.name)
       fmtPath = fmtPath.replace(&"{{{param.name}}}", &"{{{paramName}}}")
     if queryParams.len > 0:
       result &= &"  let res = await client.http{methUpper}(fmt\"{fmtPath}\", q)\n"
@@ -448,12 +632,16 @@ proc genEndpointProc(httpMeth: string; path: string; operation: Operation;
 
 proc genEndpointFile*(tag: string, ops: seq[tuple[path: string, meth: string, operation: Operation]],
   schemas: OrderedTableRef[string, Schema];
+  typeNames: Table[string, string];
   pkgIdent: string;
   skipPrefixPath: sink string = ""): string =
   result = stubHeader
   result &= "import std/[strformat, options, json]\n"
   result &= "import ./metaclient\n"
-  result &= "import ./types\n\n"
+  result &= "import ./types\n"
+  if schemasNeedRenames(schemas):
+    result &= "import ./renames\n"
+  result &= "\n"
 
   var hasTypes = false
   var firstType = true
@@ -466,7 +654,7 @@ proc genEndpointFile*(tag: string, ops: seq[tuple[path: string, meth: string, op
           bodySchema = mt.schema
           break
     if not bodySchema.isNil and bodySchema.refPath.len == 0 and bodySchema.fieldType == stObject and not bodySchema.properties.isNil:
-      let reqType = genRequestType(ep.ident, bodySchema, schemas)
+      let reqType = genRequestType(ep.ident, meth, bodySchema, schemas, typeNames)
       if reqType.len > 0:
         if not hasTypes:
           result &= "type\n"
@@ -479,7 +667,7 @@ proc genEndpointFile*(tag: string, ops: seq[tuple[path: string, meth: string, op
       if not response.content.isNil:
         for mediaType, mt in response.content.pairs:
           if mediaType == "application/json" and not mt.schema.isNil:
-            let respType = genResponseType(ep.ident, meth, mt.schema, schemas)
+            let respType = genResponseType(ep.ident, meth, mt.schema, schemas, typeNames)
             if respType.len > 0:
               if not hasTypes:
                 result &= "type\n"
@@ -510,7 +698,7 @@ proc genEndpointFile*(tag: string, ops: seq[tuple[path: string, meth: string, op
     result &= "\n"
 
   for (path, meth, operation) in ops:
-    result &= genEndpointProc(meth, path, operation, schemas, pkgIdent, tag, skipPrefixPath)
+    result &= genEndpointProc(meth, path, operation, schemas, typeNames, pkgIdent, tag, skipPrefixPath)
 
 proc serverIdent(description, url: string): string =
   let src =
@@ -549,11 +737,11 @@ proc groupOperations*(pkg: Package): OrderedTableRef[string, seq[tuple[path: str
       if op == nil: continue
       let tag =
         if op.tags.len > 0:
-          let firstTag = op.tags[0].toLowerAscii
-          if firstTag.len > 0: firstTag
-          else: genEndpoint(curPath).module
+          let firstTag = op.tags[0]
+          if firstTag.len > 0: toModuleName(firstTag)
+          else: toModuleName(genEndpoint(curPath).module)
         else:
-          genEndpoint(curPath).module
+          toModuleName(genEndpoint(curPath).module)
       if not result.hasKey(tag):
         result[tag] = newSeq[tuple[path: string, meth: string, operation: Operation]]()
       result[tag].add((curPath, httpMeth, op))
@@ -613,6 +801,11 @@ proc generate*(gen: Generator) =
     if gen.authType == "oauth2": "\nrequires \"oauth2\""
     else: ""
 
+  let renamesCode = genRenamesCode(gen.schemas)
+  let renamesImport =
+    if renamesCode.len > 0: "import ./renames\n"
+    else: ""
+
   let vars = {
     "clue_pkg_name": gen.pkgName,
     "clue_client_ident": gen.pkgIdent & "Client",
@@ -624,6 +817,7 @@ proc generate*(gen: Generator) =
     "clue_oauth_token_url": gen.oauthTokenUrl,
     "clue_oauth_auth_url": gen.oauthAuthUrl,
     "clue_requires_oauth2": oauth2Require,
+    "clue_renames_import": renamesImport,
     "pkgVersion": gen.pkg.openApiVersion,
     "pkgAuthor": gen.pkg.author,
     "pkgDesc": gen.pkg.description,
@@ -640,6 +834,9 @@ proc generate*(gen: Generator) =
     let typesCode = genTypes(gen.schemas)
     writeFile(srcPkgDir / "types.nim", typesCode)
 
+  if renamesCode.len > 0:
+    writeFile(srcPkgDir / "renames.nim", renamesCode)
+
   var hasServers = false
   if not gen.pkg.oapi.isNil and gen.pkg.oapi.servers.len > 1:
     let serversCode = genServers(gen.pkg.oapi.servers)
@@ -648,9 +845,10 @@ proc generate*(gen: Generator) =
 
   let groups = groupOperations(gen.pkg)
   if not groups.isNil:
+    let typeNames = computeTypeNames(gen.schemas)
     for tag, ops in groups.pairs:
       let fileName = tag & ".nim"
-      let endpointCode = fillTemplate(genEndpointFile(tag, ops, gen.schemas, gen.pkgIdent, gen.skipPrefixPath), vars)
+      let endpointCode = fillTemplate(genEndpointFile(tag, ops, gen.schemas, typeNames, gen.pkgIdent, gen.skipPrefixPath), vars)
       writeFile(srcPkgDir / fileName, endpointCode)
 
   var modules: seq[string]
@@ -660,6 +858,9 @@ proc generate*(gen: Generator) =
     mainExports.add(tag)
   modules.add("types")
   mainExports.add("types")
+  if renamesCode.len > 0:
+    modules.add("renames")
+    mainExports.add("renames")
   modules.add("metaclient")
   mainExports.add("metaclient")
   if hasServers:

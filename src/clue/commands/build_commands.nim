@@ -3,13 +3,21 @@
 # (c) 2026 George Lemon | LGPLv3 License
 #          Made by Humans from OpenPeeps
 #          https://github.com/openpeeps/clue
-import std/[os, osproc, strformat, strutils, algorithm, sets, tables, json, sequtils, options]
+import std/[os, osproc, strformat, strutils, algorithm, sets, tables, json, sequtils, options, terminal]
 import pkg/semver
 import pkg/kapsis/[runtime, interactive/prompts]
+import pkg/kapsis/interactive/spinny
 import ../features/pkgmanager/nimbleparser
 import ../features/pkgmanager/configs
 import ../features/pkgmanager/versions
 import ./pkgmanager_commands
+
+proc writeRaw(s: string) =
+  ## Write compiler output verbatim (preserves ANSI colors).
+  if s.len == 0: return
+  write(stdout, s)
+  if s[^1] != '\n':
+    write(stdout, "\n")
 
 proc depNameOf(d: NimbleDependency): string =
   if d.name.len > 0: d.name else: d.url
@@ -119,6 +127,9 @@ proc resolveDepPath(depName: string, preferRef = ""): string =
 proc buildCommand*(v: Values) =
   let isRelease = v.has("--release")
   let isDebug = v.has("--debug")
+  let verbose = v.has("--verbose")
+  # spinner only makes sense on a terminal; skipped when output is piped
+  let useSpinner = not verbose and isatty(stdout)
 
   # Active root features: `--features:foo,bar` + the implicit `dev` feature
   # (always active when building a package, matching nimble).
@@ -150,6 +161,12 @@ proc buildCommand*(v: Values) =
     if nimble.binDir.len > 0: nimble.binDir
     else: "bin"
 
+  # Single spinner wrapping the whole build (terminal only).
+  var spinny: Spinny
+  if useSpinner:
+    spinny = newSpinny("Resolving dependencies...", skDots, time = true)
+    spinny.start()
+
   # Effective direct deps = hard requires + requires of active root features.
   var directDeps: seq[NimbleDependency] = nimble.requires
   for f in activeRootFeatures:
@@ -170,18 +187,18 @@ proc buildCommand*(v: Values) =
     let refStr = if dep.branch.len > 0: dep.branch elif dep.tag.len > 0: dep.tag else: ""
     var depPath = resolveDepPath(name, refStr)
     if depPath.len > 0 and not installedCoversFeatures(name, dep.features):
-      displayInfo("Refreshing " & name & " (features: " & dep.features.join(", ") & ")")
-      installPackage(name, refStr, false, dep.features)
+      if verbose: displayInfo("Refreshing " & name & " (features: " & dep.features.join(", ") & ")")
+      installPackage(name, refStr, false, dep.features, verbose)
       depPath = resolveDepPath(name, refStr)
     if depPath.len == 0:
-      displayInfo("Dependency not installed, fetching: " & name)
-      installPackage(name, refStr, false, dep.features)
+      if verbose: displayInfo("Dependency not installed, fetching: " & name)
+      installPackage(name, refStr, false, dep.features, verbose)
       depPath = resolveDepPath(name, refStr)
     if depPath.len > 0:
       processed.incl(name)
       directNames.add(name)
       pathFlags.add("--path:" & depPath)
-      display("  dep " & name & " → " & depPath)
+      if verbose: display("  dep " & name & " → " & depPath)
     else:
       displayWarning("Dependency not found: " & name)
 
@@ -197,13 +214,13 @@ proc buildCommand*(v: Values) =
       processed.incl(name)
       var depPath = resolveDepPath(name)
       if depPath.len == 0:
-        displayInfo("Transitive dependency not installed, fetching: " & name)
-        installPackage(name)
+        if verbose: displayInfo("Transitive dependency not installed, fetching: " & name)
+        installPackage(name, "", false, @[], verbose)
         depPath = resolveDepPath(name)
         changed = true
       if depPath.len > 0:
         pathFlags.add("--path:" & depPath)
-        display("  dep " & name & " → " & depPath)
+        if verbose: display("  dep " & name & " → " & depPath)
       else:
         displayWarning("Transitive dependency not found: " & name)
 
@@ -236,19 +253,39 @@ proc buildCommand*(v: Values) =
 
   discard existsOrCreateDir(pkgDir / binDir)
 
+  # 3. Compile each binary. `--colors:on` keeps nim's ANSI colors in the
+  #    captured output; errors are always printed (raw, colored), and with
+  #    --verbose the warnings/hints are shown too.
+  var spinnerRunning = useSpinner
   for bin in nimble.bin:
     let srcFile = pkgDir / srcDir / bin.addFileExt("nim")
     let outFile = pkgDir / binDir / bin
-    var flags = " " & pathFlags.join(" ") & featureDefines
+    var flags = " " & pathFlags.join(" ") & featureDefines & " --colors:on"
     if isRelease:
       flags.add(" -d:release --opt:size")
     elif isDebug:
       flags.add(" --debugger:native")
 
     let cmd = &"nim c{flags} --out:{outFile} {srcFile}"
-    display("  " & cyan(cmd))
+    if verbose:
+      display("  " & cyan(cmd))
+    if spinnerRunning:
+      spinny.setText("Building " & bin & "...")
+
     let (output, exitCode) = execCmdEx(cmd)
-    if exitCode == 0:
-      displaySuccess("Built " & bin & " → " & outFile)
+    if exitCode != 0:
+      # errors always shown, regardless of --verbose, colors preserved
+      if spinnerRunning:
+        spinny.error("Build failed for " & bin)
+        spinnerRunning = false
+      else:
+        displayError("Build failed for " & bin)
+      writeRaw(output)
     else:
-      displayError("Build failed for " & bin & ":\n" & output)
+      if verbose:
+        writeRaw(output)
+      elif not useSpinner:
+        displaySuccess("Built " & bin & " → " & outFile)
+
+  if spinnerRunning:
+    spinny.success("Built successfully")

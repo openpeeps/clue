@@ -431,7 +431,7 @@ proc unrecordInstall*(name, version: string) =
         discard clueDB.deleteRow("installed", pk)
     clueDB.checkpoint()
 
-proc pruneOrphans*() =
+proc pruneOrphans*(verbose = true) =
   ## Remove installed packages that are no longer reachable from any root,
   ## or whose resolved version no longer matches the current dependency graph.
   withClueDB do:
@@ -492,13 +492,16 @@ proc pruneOrphans*() =
         if row["version"].strVal == ver:
           discard clueDB.deleteRow("installed", pk)
           inc removed
-          display("  removed " & name & "@" & ver)
+          if verbose:
+            display("  removed " & name & "@" & ver)
           break
     if removed > 0:
       clueDB.checkpoint()
-      displaySuccess("Pruned " & $removed & " orphaned package(s)")
+      if verbose:
+        displaySuccess("Pruned " & $removed & " orphaned package(s)")
     else:
-      displayInfo("No orphaned packages to prune")
+      if verbose:
+        displayInfo("No orphaned packages to prune")
 
 proc installedCount*(): int =
   withClueDB do:

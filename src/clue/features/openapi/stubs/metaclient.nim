@@ -10,6 +10,7 @@ import std/[asyncdispatch, httpclient, tables,
         strutils, sequtils, times, uri]
 
 import pkg/openparser/json
+{clue_renames_import}
 
 export asyncdispatch, httpclient, json, tables, sequtils, times
 

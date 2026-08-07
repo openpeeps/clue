@@ -59,3 +59,78 @@ proc resolveRef*(oapi: OpenApi, refPath: string): JsonNode =
       discard
   else:
     discard
+
+proc resolveParameterRef*(param: Parameter, components: Components) =
+  ## Resolve a `$ref` parameter (`#/components/parameters/<key>`) in place,
+  ## copying the referenced definition's fields onto `param`.
+  if param.isNil or param.refPath.len == 0:
+    return
+  let parts = param.refPath.split("/")
+  if parts.len < 3 or parts[^2] != "parameters":
+    return
+  let key = parts[^1]
+  if components.parameters.isNil or not components.parameters.hasKey(key):
+    return
+  let t = components.parameters[key]
+  param.name = t.name
+  param.description = t.description
+  param.kind = t.kind
+  param.required = t.required
+  param.deprecated = t.deprecated
+  param.allowEmptyValue = t.allowEmptyValue
+  param.schema = t.schema
+  param.example = t.example
+
+proc resolveRequestBodyRef*(op: Operation, components: Components) =
+  ## Resolve a `$ref` requestBody (`#/components/requestBodies/<key>`) in place.
+  if op.isNil or op.requestBody.isNil or op.requestBody.refPath.len == 0:
+    return
+  let rb = op.requestBody
+  let parts = rb.refPath.split("/")
+  if parts.len < 3 or parts[^2] != "requestBodies":
+    return
+  let key = parts[^1]
+  if components.requestBodies.isNil or not components.requestBodies.hasKey(key):
+    return
+  let t = components.requestBodies[key]
+  rb.description = t.description
+  rb.required = t.required
+  rb.content = t.content
+
+proc resolveResponseRefs*(op: Operation, components: Components) =
+  ## Resolve `$ref` responses (`#/components/responses/<key>`) in place.
+  if op.isNil or op.responses.isNil:
+    return
+  for code, resp in op.responses.pairs:
+    if resp.isNil or resp.refPath.len == 0:
+      continue
+    let parts = resp.refPath.split("/")
+    if parts.len < 3 or parts[^2] != "responses":
+      continue
+    let key = parts[^1]
+    if components.responses.isNil or not components.responses.hasKey(key):
+      continue
+    let t = components.responses[key]
+    resp.description = t.description
+    resp.headers = t.headers
+    resp.content = t.content
+
+proc resolveOperationRefs*(oapi: OpenApi) =
+  ## Resolve `$ref` parameters / requestBodies / responses across every path
+  ## item and operation against the parsed components.
+  if oapi.isNil or oapi.paths.isNil:
+    return
+  let components = oapi.components
+  for pathItem in oapi.paths.values:
+    if pathItem.isNil:
+      continue
+    for p in pathItem.parameters.mitems:
+      resolveParameterRef(p, components)
+    for op in [pathItem.get, pathItem.put, pathItem.post, pathItem.delete,
+               pathItem.patch, pathItem.options, pathItem.head, pathItem.trace]:
+      if op.isNil:
+        continue
+      for p in op.parameters.mitems:
+        resolveParameterRef(p, components)
+      resolveRequestBodyRef(op, components)
+      resolveResponseRefs(op, components)

@@ -24,27 +24,74 @@ proc parseFeatureFlags*(s: string): seq[string] =
     if ff.len > 0:
       result.add(ff)
 
+proc isGitUrl*(s: string): bool =
+  s.startsWith("https://") or s.startsWith("http://") or
+  s.startsWith("git@") or s.startsWith("git+") or
+  s.startsWith("ssh://")
+
+proc toGitSshUrl*(url: string): string =
+  ## Translate an https(s) git URL into an scp-like SSH URL
+  ## (`git@host:path.git`) so `git clone` runs over SSH using the user's
+  ## default SSH keys — enabling installs of private repositories.
+  var u = url.strip()
+  if u.startsWith("git+"):
+    u = u[4 .. ^1]
+  if not (u.startsWith("https://") or u.startsWith("http://")):
+    return u
+  let slashPos = u.split("://")[1].find('/')
+  if slashPos < 0:
+    return u
+  let host = u.split("://")[1][0 ..< slashPos]
+  var path = u.split("://")[1][slashPos + 1 .. ^1]
+  if not path.endsWith(".git"):
+    path.add(".git")
+  result = "git@" & host & ":" & path
+
+proc pkgNameFromUrl*(url: string): string =
+  ## Derive a package name from a git URL's repository basename.
+  var u = url.strip()
+  for sep in ['#', '?']:
+    let pos = u.find(sep)
+    if pos >= 0:
+      u = u[0 ..< pos]
+  if u.startsWith("git+"):
+    u = u[4 .. ^1]
+  u = u.replace("://", "/")
+  u = u.replace("git@", "")
+  u = u.replace(":", "/")
+  for part in u.split('/'):
+    if part.len > 0:
+      result = part
+  if result.endsWith(".git"):
+    result = result[0 ..< ^4]
+
 proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
-    features: seq[string] = @[]) =
+    features: seq[string] = @[], verbose = true, url = "") =
   ## Install a package and its dependencies into ~/.clue/packages.
   ## Uses fast, cached version discovery and only installs versions that
   ## satisfy the resolved constraints. Prunes orphans afterwards.
   ## `features` activates the root package's `feature "name":` requires.
+  ## `verbose` controls progress output (clue build calls it quietly).
+  ## `url` bypasses the registry lookup and installs straight from a git URL.
   withClueDB do:
-    let rootMetaOpt = fetchPkgMeta(pkgName)
-    if rootMetaOpt.isNone:
-      displayError("Package not found in registry: " & pkgName)
-      return
-    var rootMeta = rootMetaOpt.get()
+    var rootMeta: PkgRef
+    if url.len > 0:
+      rootMeta = PkgRef(name: pkgName, url: url, refStr: "")
+    else:
+      let rootMetaOpt = fetchPkgMeta(pkgName)
+      if rootMetaOpt.isNone:
+        displayError("Package not found in registry: " & pkgName)
+        return
+      rootMeta = rootMetaOpt.get()
 
     # 1. Ensure root clone exists (full clone kept in cache)
     let rootDest = cluePkgsCachePath / pkgName
     if not dirExists(rootDest):
-      displayInfo("Fetching " & pkgName & "...")
+      if verbose: displayInfo("Fetching " & pkgName & "...")
       if not clonePackage(rootMeta.url, rootDest):
         return
     else:
-      displayInfo("Using cached " & pkgName)
+      if verbose: displayInfo("Using cached " & pkgName)
       if refresh:
         discard clonePackage(rootMeta.url, rootDest)
 
@@ -57,7 +104,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
         rootConstraint = VersionConstraint(kind: vcExact, version: parseVersion(pkgRef))
       except CatchableError:
         rootMeta.refStr = pkgRef
-        display("  " & cyan(pkgName & "@" & pkgRef))
+        if verbose: display("  " & cyan(pkgName & "@" & pkgRef))
 
     # 3. Register root versions (constraints are enforced by findBestMatch)
     var registry: PackageRegistry
@@ -88,7 +135,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
             meta = m.get()
             pkgRefs[dn] = meta
         if meta.url.len == 0:
-          displayWarning("Unknown package in registry, skipping: " & dn)
+          if verbose: displayWarning("Unknown package in registry, skipping: " & dn)
           continue
         # register versions on first sight
         if dn notin registry:
@@ -127,13 +174,14 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     var name2ver: Table[string, string]
     for rp in resolved:
       name2ver[rp.name] = $rp.version
-    displayInfo("Resolved " & $resolved.len & " package(s):")
-    for rp in resolved:
-      var label = cyan(rp.name) & " @" & $rp.version
-      let feats = activeFeatOf.getOrDefault(rp.name)
-      if feats.len > 0:
-        label.add(" (features: " & feats.join(", ") & ")")
-      display("  " & label)
+    if verbose:
+      displayInfo("Resolved " & $resolved.len & " package(s):")
+      for rp in resolved:
+        var label = cyan(rp.name) & " @" & $rp.version
+        let feats = activeFeatOf.getOrDefault(rp.name)
+        if feats.len > 0:
+          label.add(" (features: " & feats.join(", ") & ")")
+        display("  " & label)
 
     # 6. Install each resolved package from the cache (clean, flat layout)
     var installedCount = 0
@@ -160,7 +208,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
 
       let verDir = cluePkgsPath / rp.name / verStr
       if dirExists(verDir):
-        display("  " & cyan(rp.name) & " v" & verStr & " (already installed)")
+        if verbose: display("  " & cyan(rp.name) & " v" & verStr & " (already installed)")
         installedCount.inc
         continue
       try:
@@ -170,7 +218,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
           pkgNimble = parseNimbleFile(nimblePath)
         installCleanCopy(cacheDir, verDir, pkgNimble)
         installedCount.inc
-        displaySuccess("Installed " & rp.name & " v" & verStr)
+        if verbose: displaySuccess("Installed " & rp.name & " v" & verStr)
       except CatchableError:
         displayWarning("Failed to install " & rp.name & " v" & verStr)
 
@@ -190,21 +238,38 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
           deps.add((dn, name2ver[dn]))
       recordInstall(rp.name, verStr, deps, root = rp.name == pkgName, features = feats)
 
-    if installedCount > 0:
+    if installedCount > 0 and verbose:
       displaySuccess("Installed " & $installedCount & " package(s) to " & cluePkgsPath)
 
     # 8. Prune orphans / out-of-range versions
-    pruneOrphans()
+    pruneOrphans(verbose)
 
 proc installCommand*(v: Values) =
-  let pkgInput = split(v.get("pkg").getStr, "@")
-  let pkgName = pkgInput[0]
-  let pkgRef = if pkgInput.len > 1 and pkgInput[1] != "head": pkgInput[1] else: ""
+  let raw = v.get("pkg").getStr
   let refresh = v.has("--refresh")
   var features: seq[string]
   if v.has("--features"):
     features = parseFeatureFlags(v.get("--features").getStr)
-  installPackage(pkgName, pkgRef, refresh, features)
+  if isGitUrl(raw):
+    # `https://host/owner/repo[#ref]` installs straight from git. The URL is
+    # translated to SSH (`git@host:path.git`) so private repos clone with the
+    # user's default SSH keys.
+    var url = raw
+    var urlRef = ""
+    let hashPos = url.find('#')
+    if hashPos >= 0:
+      urlRef = url[hashPos + 1 .. ^1]
+      url = url[0 ..< hashPos]
+    let name = pkgNameFromUrl(url)
+    if name.len == 0:
+      displayError("Could not derive a package name from: " & raw)
+      return
+    installPackage(name, urlRef, refresh, features, url = toGitSshUrl(url))
+  else:
+    let pkgInput = split(raw, "@")
+    let pkgName = pkgInput[0]
+    let pkgRef = if pkgInput.len > 1 and pkgInput[1] != "head": pkgInput[1] else: ""
+    installPackage(pkgName, pkgRef, refresh, features)
 
 proc versionsCommand*(v: Values) =
   ## Show available versions for a package.
