@@ -1,4 +1,0 @@
---define:clueDebugExtension
---define:release
---app:lib
---out:"build/plugin_example_php.so"

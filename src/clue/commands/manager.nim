@@ -10,10 +10,10 @@ import std/[sequtils, options, tables, sets, strformat, strutils,
 import pkg/[semver, openparser/json]
 import pkg/kapsis/[runtime, interactive/prompts]
 
-import ../features/pkgmanager/resolver
-import ../features/pkgmanager/configs
-import ../features/pkgmanager/versions
-import ../features/pkgmanager/nimbleparser
+import ../pkgmanager/resolver
+import ../pkgmanager/configs
+import ../pkgmanager/versions
+import ../pkgmanager/nimbleparser
 
 proc depName(d: NimbleDependency): string =
   if d.name.len > 0: d.name else: d.url

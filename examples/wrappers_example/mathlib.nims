@@ -1,4 +1,0 @@
---define:release
---app:lib
---define:clueBuild
---out:"build/libmath.so"

@@ -3,7 +3,7 @@ import std/[os, osproc, tables]
 import pkg/kapsis/runtime
 import pkg/kapsis/interactive/prompts
 
-import ../features/docbuilder/[configs, builder]
+import ../docbuilder/[configs, builder]
 
 proc docsGenCommand*(v: Values) =
   let pkgName = v.get("pkgname").getStr

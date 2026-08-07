@@ -1,3 +1,0 @@
---define:release
---app:lib
---out:"build/mylib.so"

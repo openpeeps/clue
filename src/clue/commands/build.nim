@@ -7,10 +7,11 @@ import std/[os, osproc, strformat, strutils, algorithm, sets, tables, json, sequ
 import pkg/semver
 import pkg/kapsis/[runtime, interactive/prompts]
 import pkg/kapsis/interactive/spinny
-import ../features/pkgmanager/nimbleparser
-import ../features/pkgmanager/configs
-import ../features/pkgmanager/versions
-import ./pkgmanager_commands
+
+import ../pkgmanager/nimbleparser
+import ../pkgmanager/configs
+import ../pkgmanager/versions
+import ./manager
 
 proc writeRaw(s: string) =
   ## Write compiler output verbatim (preserves ANSI colors).
