@@ -19,14 +19,14 @@ and documenting Nim packages, resolving tricky dependencies, and managing
 per-version toolchains with virtual environments when `nimble` just doesn't cut it.
 
 ## 😍 Key Features
-- [x] **Package management** — cached version discovery, transitive dependency resolution, feature flags, SSH installs & orphan pruning
-- [x] **Build** the current package from its nimble file (`--release`, `--debug`, `--features`), or a bare module (`clue build foo.nim`) with every installed package on the import path
-- [x] **Opt-in binary builds** — `clue install <pkg> --build` compiles a package's binaries (and those of its dependencies) into `~/.clue/bin`; release by default, never done implicitly since building runs the package's code
-- [x] **Develop mode** — `clue develop` links the current package into `~/.clue/develop` for live library discovery (`import pkg/<name>` resolves against your working tree, never copied, never deleted)
-- [x] **Local installs** — `clue install` inside a package directory copies it into the local registry
-- [x] **Install / uninstall / dump / versions / prune** with a local package registry — `clue dump` also shows available versions and recent git activity
-- [x] **Virtual environments** (`venv`) for per-version Nim toolchains via choosenim
-- [x] **Local documentation** — build & browse versioned `nim doc` output right from the command line
+- Package management: cached version discovery, transitive dependency resolution, feature flags, SSH installs and orphan pruning
+- Build: the current package from its nimble file (`--release`, `--debug`, `--features`), or a bare module (`clue build foo.nim`) with every installed package on the import path
+- Opt-in binary builds: `clue install <pkg> --build` compiles a package's binaries (and those of its dependencies) into `~/.clue/bin`; release by default, never done implicitly since building runs the package's code
+- Develop mode: `clue develop` links the current package into `~/.clue/develop` for live library discovery (`import pkg/<name>` resolves against your working tree, never copied, never deleted)
+- Local installs: `clue install` inside a package directory copies it into the local registry
+- Install / uninstall / dump / versions / prune with a local package registry; `clue dump` also shows available versions and recent git activity
+- Virtual environments (`venv`) for per-version Nim toolchains via choosenim
+- Local documentation: build and browse versioned `nim doc` output right from the command line
 
 > [!NOTE]
 > Clue used to be the home for generating native extensions, C wrappers and
