@@ -132,10 +132,10 @@ source .env/activate     # or: source .env/deactivate
 ### Documentation
 ```sh
 # Build local documentation for a package
-clue docs gen spry
+clue docs.gen spry
 
 # Open the built docs in your browser
-clue docs open spry
+clue docs.open spry
 ```
 
 ## Documentation Builder
@@ -146,7 +146,7 @@ you build & open docs for any local package right from the terminal.
 
 - Versioned `nim doc` output stored under `~/.clue`
 - Auto-generated overview page for everything you've documented
-- `clue docs open <pkg>` gets you straight to the latest build
+- `clue docs.open <pkg>` gets you straight to the latest build
 
 ## Roadmap
 - [ ] Docs — LLM integration for RAG over your local documentation
