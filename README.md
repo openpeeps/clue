@@ -18,6 +18,14 @@ Clue is an alternative to `nimble` — a friendly toolkit for installing, buildi
 and documenting Nim packages, resolving tricky dependencies, and managing
 per-version toolchains with virtual environments when `nimble` just doesn't cut it.
 
+> [!NOTE]
+> **Version resolution** — Clue resolves dependencies with a lazy, depth-first
+> search (no SAT solver): constraints declared closest to the root are *hard*,
+> deeper ones are *soft* tie-breakers ("nearest wins"), dependencies are only
+> expanded for versions actually explored, and failed choices backtrack
+> chronologically (bounded by a probe limit) until a satisfiable set is found —
+> or a clear conflict error is raised.
+
 ## 😍 Key Features
 - Package management: cached version discovery, transitive dependency resolution, feature flags, SSH installs and orphan pruning
 - Build: the current package from its nimble file (`--release`, `--debug`, `--features`), or a bare module (`clue build foo.nim`) with every installed package on the import path

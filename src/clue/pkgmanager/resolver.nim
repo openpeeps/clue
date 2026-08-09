@@ -6,22 +6,24 @@
 
 ## This module implements the clue dependency resolver.
 ##
-## Resolution is a two-phase process:
+## Resolution is a single lazy, depth-first search over the dependency graph
+## (see `search`), no SAT solver involved:
 ##
-## 1. A greedy, level-by-level walk that prefers the version closest to the
-##    root ("nearest wins"). For every package, the constraints declared by
+## 1. **Nearest wins** — for every package, the constraints declared by
 ##    packages at the minimum depth are *hard*; constraints from deeper
 ##    packages are *soft* tie-breakers. Among the versions satisfying the hard
-##    intersection the walk prefers the ones satisfying more soft constraints,
-##    then the newest (semver, prerelease-aware) version. This is the common
-##    path and only ever expands the packages that are actually selected.
+##    intersection, the search prefers the ones satisfying more soft
+##    constraints, then the newest (semver, prerelease-aware) version.
 ##
-## 2. A complete SAT fallback (nim-lang/sat) that encodes the full known
-##    dependency graph when the greedy walk hits a conflict. The encoding
-##    enforces exactly-one version per root package, at-most-one per transitive
-##    package, and per-dependency implications. Deep (soft) constraints are
-##    relaxed to "some version" so that nearest-wins semantics hold; a solution
-##    is found whenever one exists, otherwise a clear conflict error is raised.
+## 2. **Lazy expansion** — `getDeps` is only ever called for candidate versions
+##    actually being explored, never for the whole graph, so resolution stays
+##    fast even with many packages.
+##
+## 3. **Snapshot-based backtracking** — when a choice fails, the search
+##    restores the previous state and retries the most recent earlier choice
+##    (chronological backtracking across siblings), bounded by `maxProbes`.
+##    A solution is found whenever one exists; otherwise a clear conflict
+##    error is raised.
 ##
 ## Both paths end with a verification pass that re-checks every hard
 ## constraint, dependency completeness and acyclicity.
@@ -237,7 +239,7 @@ func addPackage*(registry: var PackageRegistry, pkg: UnresolvedPackage) =
   if pkg.name notin registry:
     registry[pkg.name] = @[]
   registry[pkg.name].add(pkg)
-  # keep versions sorted descending (newest first) for greedy resolution
+  # keep versions sorted descending (newest first) for nearest-wins search
   registry[pkg.name].sort(proc(a, b: UnresolvedPackage): int = cmp(b.version, a.version))
 
 func addPackage*(registry: var PackageRegistry, name: string, version: Version,
