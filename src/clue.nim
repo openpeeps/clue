@@ -23,6 +23,10 @@ when isMainModule:
         ## current nimble package). `--build` also compiles its binaries
         ## (release by default) to ~/.clue/bin — opt-in, since building executes
         ## the package's {.compile.}/staticExec code
+      update ?string(pkg), ?bool("--verbose"):
+        ## Fetch new tags from remote for a package (or every installed root
+        ## package) and upgrade it and its dependencies to the newest
+        ## satisfying versions
       develop:
         ## Develop-mode (editable) install of the current nimble package — no
         ## compilation, just makes the package importable by other packages via

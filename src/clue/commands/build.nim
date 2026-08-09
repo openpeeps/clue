@@ -57,7 +57,7 @@ proc resolveDepPath(depName: string, preferRef = ""): string =
   ## filesystem for legacy installs).
   let recorded = resolveInstalledPath(depName, preferRef)
   if recorded.len > 0:
-    return recorded
+    return srcDirPath(recorded, depName)
   let clueInstall = cluePkgsPath / depName
   if dirExists(clueInstall):
     if preferRef.len > 0 and dirExists(clueInstall / preferRef):
@@ -97,6 +97,7 @@ proc buildCommand*(v: Values) =
   let isRelease = v.has("--release")
   let isDebug = v.has("--debug")
   let verbose = v.has("--verbose")
+  devShadowWarningsEnabled = verbose
   let outPath =
     if v.has("--out"): v.get("--out").getStr
     else: ""

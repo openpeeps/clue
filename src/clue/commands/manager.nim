@@ -434,6 +434,7 @@ proc installCommand*(v: Values) =
   let raw = if v.has("pkg"): v.get("pkg").getStr else: ""
   let refresh = v.has("--refresh")
   let verbose = v.has("--verbose")
+  devShadowWarningsEnabled = verbose
   let doBuild = v.has("--build")
   let buildDebug = v.has("--debug")
   let buildRelease = not buildDebug
@@ -488,6 +489,28 @@ proc installCommand*(v: Values) =
     let pkgRef = if pkgInput.len > 1 and pkgInput[1] != "head": pkgInput[1] else: ""
     installPackage(pkgName, pkgRef, refresh, features, verbose,
       doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug)
+
+proc updateCommand*(v: Values) =
+  ## Fetch new tags from remote for a package — or every installed root
+  ## package — and upgrade it, and its whole dependency tree, to the newest
+  ## satisfying versions. Develop-mode installs are skipped: they point at the
+  ## user's own source tree, not the registry.
+  let verbose = v.has("--verbose")
+  proc updatePkg(name: string) =
+    let recs = installedRecords(name)
+    if recs.len > 0 and recs.all(proc(r: InstalledRecord): bool = isDevInstall(r)):
+      displayInfo("Skipping develop-mode package " & name & " (editable source, not registry-managed)")
+      return
+    installPackage(name, "", refresh = true, @[], verbose)
+  if v.has("pkg"):
+    updatePkg(v.get("pkg").getStr)
+  else:
+    let roots = installedRoots()
+    if roots.len == 0:
+      displayInfo("No installed packages to update")
+      return
+    for name in roots:
+      updatePkg(name)
 
 proc developCommand*(v: Values) =
   ## Develop-mode (editable) install of the current nimble package: the install

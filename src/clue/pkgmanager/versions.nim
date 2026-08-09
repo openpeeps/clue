@@ -92,6 +92,23 @@ proc cloneRepo(url, dest: string, nonInteractive = false): bool {.gcsafe.} =
     return true
   false
 
+proc refreshRemoteTags(dest, url: string, nonInteractive = false): bool {.gcsafe.} =
+  ## Fetch new tags for the repo at `dest` (SSH first, HTTPS fallback). Pure
+  ## git — safe to call from a thread pool worker. Returns false when both
+  ## remotes fail.
+  discard gitExec("git -C " & dest & " remote set-url origin " & toGitSshUrl(url))
+  let promptEnv = if nonInteractive: "GIT_TERMINAL_PROMPT=0 " & gitSshEnv else: gitSshEnv
+  let (output, exitCode) = gitExec(promptEnv & " git -C " & dest &
+    " fetch --tags --prune --quiet")
+  if exitCode != 0:
+    # SSH not available — fall back to the original (https) remote
+    discard gitExec("git -C " & dest & " remote set-url origin " & url)
+    let (out2, code2) = gitExec(promptEnv & " git -C " & dest &
+      " fetch --tags --prune --quiet")
+    if code2 != 0:
+      return false
+  true
+
 proc clonePackage*(url, dest: string, refresh = false, nonInteractive = false): bool =
   ## Clone (or refresh) a package repository into the cache, preferring SSH and
   ## falling back to HTTPS. On an existing cache dir only `refresh` touches the
@@ -103,17 +120,8 @@ proc clonePackage*(url, dest: string, refresh = false, nonInteractive = false): 
       return false
   if dirExists(dest):
     if refresh:
-      discard gitExec("git -C " & dest & " remote set-url origin " & toGitSshUrl(url))
-      let promptEnv = if nonInteractive: "GIT_TERMINAL_PROMPT=0 " & gitSshEnv else: gitSshEnv
-      let (output, exitCode) = gitExec(promptEnv & " git -C " & dest &
-        " fetch --tags --prune --quiet")
-      if exitCode != 0:
-        # SSH not available — fall back to the original (https) remote
-        discard gitExec("git -C " & dest & " remote set-url origin " & url)
-        let (out2, code2) = gitExec(promptEnv & " git -C " & dest &
-          " fetch --tags --prune --quiet")
-        if code2 != 0 and not nonInteractive:
-          displayWarning("Failed to refresh " & dest & ": " & output & out2)
+      if not refreshRemoteTags(dest, url, nonInteractive) and not nonInteractive:
+        displayWarning("Failed to refresh " & dest)
     return true
   if cloneRepo(url, dest, nonInteractive):
     return true
@@ -385,14 +393,19 @@ proc discoverVersions*(name, url: string, refresh = false,
   ## Discover all semver versions for a package, newest first.
   ## Serves from the DB cache unless `refresh` is set. On a cache miss the
   ## package is cloned into `_cache` (first time only) and versions are read
-  ## from its local git tags — no network afterwards. With `cloneOnMiss = false`
-  ## (the `clue versions` query) it lists the remote without cloning.
+  ## from its local git tags — no network afterwards; with `refresh` an existing
+  ## clone is fetched (`git fetch --tags`) so new remote tags are picked up.
+  ## With `cloneOnMiss = false` (the `clue versions` query) it lists the remote
+  ## without cloning.
   if not refresh:
     let cached = cachedVersions(name)
     if cached.len > 0:
       return cached
   let dest = cluePkgsCachePath / name
-  if cloneOnMiss and not dirExists(dest):
+  if dirExists(dest):
+    if refresh:
+      discard refreshRemoteTags(dest, url, nonInteractive = true)
+  elif cloneOnMiss:
     if not clonePackage(url, dest, refresh, nonInteractive = true):
       return @[]
   let tags =
@@ -402,18 +415,21 @@ proc discoverVersions*(name, url: string, refresh = false,
   cacheVersions(name, result)
 
 type
-  TagFetchJob = tuple[name: string, url: string]
+  TagFetchJob = tuple[name: string, url: string, refresh: bool]
 
 proc fetchTagsJob(job: TagFetchJob): tuple[name: string, tags: seq[string]] {.gcsafe.} =
-  ## Worker for `discoverVersionsBatch`: clones the package if needed (first
-  ## time only, network, non-interactive so dead URLs fail fast) and lists its
-  ## local git tags. Never touches the DB.
+  ## Worker for `discoverVersionsBatch`: ensures the package is present in
+  ## `_cache` — cloning on a miss, fetching new tags on an existing clone when
+  ## `refresh` is set — then lists its local git tags. Non-interactive so dead
+  ## URLs fail fast. Never touches the DB.
   debugLog("discover: " & job.name & " <- " & job.url)
   let dest = cluePkgsCachePath / job.name
   if not dirExists(dest):
     if not cloneRepo(job.url, dest, nonInteractive = true):
       debugLog("discover: " & job.name & " clone FAILED")
       return (job.name, @[])
+  elif job.refresh:
+    discard refreshRemoteTags(dest, job.url, nonInteractive = true)
   let tags = findLocalTags(dest)
   (job.name, tags)
 
@@ -424,7 +440,9 @@ proc discoverVersionsBatch*(pkgs: openArray[PkgRef], refresh = false,
   ## concurrently on a thread pool; DB cache writes happen sequentially on the
   ## caller's thread since the store isn't thread-safe. `onDone` is called on
   ## the caller's thread as each package finishes (for live progress), with
-  ## `cached` true when it was served from the local DB (no network).
+  ## `cached` true when it was served from the local DB (no network). With
+  ## `refresh` existing clones are fetched (`git fetch --tags`) so new remote
+  ## tags are picked up for every package.
   var jobs: seq[FlowVar[tuple[name: string, tags: seq[string]]]]
   for pkg in pkgs:
     if pkg.name.len == 0 or result.hasKey(pkg.name):
@@ -436,7 +454,7 @@ proc discoverVersionsBatch*(pkgs: openArray[PkgRef], refresh = false,
         if onDone != nil:
           onDone(pkg.name, cached.len, true)
         continue
-    jobs.add(spawn fetchTagsJob((pkg.name, pkg.url)))
+    jobs.add(spawn fetchTagsJob((pkg.name, pkg.url, refresh)))
   for fv in jobs:
     while not fv.isReady:
       sleep(20)
@@ -676,25 +694,31 @@ proc installedPath*(name, version: string): string =
         return row["path"].strVal
   ""
 
+proc warnDevShadow(name, chosenPath: string)
+  ## Defined below, after `installedRecords`/`isDevInstall`.
+
 proc resolveInstalledPath*(name, preferRef: string): string =
   ## The recorded `--path` for an installed package, preferring the explicit ref
   ## (branch/tag) when given, else the latest semver version.
+  var chosen = ""
   withClueDB do:
     let tbl = clueDB.getTable("installed").get()
     var bestVer = newVersion(0, 0, 0)
     for (pk, row) in tbl.where("name", newTextValue(name)).toSeq():
       let ver = row["version"].strVal
       if ver.len > 0 and ver == preferRef:
-        return row["path"].strVal
+        chosen = row["path"].strVal
+        break
       try:
         let v = parseVersion(ver)
         if v > bestVer:
           bestVer = v
-          result = row["path"].strVal
+          chosen = row["path"].strVal
       except CatchableError:
         discard
-    if result.len > 0:
-      return result
+  if chosen.len > 0:
+    warnDevShadow(name, chosen)
+    return chosen
   ""
 
 type
@@ -722,6 +746,47 @@ proc isDevInstall*(rec: InstalledRecord): bool =
   ## no files under ~/.clue/packages; only their DB entry exists, and only the
   ## entry may ever be deleted.
   rec.path.len > 0 and not isInsidePkgs(rec.path)
+
+proc installedRoots*(): seq[string] =
+  ## Names of every installed root package (top-level `clue install`s), in
+  ## insertion order. Used by `clue update` with no argument.
+  withClueDB do:
+    let tbl = clueDB.getTable("installed").get()
+    for (pk, row) in tbl.allRows():
+      if row.hasKey("root") and row["root"].boolVal:
+        result.add(row["name"].strVal)
+
+var warnedDevShadows = initHashSet[string]()
+var devShadowWarningsEnabled* = false
+  ## Build commands enable this when `--verbose` is passed; the shadow warning
+  ## would otherwise interleave with the live spinner line on a plain build.
+
+proc warnDevShadow(name, chosenPath: string) =
+  ## Warn when a build resolves `name` to its develop-mode source (a path
+  ## outside the package registry) while a registry version is also installed —
+  ## the live source silently shadows the pinned version. Only emitted on
+  ## verbose builds. Warns once per package per process (`clue install --build`
+  ## resolves deps through several paths).
+  if not devShadowWarningsEnabled:
+    return
+  if name in warnedDevShadows:
+    return
+  if isInsidePkgs(chosenPath):
+    return
+  var registryVer = ""
+  var devVer = ""
+  for rec in installedRecords(name):
+    if isDevInstall(rec):
+      if devVer.len == 0:
+        devVer = rec.version
+    elif registryVer.len == 0:
+      registryVer = rec.version
+  if registryVer.len > 0:
+    warnedDevShadows.incl(name)
+    let dev = if devVer.len > 0: devVer else: "?"
+    displayWarning(name & ": using develop-mode source " & dev &
+      " that shadows installed version " & registryVer &
+      " — building against live source (" & chosenPath & ")")
 
 proc collectInstalledDepNames*(rootNames: seq[string]): seq[string] =
   ## BFS over the installed manifest graph to collect every reachable
@@ -812,6 +877,7 @@ proc allInstalledPaths*(): seq[string] =
       # legacy install without a recorded path — locate it on disk
       p = resolveDepPathLike(name)
     if p.len > 0:
+      warnDevShadow(name, p)
       let src = pathForImports(p)
       if src notin result:
         result.add(src)
