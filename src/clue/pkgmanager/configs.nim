@@ -30,8 +30,36 @@ const
   versionsDBPath* = cluePath / "versions.db"
   cluePkgsPath* = cluePath / "packages"
   cluePkgsCachePath* = cluePkgsPath / "_cache"
+  clueBinPath* = cluePath / "bin"
+  clueDevelopPath* = cluePath / "develop"
   nimbleLocalPackages* = getHomeDir() / ".nimble" / "packages_official.json"
   nimblePackagesUrl* = "https://raw.githubusercontent.com/nim-lang/packages/master/packages.json"
+
+proc isInsidePkgs*(dir: string): bool =
+  ## True when `dir` lives inside the clue package registry (~/.clue/packages).
+  ## Everything clue manages lives here; anything outside it must never be
+  ## deleted (e.g. develop-mode installs that point at the user's source tree).
+  dir == cluePkgsPath or dir.startsWith(cluePkgsPath & DirSep)
+
+proc safeRemoveDir*(dir: string) =
+  ## Remove a directory, refusing anything outside the package registry. This
+  ## is the only deletion layer clue uses — it guarantees develop-mode installs
+  ## and arbitrary user files are never touched.
+  if not isInsidePkgs(dir):
+    debugLog("refusing to remove outside ~/.clue/packages: " & dir)
+    return
+  if dirExists(dir):
+    removeDir(dir)
+
+proc safeRemoveSymlink*(p: string) =
+  ## Remove a develop-mode symlink stored under ~/.clue/develop. Only ever
+  ## unlinks the symlink entry itself — the target (the user's source tree) is
+  ## never touched.
+  if not p.startsWith(clueDevelopPath & DirSep):
+    debugLog("refusing to remove outside ~/.clue/develop: " & p)
+    return
+  if symlinkExists(p):
+    removeFile(p)
 
 type
   Package* = object
@@ -108,6 +136,8 @@ proc initClue*() =
   discard existsOrCreateDir(cluePath)
   discard existsOrCreateDir(cluePkgsPath)
   discard existsOrCreateDir(cluePkgsCachePath)
+  discard existsOrCreateDir(clueBinPath)
+  discard existsOrCreateDir(clueDevelopPath)
 
   var hasDatabase = fileExists(clueDBPath)
   clueDB = newStore(clueDBPath, StorageMode.smDisk,

@@ -36,46 +36,6 @@ proc installedCoversFeatures(name: string, feats: seq[string]): bool =
       return false
   true
 
-proc collectTransitiveDepNames(rootNames: seq[string]): seq[string] =
-  ## BFS over the installed manifest graph to collect every reachable
-  ## dependency name, so the compiler gets `--path` for the whole tree.
-  var depsOf: Table[string, seq[string]]
-  withClueDB do:
-    let tbl = clueDB.getTable("installed").get()
-    for (pk, row) in tbl.allRows():
-      let name = row["name"].strVal
-      var deps: seq[string]
-      try:
-        for dep in parseJson(row["deps"].jsonVal):
-          deps.add(dep["name"].getStr)
-      except CatchableError:
-        discard
-      if deps.len == 0: continue
-      if not depsOf.hasKey(name):
-        depsOf[name] = @[]
-      for d in deps:
-        if d notin depsOf[name]:
-          depsOf[name].add(d)
-  var visited = initHashSet[string]()
-  var queue = rootNames
-  while queue.len > 0:
-    let name = queue.pop()
-    if name in visited:
-      continue
-    visited.incl(name)
-    if depsOf.hasKey(name):
-      for d in depsOf[name]:
-        if d notin visited:
-          queue.add(d)
-  toSeq(visited)
-
-proc findNimbleFile(dir: string): string =
-  ## Locate a .nimble file in the given directory.
-  for f in walkFiles(dir / "*.nimble"):
-    if f.extractFilename != "nim.nimble":
-      return f
-  ""
-
 proc srcDirPath(verDir, depName: string): string =
   ## Nim resolves `import pkg/<name>` to `<path>/<name>/<name>.nim`.
   ## For clue-installed packages (raw repo copies) the module often lives in
@@ -259,7 +219,7 @@ proc buildCommand*(v: Values) =
   var changed = true
   while changed:
     changed = false
-    for name in collectTransitiveDepNames(directNames):
+    for name in collectInstalledDepNames(directNames):
       if name in processed:
         continue
       processed.incl(name)
@@ -294,7 +254,7 @@ proc buildCommand*(v: Values) =
       definedFeats.incl(d)
       featureDefines.add(d)
   let featsMap = installedFeatures()
-  for name in collectTransitiveDepNames(directNames):
+  for name in collectInstalledDepNames(directNames):
     if featsMap.hasKey(name):
       for f in featsMap[name]:
         let d = " -d:features." & name & "." & f

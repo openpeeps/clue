@@ -18,12 +18,19 @@ when isMainModule:
       build ?string(file), ?bool("--release"), ?bool("--debug"), ?string("--features"), ?bool("--verbose"), ?string("--out"):
         ## Build the current Nim package from its nimble file, or a single
         ## module (`clue build foo.nim`) with installed packages on the path
-      install string(pkg), ?bool("--refresh"), ?string("--features"), ?bool("--verbose"):
-        ## Install a package from remote source
+      install ?string(pkg), ?bool("--refresh"), ?string("--features"), ?bool("--verbose"), ?bool("--build"), ?bool("--debug"):
+        ## Install a package from remote source into the clue registry (or the
+        ## current nimble package). `--build` also compiles its binaries
+        ## (release by default) to ~/.clue/bin — opt-in, since building executes
+        ## the package's {.compile.}/staticExec code
+      develop:
+        ## Develop-mode (editable) install of the current nimble package — no
+        ## compilation, just makes the package importable by other packages via
+        ## library discovery (its files are never copied nor deleted)
       uninstall string(pkg):
         ## Uninstall a package from the system
-      dump string(pkg):
-        ## Dump package info from registry
+      dump string(pkg), ?bool("--refresh"):
+        ## Dump package info from registry, available versions and git activity
       versions string(pkg), ?bool("--refresh"):
         ## List available versions for a package
       prune:

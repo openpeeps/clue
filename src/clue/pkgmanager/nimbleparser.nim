@@ -4,7 +4,7 @@
 #          Made by Humans from OpenPeeps
 #          https://github.com/openpeeps/clue
 
-import std/[tables, strutils]
+import std/[tables, strutils, os]
 import pkg/semver
 import pkg/sweetsyntax
 import pkg/sweetsyntax/tokenizer
@@ -293,3 +293,10 @@ proc parseNimbleString*(code: string): NimbleFile =
 proc parseNimbleFile*(path: string): NimbleFile =
   result = parseNimbleString(readFile(path))
   result.path = path
+
+proc findNimbleFile*(dir: string): string =
+  ## Locate a .nimble file in the given directory.
+  for f in walkFiles(dir / "*.nimble"):
+    if f.extractFilename != "nim.nimble":
+      return f
+  ""

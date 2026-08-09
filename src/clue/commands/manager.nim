@@ -16,6 +16,7 @@ import ../pkgmanager/resolver
 import ../pkgmanager/configs
 import ../pkgmanager/versions
 import ../pkgmanager/nimbleparser
+import ../pkgmanager/builder
 
 proc pkgNameFromUrl*(url: string): string =
   ## Derive a package name from a git URL's repository basename.
@@ -54,13 +55,17 @@ proc isGitUrl*(s: string): bool =
   s.startsWith("ssh://")
 
 proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
-    features: seq[string] = @[], verbose = true, url = "") =
+    features: seq[string] = @[], verbose = true, url = "",
+    doBuild = false, buildRelease = true, buildDebug = false) =
   ## Install a package and its dependencies into ~/.clue/packages.
   ## Uses fast, cached version discovery and only installs versions that
   ## satisfy the resolved constraints. Prunes orphans afterwards.
   ## `features` activates the root package's `feature "name":` requires.
   ## `verbose` controls progress output (clue build calls it quietly).
   ## `url` bypasses the registry lookup and installs straight from a git URL.
+  ## `doBuild` compiles the installed binaries (release by default) into
+  ## ~/.clue/bin after the install — never done implicitly, since compiling a
+  ## package executes its `{.compile.}` / `staticExec` code.
   withClueDB do:
     # live multi-line output: only on a real terminal and when not verbose
     # (matches `clue build`); disabled while debug tracing is on so trace lines
@@ -419,13 +424,48 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     # 8. Prune orphans / out-of-range versions
     pruneOrphans(verbose)
 
+    # 9. Opt-in build (release by default). Runs after pruning so orphaned
+    #    versions never get compiled.
+    if doBuild:
+      if not buildInstalled(pkgName, buildRelease, buildDebug, verbose):
+        return
+
 proc installCommand*(v: Values) =
-  let raw = v.get("pkg").getStr
+  let raw = if v.has("pkg"): v.get("pkg").getStr else: ""
   let refresh = v.has("--refresh")
   let verbose = v.has("--verbose")
+  let doBuild = v.has("--build")
+  let buildDebug = v.has("--debug")
+  let buildRelease = not buildDebug
   var features: seq[string]
   if v.has("--features"):
     features = parseFeatureFlags(v.get("--features").getStr)
+
+  if raw.len == 0:
+    # Local install: copy the current nimble package into the registry
+    # (~/.clue/packages/<name>/<version>) with a clean, nimble-style layout.
+    let nimblePath = findNimbleFile(getCurrentDir())
+    if nimblePath.len == 0:
+      displayError("No .nimble file found in " & getCurrentDir())
+      return
+    let nimble = parseNimbleFile(nimblePath)
+    let pkgName = nimblePath.extractFilename.changeFileExt("")
+    let version = if nimble.version.len > 0: nimble.version else: "0.0.0"
+    let verDir = cluePkgsPath / pkgName / version
+    safeRemoveDir(verDir)
+    installCleanCopy(getCurrentDir(), verDir, nimble)
+    var deps: seq[DepEntry]
+    for d in nimble.requires:
+      if d.isNim: continue
+      deps.add((depName(d), ""))
+    recordInstall(pkgName, version, deps, root = true,
+      features = @[], installPath = verDir)
+    displaySuccess("Installed " & pkgName & "@" & version & " to " & verDir)
+    if doBuild:
+      if not buildInstalled(pkgName, buildRelease, buildDebug, verbose):
+        return
+    return
+
   if isGitUrl(raw):
     # `https://host/owner/repo[#ref]` installs straight from git. The URL is
     # translated to SSH (`git@host:path.git`) so private repos clone with the
@@ -440,12 +480,40 @@ proc installCommand*(v: Values) =
     if name.len == 0:
       displayError("Could not derive a package name from: " & raw)
       return
-    installPackage(name, urlRef, refresh, features, verbose, url = toGitSshUrl(url))
+    installPackage(name, urlRef, refresh, features, verbose, url = toGitSshUrl(url),
+      doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug)
   else:
     let pkgInput = split(raw, "@")
     let pkgName = pkgInput[0]
     let pkgRef = if pkgInput.len > 1 and pkgInput[1] != "head": pkgInput[1] else: ""
-    installPackage(pkgName, pkgRef, refresh, features, verbose)
+    installPackage(pkgName, pkgRef, refresh, features, verbose,
+      doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug)
+
+proc developCommand*(v: Values) =
+  ## Develop-mode (editable) install of the current nimble package: the install
+  ## record points at a symlink under ~/.clue/develop whose target is the
+  ## working tree — no source is ever copied, and uninstall only ever removes
+  ## the DB entry (plus the symlink), never the files. Never compiles anything;
+  ## its purpose is library discovery: other packages' builds pick the package
+  ## up via the recorded path (`import pkg/<name>` resolves against live source).
+  let nimblePath = findNimbleFile(getCurrentDir())
+  if nimblePath.len == 0:
+    displayError("No .nimble file found in " & getCurrentDir())
+    return
+  let nimble = parseNimbleFile(nimblePath)
+  let pkgName = nimblePath.extractFilename.changeFileExt("")
+  let version = if nimble.version.len > 0: nimble.version else: "0.0.0"
+  let linkPath = clueDevelopPath / pkgName
+  discard existsOrCreateDir(clueDevelopPath)
+  safeRemoveSymlink(linkPath)
+  createSymlink(getCurrentDir(), linkPath)
+  var deps: seq[DepEntry]
+  for d in nimble.requires:
+    if d.isNim: continue
+    deps.add((depName(d), ""))
+  recordInstall(pkgName, version, deps, root = true,
+    features = @[], installPath = linkPath)
+  displaySuccess("Develop-mode: " & pkgName & "@" & version & " (editable, library discovery from " & getCurrentDir() & ")")
 
 proc versionsCommand*(v: Values) =
   ## Show available versions for a package.
@@ -489,33 +557,66 @@ template whenPackageExists(pkgName: string, body: untyped): untyped =
     displayError("Package not found: " & cyan(pkgName))
 
 proc uninstallCommand*(v: Values) =
-  withClueDB do:
-    let pkgInput = split(v.get("pkg").getStr, "@")
-    let pkgName = pkgInput[0]
-    let pkgVersion = if pkgInput.len > 1: pkgInput[1] else: ""
-    if pkgVersion.len > 0:
+  let pkgInput = split(v.get("pkg").getStr, "@")
+  let pkgName = pkgInput[0]
+  let pkgVersion = if pkgInput.len > 1: pkgInput[1] else: ""
+  if pkgVersion.len > 0:
+    var rec: InstalledRecord
+    var found = false
+    for r in installedRecords(pkgName):
+      if r.version == pkgVersion:
+        rec = r
+        found = true
+        break
+    if not found:
+      displayError("Version not installed: " & pkgName & "@" & pkgVersion)
+      return
+    if rec.isDevInstall:
+      # develop-mode install: only the DB entry (and the ~/.clue/develop
+      # symlink) exist — never touch the source files
+      if promptConfirm("Remove develop-mode install " & pkgName & "@" & pkgVersion & " (files kept)?"):
+        unrecordInstall(pkgName, pkgVersion)
+        safeRemoveSymlink(clueDevelopPath / pkgName)
+        displaySuccess("Removed " & pkgName & "@" & pkgVersion & " (editable install, files untouched)")
+      else:
+        displayInfo("Removal cancelled.")
+    else:
       let verDir = cluePkgsPath / pkgName / pkgVersion
       if dirExists(verDir):
         if promptConfirm("Remove " & pkgName & "@" & pkgVersion & "?"):
-          removeDir(verDir)
+          safeRemoveDir(verDir)
           unrecordInstall(pkgName, pkgVersion)
           displaySuccess("Removed " & pkgName & "@" & pkgVersion)
         else:
           displayInfo("Removal cancelled.")
       else:
         displayError("Version not installed: " & pkgName & "@" & pkgVersion)
+  else:
+    # unversioned: the installed records are the source of truth (dev installs
+    # have no files under ~/.clue/packages, only DB entries)
+    let recs = installedRecords(pkgName)
+    var hasDirs = false
+    if dirExists(cluePkgsPath / pkgName):
+      for e in walkDir(cluePkgsPath / pkgName):
+        if e.kind == pcDir:
+          hasDirs = true
+          break
+    if recs.len == 0 and not hasDirs:
+      displayError("Package not found: " & cyan(pkgName))
+      return
+    if promptConfirm("Remove all versions of " & cyan(pkgName) & "?"):
+      safeRemoveDir(cluePkgsPath / pkgName)
+      unrecordInstall(pkgName, "")
+      safeRemoveSymlink(clueDevelopPath / pkgName)
+      displaySuccess("All versions of " & pkgName & " removed")
     else:
-      whenPackageExists pkgName:
-        if promptConfirm("Remove all versions of " & cyan(pkgName) & "?"):
-          removeDir(cluePkgsPath / pkgName)
-          unrecordInstall(pkgName, "")
-          displaySuccess("All versions of " & pkgName & " removed")
-        else:
-          displayInfo("Uninstallation cancelled.")
-    pruneOrphans()
+      displayInfo("Uninstallation cancelled.")
+  pruneOrphans()
 
 proc dumpCommand*(v: Values) =
-  ## Dump package info from registry
+  ## Dump package info from the registry, its available versions and recent
+  ## git activity (latest commit hash/date/author) — `--refresh` re-reads
+  ## versions from the remote instead of the local cache.
   withClueDB do:
     let pkgName = v.get("pkg").getStr
     whenPackageExists pkgName:
@@ -534,6 +635,21 @@ proc dumpCommand*(v: Values) =
           "license": pkgData[1]["license"].strVal,
           "tags": fromJson(pkgData[1]["tags"].jsonVal)
         }
+        # available versions (newest first) + latest-commit git activity
+        let versions = discoverVersions(pkgName, pkgData[1]["url"].strVal,
+          v.has("--refresh"), cloneOnMiss = false)
+        var verArr = newJArray()
+        for dv in versions:
+          verArr.add(%($dv.version))
+        pkgInfo["versions"] = verArr
+        let git = gitHeadInfo(pkgName, pkgData[1]["url"].strVal)
+        if git.isSome:
+          pkgInfo["git"] = %*{
+            "head": git.get().hash,
+            "date": git.get().date,
+            "author": git.get().author,
+            "subject": git.get().subject
+          }
         display(pretty(pkgInfo))
 
 

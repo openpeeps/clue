@@ -160,6 +160,43 @@ proc checkoutRef*(dest, refStr: string, refresh = false): bool =
   let (output, code) = gitExec("git -C " & dest & " checkout " & refStr & " --quiet 2>/dev/null")
   code == 0
 
+type
+  GitHeadInfo* = object
+    hash*: string    ## full commit hash of the latest commit
+    date*: string    ## ISO-8601 committer date
+    author*: string  ## committer name
+    subject*: string ## first line of the commit message
+
+proc gitHeadInfo*(name, url: string): Option[GitHeadInfo] =
+  ## Last-commit metadata for a git URL (`clue dump`). Prefers the cached clone
+  ## in `_cache` when present (offline, checks out the default branch tip);
+  ## otherwise does a fresh clone into the system temp dir and removes it after.
+  ## Returns `none` when the repo isn't reachable.
+  var repo = cluePkgsCachePath / name
+  var own = false
+  if not dirExists(repo):
+    repo = getTempDir() / ("clue_head_" & $getMonoTime().ticks)
+    if not clonePackage(url, repo, nonInteractive = true):
+      return none(GitHeadInfo)
+    own = true
+  else:
+    discard checkoutHead(repo)
+  let (output, code) = gitExec("git -C " & repo &
+    " log -1 --format=%H%n%aI%n%an%n%s")
+  if own:
+    removeDir(repo)  # our own temp clone — created and removed by clue
+  if code != 0 or output.len == 0:
+    return none(GitHeadInfo)
+  let lines = output.splitLines()
+  if lines.len < 3:
+    return none(GitHeadInfo)
+  some(GitHeadInfo(
+    hash: lines[0],
+    date: lines[1],
+    author: lines[2],
+    subject: lines[3]))
+
+
 proc findLocalTags(dest: string): seq[string] {.gcsafe.} =
   ## List local git tags by reading the ref store directly (`.git/packed-refs`
   ## plus loose `refs/tags/`) — no `git` subprocess, so it's fast even across
@@ -660,6 +697,65 @@ proc resolveInstalledPath*(name, preferRef: string): string =
       return result
   ""
 
+type
+  InstalledRecord* = object
+    version*: string
+    path*: string
+    root*: bool
+
+proc installedRecords*(name: string): seq[InstalledRecord] =
+  ## All installed records for `name` from the installed manifest. This is the
+  ## source of truth for uninstall/prune — records can exist without any files
+  ## on disk (develop-mode installs point at the user's source tree).
+  withClueDB do:
+    let tbl = clueDB.getTable("installed").get()
+    for (pk, row) in tbl.where("name", newTextValue(name)).toSeq():
+      result.add(InstalledRecord(
+        version: row["version"].strVal,
+        path: row["path"].strVal,
+        root: row.hasKey("root") and row["root"].boolVal
+      ))
+
+proc isDevInstall*(rec: InstalledRecord): bool =
+  ## True for develop-mode (editable) installs whose path points outside the
+  ## package registry — i.e. at the user's own source tree. Such installs have
+  ## no files under ~/.clue/packages; only their DB entry exists, and only the
+  ## entry may ever be deleted.
+  rec.path.len > 0 and not isInsidePkgs(rec.path)
+
+proc collectInstalledDepNames*(rootNames: seq[string]): seq[string] =
+  ## BFS over the installed manifest graph to collect every reachable
+  ## dependency name, so the compiler gets `--path` for the whole tree.
+  var depsOf: Table[string, seq[string]]
+  withClueDB do:
+    let tbl = clueDB.getTable("installed").get()
+    for (pk, row) in tbl.allRows():
+      let name = row["name"].strVal
+      var deps: seq[string]
+      try:
+        for dep in parseJson(row["deps"].jsonVal):
+          deps.add(dep["name"].getStr)
+      except CatchableError:
+        discard
+      if deps.len == 0: continue
+      if not depsOf.hasKey(name):
+        depsOf[name] = @[]
+      for d in deps:
+        if d notin depsOf[name]:
+          depsOf[name].add(d)
+  var visited = initHashSet[string]()
+  var queue = rootNames
+  while queue.len > 0:
+    let name = queue.pop()
+    if name in visited:
+      continue
+    visited.incl(name)
+    if depsOf.hasKey(name):
+      for d in depsOf[name]:
+        if d notin visited:
+          queue.add(d)
+  toSeq(visited)
+
 proc resolveDepPathLike(name: string): string =
   ## Locate the latest installed version dir for a package on disk (fallback
   ## for legacy installs that predate the recorded `path` column).
@@ -677,6 +773,24 @@ proc resolveDepPathLike(name: string): string =
       except CatchableError:
         discard
   best
+
+proc pathForImports(p: string): string =
+  ## The `--path` target for an installed package dir. Develop-mode installs
+  ## point at the live source tree, so imports resolve against the `srcDir`
+  ## (e.g. `<pkg>/src`); registry installs are flattened (srcDir contents sit
+  ## at the root), so the dir itself is returned.
+  let nimblePath = findNimbleFile(p)
+  if nimblePath.len > 0:
+    try:
+      let srcDir = parseNimbleFile(nimblePath).srcDir
+      let src =
+        if srcDir.len > 0: srcDir
+        else: "src"
+      if dirExists(p / src):
+        return p / src
+    except CatchableError:
+      discard
+  p
 
 proc allInstalledPaths*(): seq[string] =
   ## One `--path` (install dir) per installed package — the latest version each —
@@ -697,8 +811,10 @@ proc allInstalledPaths*(): seq[string] =
     if p.len == 0:
       # legacy install without a recorded path — locate it on disk
       p = resolveDepPathLike(name)
-    if p.len > 0 and p notin result:
-      result.add(p)
+    if p.len > 0:
+      let src = pathForImports(p)
+      if src notin result:
+        result.add(src)
 
 proc installedFeatures*(): Table[string, seq[string]] =
   ## Map of installed package name -> the features it was resolved with.
@@ -774,8 +890,7 @@ proc pruneOrphans*(verbose = true) =
       let key = name & "@" & ver
       if key in reachable: continue
       let dir = cluePkgsPath / name / ver
-      if dirExists(dir):
-        removeDir(dir)
+      safeRemoveDir(dir)
       let parentDir = cluePkgsPath / name
       if dirExists(parentDir):
         var hasEntries = false
@@ -783,7 +898,7 @@ proc pruneOrphans*(verbose = true) =
           hasEntries = true
           break
         if not hasEntries:
-          removeDir(parentDir)
+          safeRemoveDir(parentDir)
       for (pk, row) in tbl.where("name", newTextValue(name)).toSeq():
         if row["version"].strVal == ver:
           discard clueDB.deleteRow("installed", pk)
