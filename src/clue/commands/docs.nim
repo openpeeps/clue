@@ -1,9 +1,10 @@
-import std/[os, osproc, tables]
+import std/[os, net, tables]
 
+import pkg/semver
 import pkg/kapsis/runtime
 import pkg/kapsis/interactive/prompts
 
-import ../docbuilder/[configs, builder]
+import ../docbuilder/[configs, builder, httpserver]
 
 proc docsGenCommand*(v: Values) =
   let pkgName = v.get("pkgname").getStr
@@ -11,26 +12,42 @@ proc docsGenCommand*(v: Values) =
 
 proc docsOpenCommand*(v: Values) =
   let pkgName = v.get("pkgname").getStr
-  withDocsDB do:
-    let docsTable = getDocsTable()
-    let existing = docsTable.where("name", newTextValue(pkgName))
-    if existing.len == 0:
-      displayError("No documentation found for '" & pkgName & "'")
-      return
-    var latest = existing[0]
-    for (pk, row) in existing:
-      if row["built_at"].strVal > latest[1]["built_at"].strVal:
-        latest = (pk, row)
-    let relPath = latest[1]["path"].strVal
-    let docDir = clueDocsPath / relPath
-    let candidates = ["index.html", latest[1]["name"].strVal & ".html", "theindex.html"]
-    var fullPath = ""
-    for c in candidates:
-      let p = docDir / c
-      if fileExists(p):
-        fullPath = p
-        break
-    if fullPath.len == 0:
-      displayError("Documentation not found in " & docDir)
-      return
-    discard execCmdEx("open \"" & fullPath & "\"")
+  let port =
+    if v.has("--port"): v.get("--port").getPort
+    else: Port(11000)
+  let (name, wantVersion) = splitPkgRef(pkgName)
+
+  var docDir = ""
+  if wantVersion.len > 0:
+    docDir = clueDocsPath / name / wantVersion
+  else:
+    # latest built docs (by build time), falling back to the max version dir
+    var bestPath = ""
+    var bestBuilt = ""
+    withDocsDB do:
+      let docsTable = getDocsTable()
+      for (pk, row) in docsTable.where("name", newTextValue(name)):
+        if row["built_at"].strVal > bestBuilt:
+          bestBuilt = row["built_at"].strVal
+          bestPath = row["path"].strVal
+    if bestPath.len > 0:
+      docDir = clueDocsPath / bestPath
+    else:
+      let base = clueDocsPath / name
+      if dirExists(base):
+        var best: tuple[v: Version, path: string]
+        for entry in walkDir(base):
+          if entry.kind != pcDir: continue
+          let verName = entry.path.extractFilename
+          try:
+            let ver = parseVersion(verName)
+            if best.path.len == 0 or ver > best.v:
+              best = (ver, entry.path)
+          except CatchableError:
+            discard
+        docDir = best.path
+
+  if docDir.len == 0 or not dirExists(docDir):
+    displayError("No documentation found for '" & name & "'. Run `clue docs.gen " & name & "` first.")
+    return
+  serveDocs(docDir, name, port)

@@ -39,7 +39,7 @@ per-version toolchains with virtual environments when `nimble` just doesn't cut 
 > [!NOTE]
 > Clue used to be the home for generating native extensions, C wrappers and
 > OpenAPI 3.x clients. That codebase now lives in
-> [nimbase](https://github.com/openpeeps/nimbase) and ships as the `nimbase`
+> [nimbase](https://github.com/nimbase/nimbase) and ships as the `nimbase`
 > package. Clue stays focused on making local package management a joy.
 
 ## Usage
@@ -117,8 +117,10 @@ Environment Management
   venv                                Manage virtual environments for Nim projects
           --nim:string
 Documentation
-  docs.gen <pkgname:string>           Build documentation for a Nim package
-  docs.open <pkgname:string>          Open built docs in the browser
+  docs.gen <pkgname:string>           Build documentation for an installed package (`pkg` or
+                                      `pkg@version`)
+  docs.open <pkgname:string>          Serve local docs over HTTP (default port 11000)
+          --port:port
 ```
 
 ### Environment Management
@@ -131,22 +133,26 @@ source .env/activate     # or: source .env/deactivate
 
 ### Documentation
 ```sh
-# Build local documentation for a package
+# Build documentation for an installed package (latest version by default)
 clue docs.gen spry
+clue docs.gen spry@1.2.0
 
-# Open the built docs in your browser
+# Serve local docs over HTTP (default port 11000, opens the browser)
 clue docs.open spry
+clue docs.open spry --port:8080
 ```
 
 ## Documentation Builder
 Clue offers a local documentation generator built on top of the built-in Nim
 `doc` system. Because most of the time package authors focus on writing code and
 don't provide an easy way to access documentation for their packages, Clue lets
-you build & open docs for any local package right from the terminal.
+you build & serve docs for any clue-installed package right from the terminal.
 
-- Versioned `nim doc` output stored under `~/.clue`
+- Versioned `nim doc` output stored under `~/.clue/docs/<pkg>/<version>`
 - Auto-generated overview page for everything you've documented
-- `clue docs.open <pkg>` gets you straight to the latest build
+- `clue docs.open <pkg>` serves the latest build over a minimal in-memory HTTP
+  server (stdlib only) at `http://127.0.0.1:11000/`, opening it in your browser
+- Optional `--port` to override the default port
 
 ## Roadmap
 - [ ] Docs — LLM integration for RAG over your local documentation

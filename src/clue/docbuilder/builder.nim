@@ -1,76 +1,120 @@
-import std/[os, osproc, json, times, tables]
+import std/[os, osproc, strutils, json, times, tables]
 
+import pkg/semver
 import pkg/kapsis/interactive/prompts
+
+import ../pkgmanager/versions
+import ../pkgmanager/nimbleparser
 
 import ./configs
 import ./overviewgen
 
-proc buildDocs*(pkgName: string) =
-  ## Build documentation for a Nim package by name.
-  ## Uses `nimble dump` to locate the package, then runs `nim doc`.
+proc splitPkgRef*(s: string): tuple[name, version: string] =
+  ## Split `name@version` (version optional) into its parts.
+  let at = s.rfind('@')
+  if at > 0:
+    result.name = s[0 ..< at]
+    result.version = s[at + 1 .. ^1]
+  else:
+    result.name = s
+
+proc resolveMainFile(pkgDir, name, srcDir: string): string =
+  ## Locate the package's main module: the srcDir layout (develop-mode source
+  ## trees), the flattened registry layout (srcDir contents at the root), or a
+  ## `pkg/`-style subdir.
+  for c in [pkgDir / srcDir / name & ".nim",
+            pkgDir / name & ".nim",
+            pkgDir / name / name & ".nim"]:
+    if fileExists(c):
+      return c
+  ""
+
+proc buildDocs*(pkgRef: string) =
+  ## Build documentation for a clue-installed package.
+  ## `pkgRef` is `name` or `name@version` (version omitted → latest installed).
   initDocsDB()
-  let nimbleOutput = execCmdEx("nimble dump " & pkgName & " --json")
-  if nimbleOutput.exitCode != 0:
-    displayError("Package not found via nimble: " & pkgName)
+  let (pkgName, wantVersion) = splitPkgRef(pkgRef)
+  let records = installedRecords(pkgName)
+  if records.len == 0:
+    displayError("Package not installed: " & pkgName &
+      ". Run `clue install " & pkgName & "` first.")
     return
 
-  let info = parseJson(nimbleOutput.output)
-  let name = info["name"].getStr
-  let version = info["version"].getStr
-  let description = info["desc"].getStr
-  let nimblePath = info["nimblePath"].getStr
-  let srcDir = info["srcDir"].getStr
-
-  let pkgRoot = nimblePath.parentDir()
-
-  var mainFile: string
-  if info.hasKey("entryPoints") and info["entryPoints"].len > 0:
-    mainFile = pkgRoot / info["entryPoints"][0].getStr
-  else:
-    mainFile = pkgRoot / srcDir / name & ".nim"
-
-  if not fileExists(mainFile):
-    let altMain = pkgRoot / name & ".nim"
-    if fileExists(altMain):
-      mainFile = altMain
-    else:
-      displayError("Main source file not found: " & mainFile)
+  var version = wantVersion
+  var pkgDir = ""
+  if version.len > 0:
+    for r in records:
+      if r.version == version:
+        pkgDir = r.path
+        break
+    if pkgDir.len == 0:
+      displayError("Version not installed: " & pkgName & "@" & version)
       return
+  else:
+    # latest semver installed version
+    var best: tuple[v: Version, path: string]
+    for r in records:
+      try:
+        let v = parseVersion(r.version)
+        if best.path.len == 0 or v > best.v:
+          best = (v, r.path)
+          version = r.version
+      except CatchableError:
+        discard
+    if best.path.len == 0:
+      displayError("No installable version found for " & pkgName)
+      return
+    pkgDir = best.path
 
-  let srcPath = if dirExists(pkgRoot / srcDir): pkgRoot / srcDir else: pkgRoot
-  let pkgDir = clueDocsPath / name
-  let outputDir = pkgDir / version
-  discard existsOrCreateDir(pkgDir)
+  let nimblePath = findNimbleFile(pkgDir)
+  if nimblePath.len == 0:
+    displayError("No .nimble file found in " & pkgDir)
+    return
+  let nimble = parseNimbleFile(nimblePath)
+  let srcDir =
+    if nimble.srcDir.len > 0: nimble.srcDir
+    else: "src"
+
+  let mainFile = resolveMainFile(pkgDir, pkgName, srcDir)
+  if mainFile.len == 0:
+    displayError("Main source file not found in " & pkgDir)
+    return
+
+  let srcPath = if dirExists(pkgDir / srcDir): pkgDir / srcDir else: pkgDir
+  let pkgDirDocs = clueDocsPath / pkgName
+  let outputDir = pkgDirDocs / version
+  discard existsOrCreateDir(pkgDirDocs)
   discard existsOrCreateDir(outputDir)
 
-  let cmd = "nim doc --index:on --project --path:" & srcPath & " --out:" & outputDir & " " & mainFile
-  displayInfo("Building docs for " & name & " v" & version)
+  let cmd = "nim doc --index:on --project --path:" & srcPath &
+    " --out:" & outputDir & " " & mainFile
+  displayInfo("Building docs for " & pkgName & " v" & version)
   let result = execCmdEx(cmd)
   if result.exitCode != 0:
-    displayError("nim doc failed for " & name & " v" & version & ":\n" & result.output)
+    displayError("nim doc failed for " & pkgName & " v" & version & ":\n" & result.output)
     return
 
   withDocsDB do:
     let docsTable = getDocsTable()
-    let existing = docsTable.where("name", newTextValue(name))
+    let existing = docsTable.where("name", newTextValue(pkgName))
     for (pk, row) in existing:
       if row.hasKey("version") and row["version"] == newTextValue(version):
         discard clueDocsDB.deleteRow("docs", pk)
         break
 
-    let relPath = name / version
+    let relPath = pkgName / version
     let nowStr = now().format("yyyy-MM-dd'T'HH:mm:sszzz")
     discard clueDocsDB.insertRow("docs", row({
-      "name": newTextValue(name),
+      "name": newTextValue(pkgName),
       "version": newTextValue(version),
-      "description": newTextValue(description),
+      "description": newTextValue(nimble.description),
       "built_at": newTextValue(nowStr),
       "path": newTextValue(relPath),
       "mainfile": newTextValue(mainFile),
     }))
     clueDocsDB.checkpoint()
 
-  displaySuccess("Docs built for " & name & " v" & version)
+  displaySuccess("Docs built for " & pkgName & " v" & version)
   generateOverview()
 
 proc rebuildDocs*() =
