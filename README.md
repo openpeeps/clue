@@ -1,5 +1,5 @@
 <p align="center">
-  A cool toolkit for Nim developers! 
+  A cool toolkit for Nim developers!
 </p>
 
 <p align="center">
@@ -14,123 +14,75 @@
 ### Why Clue?
 Because sometimes I have no damn clue how to... 😂
 
+Clue is an alternative to `nimble` — a friendly toolkit for installing, building
+and documenting Nim packages, resolving tricky dependencies, and managing
+per-version toolchains with virtual environments when `nimble` just doesn't cut it.
+
 ## 😍 Key Features
-- [x] Plugin Kit interface for **PHP**, **Ruby**, **Lua**, **Python** and more
-- [ ] Generate API bindings for Go, C, C++, D, Crystal, Dart, Zig and more
-- [ ] Generate C header files for your Nim library
-- [ ] Package generator for target languages (`gem`, `pip`, `npm`, `composer`)
-- [x] Simple, macro-based DSL for creating extensions in Nim
-- [ ] Generate HTTP clients from OpenAPI 3.0 specs
-- [ ] Documentation database for local packages
+- [x] **Package management** — cached version discovery, transitive dependency resolution, feature flags, SSH installs & orphan pruning
+- [x] **Build** the current package from its nimble file (`--release`, `--debug`, `--features`)
+- [x] **Install / uninstall / dump / versions / prune** with a local package registry
+- [x] **Virtual environments** (`venv`) for per-version Nim toolchains via choosenim
+- [x] **Local documentation** — build & browse versioned `nim doc` output right from the command line
 
 > [!NOTE]
-> Clue is an effort to create a unified interface for generating native libraries and extensions for other languages in Nim, enjoying the power of native performance and low-level capabilities of Nim while providing a super dev-friendly experience for authors. Do the do!
+> Clue used to be the home for generating native extensions, C wrappers and
+> OpenAPI 3.x clients. That codebase now lives in
+> [nimbase](https://github.com/openpeeps/nimbase) and ships as the `nimbase`
+> package. Clue stays focused on making local package management a joy.
 
-## Plugin Kits
+## Usage
 
-All kits follow the same macro-based DSL pattern. Write your logic once in Nim, generate native extensions for the target language.
+### Package Management
+```sh
+# Build the current package from its nimble file
+clue build
+clue build --release
+clue build --features:ssl,jwt
 
-### PHP
-```nim
-import clue/kits/phpkit
+# Install / uninstall packages from the registry
+clue install spry
+clue install spry@1.2.0
+clue install ssl#master
+clue install https://github.com/user/repo
+clue uninstall spry
 
-phpModule do:
-  name = "example"
-  version = "0.1.0"
-
-  proc hello(name: string) =
-    echo "Hello ", $name, " from Nim!"
-
-  proc add(a: int, b: int) =
-    php_zval_long(retTy, zend_long(a + b))
+# Inspect the registry
+clue dump spry
+clue versions spry --refresh
+clue prune
 ```
 
-- [PHP example](examples/plugin_php/README.md)
+### Environment Management
+```sh
+# Create a virtual environment pinned to a specific Nim version
+clue venv --nim:2.2.0
 
-### Ruby
-```nim
-import clue/kits/rubykit
-
-rubyModule do:
-  name: "Example"
-  version: "0.1.0"
-
-  proc hello(name: string) =
-    echo "Hello ", name, " from Nim!"
-
-  proc add(a: int, b: int) =
-    result = INT2NUM(cint(a + b))
+source .env/activate     # or: source .env/deactivate
 ```
 
-- [Ruby example](examples/plugin_ruby/README.md)
+### Documentation
+```sh
+# Build local documentation for a package
+clue docs gen spry
 
-### Lua (LuaJIT)
-```nim
-import clue/kits/luakit
-
-luaModule do:
-  name: "mylib"
-
-  proc hello(name: string) =
-    lua_pushstring(L, cstring("Hello " & name & " from Nim!"))
-    return 1
-
-  proc add(a: int, b: int) =
-    lua_pushinteger(L, a + b)
-    return 1
+# Open the built docs in your browser
+clue docs open spry
 ```
-
-- [Lua example](examples/plugin_lua/README.md)
-
-### Python
-```nim
-import clue/kits/pykit
-
-pythonModule do:
-  name: "mylib"
-
-  proc hello(name: string) =
-    result = PyUnicode_FromString(cstring("Hello " & name & " from Nim!"))
-
-  proc add(a: int, b: int) =
-    result = PyLong_FromLong(a + b)
-```
-
-- [Python example](examples/plugin_python/README.md)
-
-<details>
-  <summary>Use <code>-d:clueDebugExtension</code> to inspect the generated code 👇</summary>
-  Pass this flag when compiling to see the Nim-to-C expansion for any module kit:
-
-```
-nim c -d:clueDebugExtension --app:lib -o:out.so my_extension.nim
-```
-</details>
-
-> [!NOTE]
-> All major dynamic languages that support native extensions will be supported via plugin kits, and the goal is to have a unified DSL for defining extensions across all supported languages. Write your logic once in Nim, and generate native extensions for the community in multiple languages without spending time learning all the details of each language's native extension API.
-
-## Package generator
-The goal is to generate the structure of a package for the target language, including the necessary metadata files (`package.json`, `setup.py`, `*.gemspec`, etc.) and the generated native library or extensio directly from Clue CLI
-
-_TODO_
-
-## API bindings generator
-The API bindings generator will allow you to generate C-like header files and bindings for your Nim code to be consumed by other languages. Similar to [@treeform/genny](https://github.com/treeform/genny), but for Clue we can extend this concept to all low-level languages (C, C++, D, Crystal, Dart, Zig, Rust, etc.) and provide a unified interface for generating bindings for your Nim code.
-
-_TODO_
 
 ## Documentation Builder
-Clue offers a local documentation generator built on top of the built-in Nim doc system. Why? Because most of the time, package authors may focus on writing code and don't provide a easy way to access documentation for their packages.
+Clue offers a local documentation generator built on top of the built-in Nim
+`doc` system. Because most of the time package authors focus on writing code and
+don't provide an easy way to access documentation for their packages, Clue lets
+you build & open docs for any local package right from the terminal.
 
-For OpenPeeps packages I always want to generate API references for all our packages via GitHub Actions and make them easily accessible via the GitHub Pages, but for local development, I want a simple way to generate and access documentation for any local package without needing to set up a separate documentation hosting solution.
+- Versioned `nim doc` output stored under `~/.clue`
+- Auto-generated overview page for everything you've documented
+- `clue docs open <pkg>` gets you straight to the latest build
 
-Local documentation generation comes with other benefits as well! Clue has LLM integration, offers a RAG capability for your local documentation, and can generate a local search index for your docs to make them easily searchable from the command line.
-
-## Todo
-- [ ] Plugin kits - Add support for version detection and other runtime checks
-- [ ] Plugin kits - More languages (Crystal, Dart, Zig, etc.)
-- [ ] Plugin kits - Add a `initModules` macro for bulk definitions. Crazy!
+## Roadmap
+- [ ] Docs — LLM integration for RAG over your local documentation
+- [ ] Docs — generate a local search index for command-line discovery
 
 ### ❤ Contributions & Support
 - 🐛 Found a bug? [Create a new Issue](https://github.com/openpeeps/clue/issues)

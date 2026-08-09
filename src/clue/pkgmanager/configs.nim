@@ -4,7 +4,7 @@
 #          Made by Humans from OpenPeeps
 #          https://github.com/openpeeps/clue
 
-import std/[os, osproc, strutils, options, sequtils, tables]
+import std/[os, osproc, strutils, options, sequtils, tables, times]
 
 import pkg/boogie/stores/rdbms
 import pkg/openparser/json
@@ -15,9 +15,19 @@ import ./resolver
 
 export rdbms
 
+## Permanent debug tracing: enable with `CLUE_DEBUG=1` (or `-d:clueDebug`).
+var debugEnabled* = getEnv("CLUE_DEBUG") == "1" or defined(clueDebug)
+
+proc debugLog*(msg: string) =
+  ## Echo a debug trace line to stderr (never interferes with the spinner on
+  ## stdout). Kept intentionally — it's how we diagnose hangs/timeouts.
+  if debugEnabled:
+    stderr.writeLine("[clue] " & msg)
+
 const
   cluePath* = getHomeDir() / ".clue"
   clueDBPath* = cluePath / "clue.db"
+  versionsDBPath* = cluePath / "versions.db"
   cluePkgsPath* = cluePath / "packages"
   cluePkgsCachePath* = cluePkgsPath / "_cache"
   nimbleLocalPackages* = getHomeDir() / ".nimble" / "packages_official.json"
@@ -79,10 +89,22 @@ type
       ## Hard (always-active) dependencies.
     features*: Table[string, seq[NimbleDependency]]
       ## `feature "name":` blocks → conditional dependencies.
+    dev*: seq[NimbleDependency]
+      ## The `dev:` block → development-only dependencies.
 
 var clueDB*: Store
+var versionsDB*: Store
+  ## The version index + deps cache live in their own store, separate from the
+  ## registry/install-state DB (clue.db).
+var clueInitialized = false
 
 proc initClue*() =
+  # Open the stores + run migrations exactly once per process — `withClueDB` is
+  # used per DB operation, so re-initializing on every call is very slow.
+  if clueInitialized:
+    return
+  clueInitialized = true
+
   discard existsOrCreateDir(cluePath)
   discard existsOrCreateDir(cluePkgsPath)
   discard existsOrCreateDir(cluePkgsCachePath)
@@ -90,6 +112,8 @@ proc initClue*() =
   var hasDatabase = fileExists(clueDBPath)
   clueDB = newStore(clueDBPath, StorageMode.smDisk,
                     enableWal = true, walFlushEveryOps = 100'u32)
+  versionsDB = newStore(versionsDBPath, StorageMode.smDisk,
+                        enableWal = true, walFlushEveryOps = 100'u32)
 
   clueDB.createTableIfNotExist(newTable(
     name = "packages",
@@ -105,28 +129,19 @@ proc initClue*() =
       newColumn("web", dtText, false)
     ]
   ))
-  clueDB.createTableIfNotExist(newTable(
-    name = "versions",
-    primaryKey = "id",
-    columns = [
-      newColumn("id", dtInt, false),
-      newColumn("name", dtText, false),
-      newColumn("version", dtText, false),
-      newColumn("tag", dtText, false),
-      newColumn("deps", dtJson, false),
-      newColumn("discovered_at", dtText, false)
-    ]
-  ))
-  # migrate: the installed table predating the `features` column is rebuilt
-  # (its data is only the install graph, reconstructed on next install).
+
+  # migrate: the installed table predating the `features`/`path` columns is
+  # rebuilt (its data is only the install graph, reconstructed on next install).
   if clueDB.hasTable("installed"):
     let installedTbl = clueDB.getTable("installed").get()
     var hasFeatures = false
+    var hasPath = false
     for c in installedTbl.columns:
       if c.name == "features":
         hasFeatures = true
-        break
-    if not hasFeatures:
+      elif c.name == "path":
+        hasPath = true
+    if not (hasFeatures and hasPath):
       clueDB.dropTable("installed")
 
   clueDB.createTableIfNotExist(newTable(
@@ -139,9 +154,73 @@ proc initClue*() =
       newColumn("root", dtBool, false),
       newColumn("features", dtJson, false),
       newColumn("deps", dtJson, false),
+      newColumn("path", dtText, false),
       newColumn("installed_at", dtText, false)
     ]
   ))
+
+  # --- versions.db: version index + deps cache ---
+  versionsDB.createTableIfNotExist(newTable(
+    name = "versions",
+    primaryKey = "id",
+    columns = [
+      newColumn("id", dtInt, false),
+      newColumn("name", dtText, false),
+      newColumn("version", dtText, false),
+      newColumn("tag", dtText, false),
+      newColumn("discovered_at", dtText, false)
+    ]
+  ))
+  versionsDB.createTableIfNotExist(newTable(
+    name = "deps",
+    primaryKey = "id",
+    columns = [
+      newColumn("id", dtInt, false),
+      newColumn("name", dtText, false),
+      newColumn("version", dtText, false),
+      newColumn("deps", dtJson, false),
+      newColumn("cached_at", dtText, false)
+    ]
+  ))
+
+  # migrate: move legacy `versions`/`deps` tables out of clue.db into versions.db
+  if clueDB.hasTable("versions"):
+    let srcTbl = clueDB.getTable("versions").get()
+    var versionRows: seq[tuple[name, version, tag, discoveredAt: string]]
+    var depsRows: seq[tuple[name, version, depsJson: string]]
+    for (pk, row) in srcTbl.allRows():
+      if row["deps"].jsonVal.len > 2:
+        depsRows.add((row["name"].strVal, row["version"].strVal, row["deps"].jsonVal))
+      else:
+        versionRows.add((row["name"].strVal, row["version"].strVal,
+          row["tag"].strVal, row["discovered_at"].strVal))
+    for (name, version, tag, at) in versionRows:
+      discard versionsDB.insertRow("versions", row({
+        "name": newTextValue(name),
+        "version": newTextValue(version),
+        "tag": newTextValue(tag),
+        "discovered_at": newTextValue(at)
+      }))
+    for (name, version, depsJson) in depsRows:
+      discard versionsDB.insertRow("deps", row({
+        "name": newTextValue(name),
+        "version": newTextValue(version),
+        "deps": newJSONValue(parseJson(depsJson)),
+        "cached_at": newTextValue(now().format("yyyy-MM-dd'T'HH:mm:sszzz"))
+      }))
+    if versionRows.len > 0 or depsRows.len > 0:
+      versionsDB.checkpoint()
+    clueDB.dropTable("versions")
+  if clueDB.hasTable("deps"):
+    for (pk, row) in clueDB.getTable("deps").get().allRows():
+      discard versionsDB.insertRow("deps", row({
+        "name": newTextValue(row["name"].strVal),
+        "version": newTextValue(row["version"].strVal),
+        "deps": newJSONValue(parseJson(row["deps"].jsonVal)),
+        "cached_at": newTextValue(now().format("yyyy-MM-dd'T'HH:mm:sszzz"))
+      }))
+    versionsDB.checkpoint()
+    clueDB.dropTable("deps")
 
   if not hasDatabase:
     displayInfo("Initializing Clue database...")

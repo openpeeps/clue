@@ -15,10 +15,10 @@ when isMainModule:
       # Manage local packages when nimble fails
       #
       -- "Package Management"
-      build ?bool("--release"), ?bool("--debug"), ?string("--features"),
-            ?bool("--verbose"):
-        ## Build the current Nim package from its nimble file
-      install string(pkg), ?bool("--refresh"), ?string("--features"):
+      build ?string(file), ?bool("--release"), ?bool("--debug"), ?string("--features"), ?bool("--verbose"), ?string("--out"):
+        ## Build the current Nim package from its nimble file, or a single
+        ## module (`clue build foo.nim`) with installed packages on the path
+      install string(pkg), ?bool("--refresh"), ?string("--features"), ?bool("--verbose"):
         ## Install a package from remote source
       uninstall string(pkg):
         ## Uninstall a package from the system

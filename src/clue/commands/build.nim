@@ -92,7 +92,12 @@ proc srcDirPath(verDir, depName: string): string =
 
 proc resolveDepPath(depName: string, preferRef = ""): string =
   ## Locate an installed dependency, preferring the dir for `preferRef`
-  ## (branch/tag) when given, else the latest semver version.
+  ## (branch/tag) when given, else the latest semver version. Uses the recorded
+  ## `--path` from the install index when available (falls back to scanning the
+  ## filesystem for legacy installs).
+  let recorded = resolveInstalledPath(depName, preferRef)
+  if recorded.len > 0:
+    return recorded
   let clueInstall = cluePkgsPath / depName
   if dirExists(clueInstall):
     if preferRef.len > 0 and dirExists(clueInstall / preferRef):
@@ -126,11 +131,56 @@ proc resolveDepPath(depName: string, preferRef = ""): string =
   ""
 
 proc buildCommand*(v: Values) =
+  let file =
+    if v.has("file"): v.get("file").getStr
+    else: ""
   let isRelease = v.has("--release")
   let isDebug = v.has("--debug")
   let verbose = v.has("--verbose")
+  let outPath =
+    if v.has("--out"): v.get("--out").getStr
+    else: ""
   # spinner only makes sense on a terminal; skipped when output is piped
   let useSpinner = not verbose and isatty(stdout)
+
+  # Module mode: `clue build foo.nim` — no nimble file needed; every installed
+  # package is put on the import path so any `import xyz` resolves.
+  if file.len > 0:
+    var spinny: Spinny
+    if useSpinner:
+      spinny = newSpinny("Building " & file & "...", skDots, time = true)
+      spinny.start()
+    let pathFlags = allInstalledPaths().mapIt("--path:" & it)
+    var flags = " " & pathFlags.join(" ") & " --colors:on"
+    if isRelease:
+      flags.add(" -d:release --opt:size")
+    elif isDebug:
+      flags.add(" --debugger:native")
+    let outFile =
+      if outPath.len > 0: outPath
+      else: file.extractFilename.changeFileExt("")
+    let cmd = "nim c" & flags & " --out:" & outFile & " " & file
+    if verbose:
+      display("  " & cyan(cmd))
+    if useSpinner:
+      spinny.setText("Building " & file & "...")
+    let (output, exitCode) = execCmdEx(cmd)
+    if exitCode != 0:
+      if useSpinner:
+        spinny.error("Build failed for " & file)
+      else:
+        displayError("Build failed for " & file)
+      writeRaw(output)
+    else:
+      if verbose:
+        writeRaw(output)
+      elif not useSpinner:
+        displaySuccess("Built " & file & " → " & outFile)
+    if useSpinner:
+      spinny.success("Built " & outFile)
+    return
+
+  # Project mode: build the current package from its nimble file.
 
   # Active root features: `--features:foo,bar` + the implicit `dev` feature
   # (always active when building a package, matching nimble).

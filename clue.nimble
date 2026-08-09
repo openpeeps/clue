@@ -18,3 +18,7 @@ requires "kapsis >= 0.3.4"
 requires "boogie >= 0.1.0"
 requires "openparser >= 0.1.4"
 requires "sweetsyntax >= 0.1.0"
+
+task test, "run unit tests":
+  exec "nim c -r --hints:off --out:/tmp/clue_resolver_test src/clue/pkgmanager/resolver.nim"
+  exec "nim c -r --hints:off --out:/tmp/clue_scenarios tests/resolver_scenarios.nim"

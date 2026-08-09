@@ -5,47 +5,17 @@
 #          https://github.com/openpeeps/clue
 
 import std/[sequtils, options, tables, sets, strformat, strutils,
-          streams, times, os, osproc]
+          streams, times, os, osproc, terminal]
 
 import pkg/[semver, openparser/json]
 import pkg/kapsis/[runtime, interactive/prompts]
+
+import ../cli/live
 
 import ../pkgmanager/resolver
 import ../pkgmanager/configs
 import ../pkgmanager/versions
 import ../pkgmanager/nimbleparser
-
-proc depName(d: NimbleDependency): string =
-  if d.name.len > 0: d.name else: d.url
-
-proc parseFeatureFlags*(s: string): seq[string] =
-  for f in s.split(','):
-    let ff = f.strip()
-    if ff.len > 0:
-      result.add(ff)
-
-proc isGitUrl*(s: string): bool =
-  s.startsWith("https://") or s.startsWith("http://") or
-  s.startsWith("git@") or s.startsWith("git+") or
-  s.startsWith("ssh://")
-
-proc toGitSshUrl*(url: string): string =
-  ## Translate an https(s) git URL into an scp-like SSH URL
-  ## (`git@host:path.git`) so `git clone` runs over SSH using the user's
-  ## default SSH keys — enabling installs of private repositories.
-  var u = url.strip()
-  if u.startsWith("git+"):
-    u = u[4 .. ^1]
-  if not (u.startsWith("https://") or u.startsWith("http://")):
-    return u
-  let slashPos = u.split("://")[1].find('/')
-  if slashPos < 0:
-    return u
-  let host = u.split("://")[1][0 ..< slashPos]
-  var path = u.split("://")[1][slashPos + 1 .. ^1]
-  if not path.endsWith(".git"):
-    path.add(".git")
-  result = "git@" & host & ":" & path
 
 proc pkgNameFromUrl*(url: string): string =
   ## Derive a package name from a git URL's repository basename.
@@ -65,6 +35,24 @@ proc pkgNameFromUrl*(url: string): string =
   if result.endsWith(".git"):
     result = result[0 ..< ^4]
 
+proc depName(d: NimbleDependency): string =
+  ## The registry name for a dependency. URL deps (no name, only a `url`) are
+  ## resolved to their repository basename so the registry can be consulted.
+  if d.name.len > 0: d.name
+  elif d.url.len > 0: pkgNameFromUrl(d.url)
+  else: ""
+
+proc parseFeatureFlags*(s: string): seq[string] =
+  for f in s.split(','):
+    let ff = f.strip()
+    if ff.len > 0:
+      result.add(ff)
+
+proc isGitUrl*(s: string): bool =
+  s.startsWith("https://") or s.startsWith("http://") or
+  s.startsWith("git@") or s.startsWith("git+") or
+  s.startsWith("ssh://")
+
 proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     features: seq[string] = @[], verbose = true, url = "") =
   ## Install a package and its dependencies into ~/.clue/packages.
@@ -74,26 +62,47 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
   ## `verbose` controls progress output (clue build calls it quietly).
   ## `url` bypasses the registry lookup and installs straight from a git URL.
   withClueDB do:
+    # live multi-line output: only on a real terminal and when not verbose
+    # (matches `clue build`); disabled while debug tracing is on so trace lines
+    # stay clean.
+    let useLive = not verbose and isatty(stdout) and not debugEnabled
+    var live: Live
+    var pendingWarnings: seq[string]
+    proc progress(msg: string) =
+      if useLive: live.setMain(msg)
+      elif verbose: displayInfo(msg)
+    proc warn(msg: string) =
+      if useLive: pendingWarnings.add(msg)
+      else: displayWarning(msg)
+    proc fail(msg: string) =
+      if useLive: live.error(msg)
+      else: displayError(msg)
+    if useLive:
+      live = newLive("installing " & pkgName & "...")
+      live.start()
+
     var rootMeta: PkgRef
     if url.len > 0:
       rootMeta = PkgRef(name: pkgName, url: url, refStr: "")
     else:
       let rootMetaOpt = fetchPkgMeta(pkgName)
       if rootMetaOpt.isNone:
-        displayError("Package not found in registry: " & pkgName)
+        fail("Package not found in registry: " & pkgName)
         return
       rootMeta = rootMetaOpt.get()
 
-    # 1. Ensure root clone exists (full clone kept in cache)
+    # 1. Ensure the root clone exists in _cache (full clone kept for install).
+    #    Cloning happens only the first time; `--refresh` re-fetches the tags.
     let rootDest = cluePkgsCachePath / pkgName
     if not dirExists(rootDest):
-      if verbose: displayInfo("Fetching " & pkgName & "...")
+      progress("fetching " & pkgName & "...")
       if not clonePackage(rootMeta.url, rootDest):
+        fail("Failed to fetch " & pkgName)
         return
     else:
-      if verbose: displayInfo("Using cached " & pkgName)
+      progress("using cached " & pkgName)
       if refresh:
-        discard clonePackage(rootMeta.url, rootDest)
+        discard clonePackage(rootMeta.url, rootDest, refresh = true)
 
     # 2. Root constraint: explicit semver ref, else latest (vcAny).
     #    Non-semver refs (git branches/tags via `pkg@ref` / `#ref`) install
@@ -104,111 +113,269 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
         rootConstraint = VersionConstraint(kind: vcExact, version: parseVersion(pkgRef))
       except CatchableError:
         rootMeta.refStr = pkgRef
-        if verbose: display("  " & cyan(pkgName & "@" & pkgRef))
+        progress(pkgName & "@" & pkgRef)
 
-    # 3. Register root versions (constraints are enforced by findBestMatch)
+    # 3. Registry + version index
     var registry: PackageRegistry
+    var registered = initHashSet[string]()
     var pkgRefs = initTable[string, PkgRef]()
     pkgRefs[pkgName] = rootMeta
-    let rootVersions = discoverVersions(pkgName, rootMeta.url, refresh)
-    if rootVersions.len == 0:
-      registry.addPackage(UnresolvedPackage(name: pkgName, version: headVersion(pkgName), dependencies: @[]))
-    else:
-      for v in rootVersions:
-        registry.addPackage(UnresolvedPackage(name: pkgName, version: v.version, dependencies: @[]))
 
-    # 4. Lazy dep provider: expands the graph on demand, registering
-    #    only in-range / reachable versions into the registry. Also records
-    #    the features each package was resolved with (for the manifest).
+    proc registerVersions(name: string, versions: seq[DiscoveredVersion]) =
+      ## Register all discovered versions (or a head placeholder when the repo
+      ## has no semver tags) into the registry.
+      if versions.len == 0:
+        registry.addPackage(UnresolvedPackage(name: name,
+          version: headVersion(name), dependencies: @[]))
+      else:
+        for v in versions:
+          registry.addPackage(UnresolvedPackage(name: name,
+            version: v.version, dependencies: @[]))
+      registered.incl(name)
+
+    # register the root's versions — from the DB index (offline) or, on a first
+    # install / `--refresh`, from the freshly-cloned local tags
+    registerVersions(pkgName, discoverVersions(pkgName, rootMeta.url, refresh))
+    debugLog("root: " & pkgName & " (" & rootMeta.url & "), " &
+      $registry[pkgName].len & " version(s) indexed")
+
+    # 4. Phase A — clone & index every reachable package. Version discovery is
+    #    clone-first and runs in parallel per level (thread pool); once a repo
+    #    is in `_cache` its versions live in the DB, so no further network is
+    #    needed afterwards. Expansion reads each package's *newest* version.
+    var seen = initHashSet[string]()
+    seen.incl(pkgName)
+    var expandQueue = @[pkgName]
+    while expandQueue.len > 0:
+      var nextNames = initHashSet[string]()
+      for name in expandQueue:
+        let meta = pkgRefs.getOrDefault(name, PkgRef())
+        if meta.url.len == 0: continue
+        let versions = cachedVersions(name)
+        let ver = if versions.len > 0: $versions[0].version else: "0.0.0"
+        for d in getDeps(name, ver, @[], refresh, meta.url):
+          let dn = depName(d)
+          if dn.len == 0 or dn in seen: continue
+          var dmeta = pkgRefs.getOrDefault(dn, PkgRef())
+          if dmeta.url.len == 0:
+            if d.url.len > 0:
+              dmeta = PkgRef(name: dn, url: d.url, refStr: "")
+            else:
+              let m = fetchPkgMeta(dn)
+              if m.isSome: dmeta = m.get()
+            pkgRefs[dn] = dmeta
+          if dmeta.url.len == 0:
+            warn("Unknown package in registry, skipping: " & dn)
+            continue
+          if d.branch.len > 0 or d.tag.len > 0:
+            # genuine git ref dep (`pkg#ref` / url#ref): head placeholder only;
+            # its own deps are expanded lazily during resolution
+            var m = dmeta
+            m.refStr = if d.branch.len > 0: d.branch else: d.tag
+            pkgRefs[dn] = m
+            if not registry.hasKey(dn):
+              registry.addPackage(UnresolvedPackage(name: dn,
+                version: newVersion(0, 0, 0), dependencies: @[]))
+            seen.incl(dn)
+          else:
+            nextNames.incl(dn)
+      if nextNames.len == 0:
+        break
+      var toDiscover: seq[PkgRef]
+      for name in nextNames:
+        if name in registered: continue
+        toDiscover.add(pkgRefs.getOrDefault(name, PkgRef()))
+      if toDiscover.len > 0:
+        debugLog("Phase A: fetching " & $toDiscover.len & " package(s)")
+        progress("checking " & $toDiscover.len & " package(s)...")
+        proc onFetch(name: string, count: int, cached: bool) =
+          if useLive:
+            live.event(if cached: name & " (cached)" else: "fetched " & name & " (" & $count & " version(s))")
+        let discovered = discoverVersionsBatch(toDiscover, refresh, onFetch)
+        for name, versions in discovered:
+          registerVersions(name, versions)
+        for m in toDiscover:
+          if m.name notin discovered:
+            registerVersions(m.name, @[])
+      seen.incl(nextNames)
+      expandQueue = @[]
+      for name in nextNames:
+        if name in registered:
+          expandQueue.add(name)
+    debugLog("Phase A done: " & $registered.len & " package(s) indexed")
+
+    # 5. Phase B — resolve. Deps are read per selected version from the local
+    #    clones; a fallback lazily indexes any name the clone-first BFS missed
+    #    (reachable only via an older version or a git-ref dep).
+    debugLog("Phase B: resolving " & pkgName)
     var activeFeatOf = initTable[string, seq[string]]()
     proc provider(name: string, version: Version, feats: seq[string]): seq[Dependency] =
       activeFeatOf[name] = feats
-      let deps = getDeps(name, $version, feats, refresh)
+      let deps = getDeps(name, $version, feats, refresh, pkgRefs.getOrDefault(name).url)
       result = @[]
       for d in deps:
         let dn = depName(d)
         # ensure we know the package URL
         var meta = pkgRefs.getOrDefault(dn, PkgRef())
         if meta.url.len == 0:
-          let m = fetchPkgMeta(dn)
-          if m.isSome:
-            meta = m.get()
+          if d.url.len > 0:
+            # URL dep: use the URL the nimble file declares directly (may point
+            # at a fork); the registry is only a fallback for the name lookup.
+            meta = PkgRef(name: dn, url: d.url, refStr: "")
             pkgRefs[dn] = meta
-        if meta.url.len == 0:
-          if verbose: displayWarning("Unknown package in registry, skipping: " & dn)
-          continue
-        # register versions on first sight
-        if dn notin registry:
-          if d.branch.len > 0 or d.tag.len > 0:
-            # genuine git ref dep (`pkg#ref` / url#ref): no semver resolution
-            var m = meta
-            m.refStr = if d.branch.len > 0: d.branch else: d.tag
-            pkgRefs[dn] = m
-            registry.addPackage(UnresolvedPackage(name: dn, version: newVersion(0, 0, 0), dependencies: @[]))
           else:
-            let versions = discoverVersions(dn, meta.url, refresh)
-            if versions.len == 0:
-              registry.addPackage(UnresolvedPackage(name: dn, version: headVersion(dn), dependencies: @[]))
-            else:
-              for v in versions:
-                registry.addPackage(UnresolvedPackage(name: dn, version: v.version, dependencies: @[]))
+            let m = fetchPkgMeta(dn)
+            if m.isSome:
+              meta = m.get()
+              pkgRefs[dn] = meta
+        if meta.url.len == 0:
+          warn("Unknown package in registry, skipping: " & dn)
+          continue
         if d.branch.len > 0 or d.tag.len > 0:
+          # genuine git ref dep (`pkg#ref` / url#ref): no semver resolution.
+          var m = meta
+          m.refStr = if d.branch.len > 0: d.branch else: d.tag
+          pkgRefs[dn] = m
+          if not registry.hasKey(dn):
+            registry.addPackage(UnresolvedPackage(name: dn,
+              version: newVersion(0, 0, 0), dependencies: @[]))
           result.add(Dependency(name: dn,
             constraint: VersionConstraint(kind: vcExact, version: newVersion(0, 0, 0)),
             features: d.features))
         else:
           result.add(Dependency(name: dn, constraint: d.constraint, features: d.features))
 
-    # 5. Resolve
     let roots = @[Dependency(name: pkgName, constraint: rootConstraint, features: features)]
-    var resolved: seq[ResolvedPackage]
+
+    var resolution: Resolution
     try:
-      resolved = registry.resolve(roots, provider)
+      while true:
+        try:
+          resolution = resolveDetailed(registry, roots, provider, maxProbes = 1000)
+          break
+        except PackageNotFoundError as e:
+          var toDiscover: seq[PkgRef]
+          for name in e.pending:
+            if name in registered: continue
+            let meta = pkgRefs.getOrDefault(name, PkgRef())
+            if meta.url.len == 0: continue
+            toDiscover.add(meta)
+          if toDiscover.len == 0:
+            fail("Could not resolve unknown package(s): " & e.pending.join(", "))
+            return
+          progress("checking " & $toDiscover.len & " package(s)...")
+          proc onFetch2(name: string, count: int, cached: bool) =
+            if useLive:
+              live.event(if cached: name & " (cached)" else: "fetched " & name & " (" & $count & " version(s))")
+          let discovered = discoverVersionsBatch(toDiscover, refresh, onFetch2)
+          for name, versions in discovered:
+            registerVersions(name, versions)
+          for m in toDiscover:
+            if m.name notin discovered:
+              registerVersions(m.name, @[])
     except CircularDependencyError as e:
-      displayError("Circular dependency: " & e.msg); return
+      fail("Circular dependency: " & e.msg); return
     except VersionConflictError as e:
-      displayError("Version conflict: " & e.msg); return
-    except PackageNotFoundError as e:
-      displayError("Package not found during resolution: " & e.msg); return
+      fail("Version conflict: " & e.msg); return
+    except ResolverError as e:
+      fail("Resolution failed: " & e.msg); return
 
     var name2ver: Table[string, string]
-    for rp in resolved:
+    for rp in resolution.packages:
       name2ver[rp.name] = $rp.version
+    debugLog("resolved " & $resolution.packages.len & " package(s)")
     if verbose:
-      displayInfo("Resolved " & $resolved.len & " package(s):")
-      for rp in resolved:
-        var label = cyan(rp.name) & " @" & $rp.version
-        let feats = activeFeatOf.getOrDefault(rp.name)
+      displayInfo("Resolved " & $resolution.packages.len & " package(s):")
+      proc renderDepTree(name: string, leading: string, isLast: bool, isRoot: bool,
+          path: var HashSet[string]) =
+        let refStr = pkgRefs.getOrDefault(name).refStr
+        var label = cyan(name)
+        if refStr.len > 0:
+          label.add(" @" & refStr)
+        else:
+          let ver = name2ver.getOrDefault(name)
+          if ver.len > 0 and ver != "0.0.0":
+            label.add(" v" & ver)
+        let feats = activeFeatOf.getOrDefault(name)
         if feats.len > 0:
           label.add(" (features: " & feats.join(", ") & ")")
-        display("  " & label)
+        var line = leading
+        if not isRoot:
+          line.add(if isLast: "└─ " else: "├─ ")
+        display(line & label)
+        if name in path:
+          return
+        path.incl(name)
+        let deps = resolution.depsOf.getOrDefault(name)
+        for i, dep in deps:
+          let childIsLast = i == deps.high
+          let childLeading =
+            if isRoot: ""
+            else: leading & (if isLast: "   " else: "│  ")
+          if dep.name in name2ver:
+            renderDepTree(dep.name, childLeading, childIsLast, false, path)
+          else:
+            display(childLeading & (if childIsLast: "└─ " else: "├─ ") &
+              cyan(dep.name) & " " & $dep.constraint)
+        path.excl(name)
+      var path = initHashSet[string]()
+      renderDepTree(pkgName, "", false, true, path)
+
+    # soft violations: deeper constraints the chosen version could not honour
+    for sv in resolution.softViolations:
+      var msg = cyan(sv.name) & " resolved to " & $sv.chosen &
+        " ignoring constraint " & $sv.constraint
+      if sv.fromPkg.len > 0:
+        msg.add(" from " & sv.fromPkg)
+      warn(msg)
 
     # 6. Install each resolved package from the cache (clean, flat layout)
     var installedCount = 0
-    for rp in resolved:
+    if useLive:
+      let rootLabel =
+        if rootMeta.refStr.len > 0: "@" & rootMeta.refStr
+        else:
+          let v = name2ver.getOrDefault(pkgName)
+          if v.len > 0: "@" & v else: ""
+      if rootLabel.len > 0:
+        live.setMain("installing " & pkgName & rootLabel)
+    for rp in resolution.packages:
       let meta = pkgRefs.getOrDefault(rp.name, PkgRef())
       let verStr =
         if meta.refStr.len > 0: meta.refStr
         else: $rp.version
+      debugLog("install: " & rp.name & "@" & verStr)
+      if useLive:
+        live.event("installing " & rp.name & "@" & verStr)
       let cacheDir = cluePkgsCachePath / rp.name
       if not dirExists(cacheDir):
-        let m = fetchPkgMeta(rp.name)
-        if m.isNone:
-          displayWarning("No URL for " & rp.name & ", skipping")
+        var url = meta.url
+        if url.len == 0:
+          let m = fetchPkgMeta(rp.name)
+          if m.isSome:
+            url = m.get().url
+        if url.len == 0:
+          warn("No URL for " & rp.name & ", skipping")
           continue
-        if not clonePackage(m.get().url, cacheDir):
+        if not clonePackage(url, cacheDir):
           continue
       # checkout the exact resolved ref/tag
       if meta.refStr.len > 0:
-        discard checkoutRef(cacheDir, meta.refStr)
+        discard checkoutRef(cacheDir, meta.refStr, refresh)
       elif verStr != "0.0.0":
         let tag = tagForVersion(cacheDir, verStr)
         if tag.len > 0:
           discard checkoutTag(cacheDir, tag)
 
       let verDir = cluePkgsPath / rp.name / verStr
+      let label =
+        if meta.refStr.len > 0: " @" & verStr
+        else: " v" & verStr
       if dirExists(verDir):
-        if verbose: display("  " & cyan(rp.name) & " v" & verStr & " (already installed)")
+        if useLive:
+          live.event(rp.name & label & " (cached)")
+        else:
+          progress("installing " & rp.name & label & " (already installed)")
         installedCount.inc
         continue
       try:
@@ -218,27 +385,35 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
           pkgNimble = parseNimbleFile(nimblePath)
         installCleanCopy(cacheDir, verDir, pkgNimble)
         installedCount.inc
-        if verbose: displaySuccess("Installed " & rp.name & " v" & verStr)
+        if useLive:
+          live.event("installed " & rp.name & label)
+        else:
+          progress("installing " & rp.name & label)
       except CatchableError:
-        displayWarning("Failed to install " & rp.name & " v" & verStr)
+        warn("Failed to install " & rp.name & " v" & verStr)
 
     # 7. Record install manifests (resolved dep graph, used for pruning).
     #    Only the explicitly-installed package is a root; transitive deps
     #    are pruned when no longer reachable from any root.
-    for rp in resolved:
+    for rp in resolution.packages:
       let meta = pkgRefs.getOrDefault(rp.name, PkgRef())
       let verStr = if meta.refStr.len > 0: meta.refStr else: $rp.version
       let feats = activeFeatOf.getOrDefault(rp.name)
       var deps: seq[DepEntry]
-      for d in getDeps(rp.name, $rp.version, feats):
+      for d in getDeps(rp.name, $rp.version, feats, url = pkgRefs.getOrDefault(rp.name).url):
         let dn = depName(d)
         if d.branch.len > 0:
           deps.add((dn, d.branch))
         elif name2ver.hasKey(dn):
           deps.add((dn, name2ver[dn]))
-      recordInstall(rp.name, verStr, deps, root = rp.name == pkgName, features = feats)
+      recordInstall(rp.name, verStr, deps, root = rp.name == pkgName,
+        features = feats, installPath = cluePkgsPath / rp.name / verStr)
 
-    if installedCount > 0 and verbose:
+    if useLive:
+      live.success("Installed " & $installedCount & " package(s) to " & cluePkgsPath)
+      for w in pendingWarnings:
+        displayWarning(w)
+    elif installedCount > 0:
       displaySuccess("Installed " & $installedCount & " package(s) to " & cluePkgsPath)
 
     # 8. Prune orphans / out-of-range versions
@@ -247,6 +422,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
 proc installCommand*(v: Values) =
   let raw = v.get("pkg").getStr
   let refresh = v.has("--refresh")
+  let verbose = v.has("--verbose")
   var features: seq[string]
   if v.has("--features"):
     features = parseFeatureFlags(v.get("--features").getStr)
@@ -264,12 +440,12 @@ proc installCommand*(v: Values) =
     if name.len == 0:
       displayError("Could not derive a package name from: " & raw)
       return
-    installPackage(name, urlRef, refresh, features, url = toGitSshUrl(url))
+    installPackage(name, urlRef, refresh, features, verbose, url = toGitSshUrl(url))
   else:
     let pkgInput = split(raw, "@")
     let pkgName = pkgInput[0]
     let pkgRef = if pkgInput.len > 1 and pkgInput[1] != "head": pkgInput[1] else: ""
-    installPackage(pkgName, pkgRef, refresh, features)
+    installPackage(pkgName, pkgRef, refresh, features, verbose)
 
 proc versionsCommand*(v: Values) =
   ## Show available versions for a package.

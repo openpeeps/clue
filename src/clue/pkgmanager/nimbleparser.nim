@@ -119,7 +119,10 @@ proc parseNimbleFileFallback(result: var NimbleFile, code: string) =
     if trimmed.len == 0 or trimmed.startsWith("#"): continue
     if trimmed.startsWith("requires"):
       if result.requires.len == 0:
-        parseRequiresLine(result.requires, trimmed)
+        try:
+          parseRequiresLine(result.requires, trimmed)
+        except CatchableError:
+          discard # malformed constraint — skip the dep, keep parsing
       continue
     let eq = trimmed.find('=')
     if eq <= 0: continue
@@ -162,14 +165,17 @@ proc parseNimbleFileFallback(result: var NimbleFile, code: string) =
     else: discard
 
 proc parseFeatureBlocks(result: var NimbleFile, code: string) =
-  ## Capture `feature "name":` and `dev:` blocks into `result.features`.
+  ## Capture `feature "name":` blocks into `result.features` and the `dev:`
+  ## block into `result.dev`.
   var currentFeature = ""
+  var inDev = false
   for line in code.splitLines():
     if line.strip().len == 0 or line.strip().startsWith("#"): continue
     let indent = line.len - line.strip(leading = true).len
     let trimmed = line.strip()
     if indent == 0:
       if trimmed.startsWith("feature "):
+        inDev = false
         let q1 = trimmed.find('"')
         let q2 = trimmed.rfind('"')
         if q1 >= 0 and q2 > q1:
@@ -177,13 +183,22 @@ proc parseFeatureBlocks(result: var NimbleFile, code: string) =
           if not result.features.hasKey(currentFeature):
             result.features[currentFeature] = @[]
       elif trimmed.startsWith("dev:"):
-        currentFeature = "dev"
-        if not result.features.hasKey("dev"):
-          result.features["dev"] = @[]
-      else:
+        inDev = true
         currentFeature = ""
-    elif currentFeature.len > 0 and trimmed.startsWith("requires"):
-      parseRequiresLine(result.features[currentFeature], trimmed)
+      else:
+        inDev = false
+        currentFeature = ""
+    elif trimmed.startsWith("requires"):
+      if inDev:
+        try:
+          parseRequiresLine(result.dev, trimmed)
+        except CatchableError:
+          discard # malformed constraint — skip the dep, keep parsing
+      elif currentFeature.len > 0:
+        try:
+          parseRequiresLine(result.features[currentFeature], trimmed)
+        except CatchableError:
+          discard # malformed constraint — skip the dep, keep parsing
 
 proc parseNimbleFileSweetsyntax(result: var NimbleFile, path: string, code: string) =
   let syntax = getKnownSyntax(KnownSyntax.nim)
@@ -261,15 +276,20 @@ proc parseNimbleFileSweetsyntax(result: var NimbleFile, path: string, code: stri
             result.requires.add(parseRequiresArg(stripQuotes(node.children[i].valStr)))
     else: discard
 
-proc parseNimbleFile*(path: string): NimbleFile =
-  result = NimbleFile(path: path)
-  let code = readFile(path)
+proc parseNimbleString*(code: string): NimbleFile =
+  ## Parse nimble file contents directly (no filesystem read) — used for fast
+  ## `git show <tag>:<nimble>` dependency parsing.
+  result = NimbleFile(path: "")
   try:
-    parseNimbleFileSweetsyntax(result, path, code)
-  except CatchableError as e:
-    result = NimbleFile(path: path)
+    parseNimbleFileSweetsyntax(result, "", code)
+  except CatchableError:
+    result = NimbleFile(path: "")
   # always run the fill-missing pass: sweetsyntax can skip fields like
   # `srcDir` (tokenized as a non-identifier), so capture any that are empty.
   parseNimbleFileFallback(result, code)
   # feature blocks are independent of sweetsyntax's AST handling
   parseFeatureBlocks(result, code)
+
+proc parseNimbleFile*(path: string): NimbleFile =
+  result = parseNimbleString(readFile(path))
+  result.path = path
