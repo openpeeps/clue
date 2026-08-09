@@ -1,0 +1,4 @@
+nimTitle	builder	clue/docbuilder/builder.html	module clue/docbuilder/builder		0
+nim	splitPkgRef	clue/docbuilder/builder.html#splitPkgRef,string	proc splitPkgRef(s: string): tuple[name, version: string]		12
+nim	buildDocs	clue/docbuilder/builder.html#buildDocs,string	proc buildDocs(pkgRef: string)		32
+nim	rebuildDocs	clue/docbuilder/builder.html#rebuildDocs	proc rebuildDocs()		120

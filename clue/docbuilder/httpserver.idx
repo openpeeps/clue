@@ -1,0 +1,2 @@
+nimTitle	httpserver	clue/docbuilder/httpserver.html	module clue/docbuilder/httpserver		0
+nim	serveDocs	clue/docbuilder/httpserver.html#serveDocs,string,string,Port	proc serveDocs(docDir, pkgName: string; port: Port)		35

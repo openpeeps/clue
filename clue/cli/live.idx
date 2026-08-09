@@ -1,0 +1,8 @@
+nimTitle	live	clue/cli/live.html	module clue/cli/live		0
+nim	Live	clue/cli/live.html#Live	type Live		28
+nim	newLive	clue/cli/live.html#newLive,string	proc newLive(text: string; time = true): Live		44
+nim	setMain	clue/cli/live.html#setMain,Live,string	proc setMain(live: Live; text: string)		48
+nim	event	clue/cli/live.html#event,Live,string	proc event(live: Live; text: string)		51
+nim	start	clue/cli/live.html#start,Live	proc start(live: Live)		123
+nim	success	clue/cli/live.html#success,Live,string	proc success(live: Live; msg: string)		132
+nim	error	clue/cli/live.html#error,Live,string	proc error(live: Live; msg: string)		135

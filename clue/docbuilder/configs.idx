@@ -1,0 +1,8 @@
+nimTitle	configs	clue/docbuilder/configs.html	module clue/docbuilder/configs		0
+nim	clueBasePath	clue/docbuilder/configs.html#clueBasePath	const clueBasePath		9
+nim	clueDocsPath	clue/docbuilder/configs.html#clueDocsPath	const clueDocsPath		10
+nim	clueDocsDBPath	clue/docbuilder/configs.html#clueDocsDBPath	const clueDocsDBPath		11
+nim	clueDocsDB	clue/docbuilder/configs.html#clueDocsDB	var clueDocsDB		13
+nim	getDocsTable	clue/docbuilder/configs.html#getDocsTable	proc getDocsTable(): DbTable		15
+nim	initDocsDB	clue/docbuilder/configs.html#initDocsDB	proc initDocsDB()		18
+nim	withDocsDB	clue/docbuilder/configs.html#withDocsDB.t	template withDocsDB(stmt)		41
