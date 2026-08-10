@@ -415,7 +415,7 @@ proc discoverVersions*(name, url: string, refresh = false,
   cacheVersions(name, result)
 
 type
-  TagFetchJob = tuple[name: string, url: string, refresh: bool]
+  TagFetchJob = tuple[name: string, url: string, dest: string, refresh: bool]
 
 proc fetchTagsJob(job: TagFetchJob): tuple[name: string, tags: seq[string]] {.gcsafe.} =
   ## Worker for `discoverVersionsBatch`: ensures the package is present in
@@ -423,7 +423,7 @@ proc fetchTagsJob(job: TagFetchJob): tuple[name: string, tags: seq[string]] {.gc
   ## `refresh` is set — then lists its local git tags. Non-interactive so dead
   ## URLs fail fast. Never touches the DB.
   debugLog("discover: " & job.name & " <- " & job.url)
-  let dest = cluePkgsCachePath / job.name
+  let dest = job.dest
   if not dirExists(dest):
     if not cloneRepo(job.url, dest, nonInteractive = true):
       debugLog("discover: " & job.name & " clone FAILED")
@@ -454,7 +454,7 @@ proc discoverVersionsBatch*(pkgs: openArray[PkgRef], refresh = false,
         if onDone != nil:
           onDone(pkg.name, cached.len, true)
         continue
-    jobs.add(spawn fetchTagsJob((pkg.name, pkg.url, refresh)))
+    jobs.add(spawn fetchTagsJob((pkg.name, pkg.url, cluePkgsCachePath / pkg.name, refresh)))
   for fv in jobs:
     while not fv.isReady:
       sleep(20)

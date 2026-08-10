@@ -24,7 +24,7 @@ proc debugLog*(msg: string) =
   if debugEnabled:
     stderr.writeLine("[clue] " & msg)
 
-const
+let
   cluePath* = getHomeDir() / ".clue"
   clueDBPath* = cluePath / "clue.db"
   versionsDBPath* = cluePath / "versions.db"
