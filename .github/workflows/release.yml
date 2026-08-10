@@ -41,7 +41,8 @@ jobs:
           nim-version: ${{ env.NIM_VERSION }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: nimble install -Y
+      - run: nimble install -y --depsOnly
+      - run: nimble build -y
 
       - name: Create artifact
         shell: bash
@@ -52,10 +53,10 @@ jobs:
           assets="${{ env.APP_NAME }}_$(echo "$suffix" | tr '[:upper:]' '[:lower:]')"
           mkdir -p "dist/$assets"
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-            cp ~/.nimble/bin/clue.exe LICENSE README.md "dist/$assets/"
+            cp bin/clue.exe LICENSE README.md "dist/$assets/"
             (cd dist && 7z a "$assets.zip" "$assets")
           else
-            cp ~/.nimble/bin/clue LICENSE README.md "dist/$assets/"
+            cp bin/clue LICENSE README.md "dist/$assets/"
             (cd dist && tar czf "$assets.tar.gz" "$assets")
           fi
 
