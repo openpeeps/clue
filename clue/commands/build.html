@@ -65,6 +65,18 @@
   <li><a class="reference" href="#buildCommand%2CValues" title="buildCommand(v: Values)">buildCommand(v: Values)</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">collectResolvedPaths
+  <li><a class="reference" href="#collectResolvedPaths%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cbool" title="collectResolvedPaths(nimble: NimbleFile; activeRootFeatures: seq[string];
+                     pkgName: string; verbose: bool): tuple[
+    pathFlags: seq[string], featureDefines: string]">collectResolvedPaths(nimble: NimbleFile; activeRootFeatures: seq[string];
+                     pkgName: string; verbose: bool): tuple[
+    pathFlags: seq[string], featureDefines: string]</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">testCommand
+  <li><a class="reference" href="#testCommand%2CValues" title="testCommand(v: Values)">testCommand(v: Values)</a></li>
+
+</ul>
 
     </ul>
   </details>
@@ -104,6 +116,39 @@
 </div>
 
 </div>
+<div id="collectResolvedPaths-procs-all">
+  <div id="collectResolvedPaths,NimbleFile,seq[string],string,bool">
+  <dt><pre><span class="Keyword">proc</span> <a href="#collectResolvedPaths%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cbool"><span class="Identifier">collectResolvedPaths</span></a><span class="Other">(</span><span class="Identifier">nimble</span><span class="Other">:</span> <a href="../pkgmanager/configs.html#NimbleFile"><span class="Identifier">NimbleFile</span></a><span class="Other">;</span> <span class="Identifier">activeRootFeatures</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">;</span>
+                          <span class="Identifier">pkgName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">verbose</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span><span class="Other">:</span> <span class="Keyword">tuple</span><span class="Other">[</span>
+    <span class="Identifier">pathFlags</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">featureDefines</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">KeyError</span><span class="Other">,</span>
+    <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span>
+    <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">ParseError</span><span class="Other">,</span> <span class="Identifier">ResourceExhaustedError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
+    <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Resolve the dependency <tt class="docutils literal"><span class="pre"><span class="Operator">--</span><span class="Identifier">path</span></span></tt> flags (and feature defines) for the given package, auto-installing anything missing. Used by <tt class="docutils literal"><span class="pre"><span class="Identifier">clue</span> <span class="Identifier">build</span></span></tt> and <tt class="docutils literal"><span class="pre"><span class="Identifier">clue</span> <span class="Identifier">test</span></span></tt>.
+    
+  </dd>
+</div>
+
+</div>
+<div id="testCommand-procs-all">
+  <div id="testCommand,Values">
+  <dt><pre><span class="Keyword">proc</span> <a href="#testCommand%2CValues"><span class="Identifier">testCommand</span></a><span class="Other">(</span><span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">Values</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span>
+                                       <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span>
+                                       <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">,</span>
+                                       <span class="Identifier">ParseError</span><span class="Other">,</span> <span class="Identifier">ResourceExhaustedError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span>
+    <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Compile and run the test modules in <tt class="docutils literal"><span class="pre"><span class="Identifier">tests</span><span class="Operator">/</span></span></tt> (files starting with <tt class="docutils literal"><span class="pre"><span class="Identifier">test</span></span></tt>, e.g. <tt class="docutils literal"><span class="pre"><span class="Identifier">test_</span><span class="Operator">*.</span><span class="Identifier">nim</span></span></tt> / <tt class="docutils literal"><span class="pre"><span class="Identifier">test1</span><span class="Operator">.</span><span class="Identifier">nim</span></span></tt>) against clue-managed dependencies, printing nim's raw output (no spinner). Nim auto-loads any <tt class="docutils literal"><span class="pre"><span class="Identifier">tests</span><span class="Operator">/*.</span><span class="Identifier">nims</span></span></tt> config (e.g. <tt class="docutils literal"><span class="pre"><span class="Identifier">config</span><span class="Operator">.</span><span class="Identifier">nims</span></span></tt>) when compiling files in that directory. Stops at the first failing test (exit 1).
+    
+  </dd>
+</div>
+
+</div>
 
   </dl>
 </div>
@@ -114,7 +159,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-09 20:44:54 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-10 14:39:16 UTC</small>
       </div>
     </div>
   </div>
