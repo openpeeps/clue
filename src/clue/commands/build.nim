@@ -90,6 +90,97 @@ proc resolveDepPath(depName: string, preferRef = ""): string =
       return srcDirPath(clueInstall / best, depName)
   ""
 
+proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
+    pkgName: string, verbose: bool): tuple[pathFlags: seq[string], featureDefines: string] =
+  ## Resolve the dependency `--path` flags (and feature defines) for the given
+  ## package, auto-installing anything missing. Used by `clue build` and
+  ## `clue test`.
+  # Effective direct deps = hard requires + requires of active root features.
+  var directDeps: seq[NimbleDependency] = nimble.requires
+  for f in activeRootFeatures:
+    if nimble.features.hasKey(f):
+      for d in nimble.features[f]:
+        directDeps.add(d)
+
+  var pathFlags: seq[string]
+  var processed = initHashSet[string]()
+
+  # 1. Ensure direct deps are installed with the right features, resolving
+  #    their paths. A dep already installed but lacking a requested feature
+  #    is re-resolved so its manifest records the feature (→ defines).
+  var directNames: seq[string]
+  for dep in directDeps:
+    if dep.isNim: continue
+    let name = depNameOf(dep)
+    let refStr = if dep.branch.len > 0: dep.branch elif dep.tag.len > 0: dep.tag else: ""
+    var depPath = resolveDepPath(name, refStr)
+    if depPath.len > 0 and not installedCoversFeatures(name, dep.features):
+      if verbose: displayInfo("Refreshing " & name & " (features: " & dep.features.join(", ") & ")")
+      installPackage(name, refStr, false, dep.features, verbose)
+      depPath = resolveDepPath(name, refStr)
+    if depPath.len == 0:
+      if verbose: displayInfo("Dependency not installed, fetching: " & name)
+      installPackage(name, refStr, false, dep.features, verbose)
+      depPath = resolveDepPath(name, refStr)
+    if depPath.len > 0:
+      processed.incl(name)
+      directNames.add(name)
+      pathFlags.add("--path:" & depPath)
+      if verbose: display("  dep " & name & " → " & depPath)
+    else:
+      displayWarning("Dependency not found: " & name)
+
+  # 2. Ensure the whole transitive closure is on the path, installing
+  #    any transitive deps that are missing. Loop until the closure
+  #    stops growing (installing one dep may pull in more).
+  var changed = true
+  while changed:
+    changed = false
+    for name in collectInstalledDepNames(directNames):
+      if name in processed:
+        continue
+      processed.incl(name)
+      var depPath = resolveDepPath(name)
+      if depPath.len == 0:
+        if verbose: displayInfo("Transitive dependency not installed, fetching: " & name)
+        installPackage(name, "", false, @[], verbose)
+        depPath = resolveDepPath(name)
+        changed = true
+      if depPath.len > 0:
+        pathFlags.add("--path:" & depPath)
+        if verbose: display("  dep " & name & " → " & depPath)
+      else:
+        displayWarning("Transitive dependency not found: " & name)
+
+  # dedupe path flags while preserving order
+  var seenFlags = initHashSet[string]()
+  pathFlags = pathFlags.filterIt(block:
+    if it in seenFlags:
+      false
+    else:
+      seenFlags.incl(it)
+      true)
+
+  # feature defines so `when defined(features.<pkg>.<feat>)` works in code —
+  # for the root package and every dependency with active features.
+  var featureDefines = ""
+  var definedFeats = initHashSet[string]()
+  for f in activeRootFeatures:
+    let d = " -d:features." & pkgName & "." & f
+    if d notin definedFeats:
+      definedFeats.incl(d)
+      featureDefines.add(d)
+  let featsMap = installedFeatures()
+  for name in collectInstalledDepNames(directNames):
+    if featsMap.hasKey(name):
+      for f in featsMap[name]:
+        let d = " -d:features." & name & "." & f
+        if d notin definedFeats:
+          definedFeats.incl(d)
+          featureDefines.add(d)
+
+  (pathFlags, featureDefines)
+
 proc buildCommand*(v: Values) =
   let file =
     if v.has("file"): v.get("file").getStr
@@ -179,89 +270,8 @@ proc buildCommand*(v: Values) =
     spinny = newSpinny("Resolving dependencies...", skDots, time = true)
     spinny.start()
 
-  # Effective direct deps = hard requires + requires of active root features.
-  var directDeps: seq[NimbleDependency] = nimble.requires
-  for f in activeRootFeatures:
-    if nimble.features.hasKey(f):
-      for d in nimble.features[f]:
-        directDeps.add(d)
-
-  var pathFlags: seq[string]
-  var processed = initHashSet[string]()
-
-  # 1. Ensure direct deps are installed with the right features, resolving
-  #    their paths. A dep already installed but lacking a requested feature
-  #    is re-resolved so its manifest records the feature (→ defines).
-  var directNames: seq[string]
-  for dep in directDeps:
-    if dep.isNim: continue
-    let name = depNameOf(dep)
-    let refStr = if dep.branch.len > 0: dep.branch elif dep.tag.len > 0: dep.tag else: ""
-    var depPath = resolveDepPath(name, refStr)
-    if depPath.len > 0 and not installedCoversFeatures(name, dep.features):
-      if verbose: displayInfo("Refreshing " & name & " (features: " & dep.features.join(", ") & ")")
-      installPackage(name, refStr, false, dep.features, verbose)
-      depPath = resolveDepPath(name, refStr)
-    if depPath.len == 0:
-      if verbose: displayInfo("Dependency not installed, fetching: " & name)
-      installPackage(name, refStr, false, dep.features, verbose)
-      depPath = resolveDepPath(name, refStr)
-    if depPath.len > 0:
-      processed.incl(name)
-      directNames.add(name)
-      pathFlags.add("--path:" & depPath)
-      if verbose: display("  dep " & name & " → " & depPath)
-    else:
-      displayWarning("Dependency not found: " & name)
-
-  # 2. Ensure the whole transitive closure is on the path, installing
-  #    any transitive deps that are missing. Loop until the closure
-  #    stops growing (installing one dep may pull in more).
-  var changed = true
-  while changed:
-    changed = false
-    for name in collectInstalledDepNames(directNames):
-      if name in processed:
-        continue
-      processed.incl(name)
-      var depPath = resolveDepPath(name)
-      if depPath.len == 0:
-        if verbose: displayInfo("Transitive dependency not installed, fetching: " & name)
-        installPackage(name, "", false, @[], verbose)
-        depPath = resolveDepPath(name)
-        changed = true
-      if depPath.len > 0:
-        pathFlags.add("--path:" & depPath)
-        if verbose: display("  dep " & name & " → " & depPath)
-      else:
-        displayWarning("Transitive dependency not found: " & name)
-
-  # dedupe path flags while preserving order
-  var seenFlags = initHashSet[string]()
-  pathFlags = pathFlags.filterIt(block:
-    if it in seenFlags:
-      false
-    else:
-      seenFlags.incl(it)
-      true)
-
-  # feature defines so `when defined(features.<pkg>.<feat>)` works in code —
-  # for the root package and every dependency with active features.
-  var featureDefines = ""
-  var definedFeats = initHashSet[string]()
-  for f in activeRootFeatures:
-    let d = " -d:features." & pkgName & "." & f
-    if d notin definedFeats:
-      definedFeats.incl(d)
-      featureDefines.add(d)
-  let featsMap = installedFeatures()
-  for name in collectInstalledDepNames(directNames):
-    if featsMap.hasKey(name):
-      for f in featsMap[name]:
-        let d = " -d:features." & name & "." & f
-        if d notin definedFeats:
-          definedFeats.incl(d)
-          featureDefines.add(d)
+  let (pathFlags, featureDefines) =
+    collectResolvedPaths(nimble, activeRootFeatures, pkgName, verbose)
 
   discard existsOrCreateDir(pkgDir / binDir)
 
@@ -301,3 +311,51 @@ proc buildCommand*(v: Values) =
 
   if spinnerRunning:
     spinny.success("Built successfully")
+
+proc testCommand*(v: Values) =
+  ## Compile and run the test modules in `tests/` (files starting with `test`,
+  ## e.g. `test_*.nim` / `test1.nim`) against clue-managed dependencies,
+  ## printing nim's raw output (no spinner). Nim auto-loads any `tests/*.nims`
+  ## config (e.g. `config.nims`) when compiling files in that directory. Stops
+  ## at the first failing test (exit 1).
+  devShadowWarningsEnabled = true
+
+  let pkgDir = getCurrentDir()
+  let nimblePath = findNimbleFile(pkgDir)
+  if nimblePath.len == 0:
+    displayError("No .nimble file found in " & pkgDir)
+    return
+  let nimble = parseNimbleFile(nimblePath)
+  let pkgName = nimblePath.extractFilename.changeFileExt("")
+
+  var activeRootFeatures: seq[string]
+  if v.has("--features"):
+    activeRootFeatures = parseFeatureFlags(v.get("--features").getStr)
+  if "dev" notin activeRootFeatures:
+    activeRootFeatures.add("dev")
+
+  let (pathFlags, featureDefines) =
+    collectResolvedPaths(nimble, activeRootFeatures, pkgName, verbose = false)
+
+  let testsDir = pkgDir / "tests"
+  var testFiles: seq[string]
+  if dirExists(testsDir):
+    for f in walkFiles(testsDir / "test*.nim"):
+      testFiles.add(f)
+  sort(testFiles)
+
+  if testFiles.len == 0:
+    displayInfo("No test modules found in " & testsDir)
+    return
+
+  for file in testFiles:
+    let base = file.extractFilename.changeFileExt("")
+    let outFile = getTempDir() / "clue_test_" & base
+    removeFile(outFile)
+    var flags = " " & pathFlags.join(" ") & featureDefines & " --hints:off --colors:on"
+    let cmd = &"nim c -r{flags} --out:{outFile} {file}"
+    let (output, exitCode) = execCmdEx(cmd)
+    writeRaw(output)
+    if exitCode != 0:
+      displayError("Test failed: " & base)
+      quit(1)

@@ -27,6 +27,10 @@ when isMainModule:
         ## Fetch new tags from remote for a package (or every installed root
         ## package) and upgrade it and its dependencies to the newest
         ## satisfying versions
+      test ?string("--features"):
+        ## Compile and run the test modules in tests/ (files starting with
+        ## `test`, with any tests/*.nims config picked up automatically)
+        ## against clue-managed dependencies, printing nim's output
       develop:
         ## Develop-mode (editable) install of the current nimble package — no
         ## compilation, just makes the package importable by other packages via
