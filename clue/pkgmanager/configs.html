@@ -118,17 +118,17 @@
 </li>
 <li>
   <details open>
-    <summary><a class="reference reference-toplevel" href="#10" id="60">Consts</a></summary>
+    <summary><a class="reference reference-toplevel" href="#9" id="59">Lets</a></summary>
     <ul class="simple simple-toc-section">
-      <li><a class="reference" href="#clueBinPath" title="clueBinPath = &quot;/home/runner/.clue/bin&quot;">clueBinPath</a></li>
-<li><a class="reference" href="#clueDBPath" title="clueDBPath = &quot;/home/runner/.clue/clue.db&quot;">clueDBPath</a></li>
-<li><a class="reference" href="#clueDevelopPath" title="clueDevelopPath = &quot;/home/runner/.clue/develop&quot;">clueDevelopPath</a></li>
-<li><a class="reference" href="#cluePath" title="cluePath = &quot;/home/runner/.clue&quot;">cluePath</a></li>
-<li><a class="reference" href="#cluePkgsCachePath" title="cluePkgsCachePath = &quot;/home/runner/.clue/packages/_cache&quot;">cluePkgsCachePath</a></li>
-<li><a class="reference" href="#cluePkgsPath" title="cluePkgsPath = &quot;/home/runner/.clue/packages&quot;">cluePkgsPath</a></li>
-<li><a class="reference" href="#nimbleLocalPackages" title="nimbleLocalPackages = &quot;/home/runner/.nimble/packages_official.json&quot;">nimbleLocalPackages</a></li>
+      <li><a class="reference" href="#clueBinPath" title="clueBinPath = cluePath / &quot;bin&quot;">clueBinPath</a></li>
+<li><a class="reference" href="#clueDBPath" title="clueDBPath = cluePath / &quot;clue.db&quot;">clueDBPath</a></li>
+<li><a class="reference" href="#clueDevelopPath" title="clueDevelopPath = cluePath / &quot;develop&quot;">clueDevelopPath</a></li>
+<li><a class="reference" href="#cluePath" title="cluePath = getHomeDir() / &quot;.clue&quot;">cluePath</a></li>
+<li><a class="reference" href="#cluePkgsCachePath" title="cluePkgsCachePath = cluePkgsPath / &quot;_cache&quot;">cluePkgsCachePath</a></li>
+<li><a class="reference" href="#cluePkgsPath" title="cluePkgsPath = cluePath / &quot;packages&quot;">cluePkgsPath</a></li>
+<li><a class="reference" href="#nimbleLocalPackages" title="nimbleLocalPackages = getHomeDir() / &quot;.nimble&quot; / &quot;packages_official.json&quot;">nimbleLocalPackages</a></li>
 <li><a class="reference" href="#nimblePackagesUrl" title="nimblePackagesUrl = &quot;https://raw.githubusercontent.com/nim-lang/packages/master/packages.json&quot;">nimblePackagesUrl</a></li>
-<li><a class="reference" href="#versionsDBPath" title="versionsDBPath = &quot;/home/runner/.clue/versions.db&quot;">versionsDBPath</a></li>
+<li><a class="reference" href="#versionsDBPath" title="versionsDBPath = cluePath / &quot;versions.db&quot;">versionsDBPath</a></li>
 
     </ul>
   </details>
@@ -296,11 +296,11 @@
 
   </dl>
 </div>
-<div class="section" id="10">
-  <h1><a class="toc-backref" href="#10">Consts</a></h1>
+<div class="section" id="9">
+  <h1><a class="toc-backref" href="#9">Lets</a></h1>
   <dl class="item">
     <div id="clueBinPath">
-  <dt><pre><a href="#clueBinPath"><span class="Identifier">clueBinPath</span></a> <span class="Other">=</span> <span class="StringLit">&quot;/home/runner/.clue/bin&quot;</span></pre></dt>
+  <dt><pre><a href="#clueBinPath"><span class="Identifier">clueBinPath</span></a> <span class="Other">=</span> <a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;bin&quot;</span></pre></dt>
   <dd>
     
     
@@ -308,7 +308,7 @@
   </dd>
 </div>
 <div id="clueDBPath">
-  <dt><pre><a href="#clueDBPath"><span class="Identifier">clueDBPath</span></a> <span class="Other">=</span> <span class="StringLit">&quot;/home/runner/.clue/clue.db&quot;</span></pre></dt>
+  <dt><pre><a href="#clueDBPath"><span class="Identifier">clueDBPath</span></a> <span class="Other">=</span> <a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;clue.db&quot;</span></pre></dt>
   <dd>
     
     
@@ -316,7 +316,7 @@
   </dd>
 </div>
 <div id="clueDevelopPath">
-  <dt><pre><a href="#clueDevelopPath"><span class="Identifier">clueDevelopPath</span></a> <span class="Other">=</span> <span class="StringLit">&quot;/home/runner/.clue/develop&quot;</span></pre></dt>
+  <dt><pre><a href="#clueDevelopPath"><span class="Identifier">clueDevelopPath</span></a> <span class="Other">=</span> <a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;develop&quot;</span></pre></dt>
   <dd>
     
     
@@ -324,7 +324,7 @@
   </dd>
 </div>
 <div id="cluePath">
-  <dt><pre><a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Other">=</span> <span class="StringLit">&quot;/home/runner/.clue&quot;</span></pre></dt>
+  <dt><pre><a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Other">=</span> <span class="Identifier">getHomeDir</span><span class="Other">(</span><span class="Other">)</span> <span class="Operator">/</span> <span class="StringLit">&quot;.clue&quot;</span></pre></dt>
   <dd>
     
     
@@ -332,7 +332,7 @@
   </dd>
 </div>
 <div id="cluePkgsCachePath">
-  <dt><pre><a href="#cluePkgsCachePath"><span class="Identifier">cluePkgsCachePath</span></a> <span class="Other">=</span> <span class="StringLit">&quot;/home/runner/.clue/packages/_cache&quot;</span></pre></dt>
+  <dt><pre><a href="#cluePkgsCachePath"><span class="Identifier">cluePkgsCachePath</span></a> <span class="Other">=</span> <a href="#cluePkgsPath"><span class="Identifier">cluePkgsPath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;_cache&quot;</span></pre></dt>
   <dd>
     
     
@@ -340,7 +340,7 @@
   </dd>
 </div>
 <div id="cluePkgsPath">
-  <dt><pre><a href="#cluePkgsPath"><span class="Identifier">cluePkgsPath</span></a> <span class="Other">=</span> <span class="StringLit">&quot;/home/runner/.clue/packages&quot;</span></pre></dt>
+  <dt><pre><a href="#cluePkgsPath"><span class="Identifier">cluePkgsPath</span></a> <span class="Other">=</span> <a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;packages&quot;</span></pre></dt>
   <dd>
     
     
@@ -348,7 +348,7 @@
   </dd>
 </div>
 <div id="nimbleLocalPackages">
-  <dt><pre><a href="#nimbleLocalPackages"><span class="Identifier">nimbleLocalPackages</span></a> <span class="Other">=</span> <span class="StringLit">&quot;/home/runner/.nimble/packages_official.json&quot;</span></pre></dt>
+  <dt><pre><a href="#nimbleLocalPackages"><span class="Identifier">nimbleLocalPackages</span></a> <span class="Other">=</span> <span class="Identifier">getHomeDir</span><span class="Other">(</span><span class="Other">)</span> <span class="Operator">/</span> <span class="StringLit">&quot;.nimble&quot;</span> <span class="Operator">/</span> <span class="StringLit">&quot;packages_official.json&quot;</span></pre></dt>
   <dd>
     
     
@@ -364,7 +364,7 @@
   </dd>
 </div>
 <div id="versionsDBPath">
-  <dt><pre><a href="#versionsDBPath"><span class="Identifier">versionsDBPath</span></a> <span class="Other">=</span> <span class="StringLit">&quot;/home/runner/.clue/versions.db&quot;</span></pre></dt>
+  <dt><pre><a href="#versionsDBPath"><span class="Identifier">versionsDBPath</span></a> <span class="Other">=</span> <a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;versions.db&quot;</span></pre></dt>
   <dd>
     
     
@@ -480,7 +480,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-10 15:05:12 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-10 16:58:42 UTC</small>
       </div>
     </div>
   </div>
