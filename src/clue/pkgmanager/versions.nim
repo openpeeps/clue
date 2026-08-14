@@ -884,20 +884,21 @@ proc allInstalledPaths*(): seq[string] =
 
 proc installedFeatures*(): Table[string, seq[string]] =
   ## Map of installed package name -> the features it was resolved with.
+  ## Features are unioned across the package's install records (a develop-mode
+  ## record has none, so it must not hide a registry record's features).
   withClueDB do:
     let tbl = clueDB.getTable("installed").get()
     for (pk, row) in tbl.allRows():
       let name = row["name"].strVal
-      if result.hasKey(name):
-        continue  # first (arbitrary) row wins; keep it simple
-      var feats: seq[string]
+      if not result.hasKey(name):
+        result[name] = @[]
       try:
         if row.hasKey("features"):
           for f in parseJson(row["features"].jsonVal):
-            feats.add(f.getStr)
+            if f.getStr notin result[name]:
+              result[name].add(f.getStr)
       except CatchableError:
         discard
-      result[name] = feats
   result
 
 proc unrecordInstall*(name, version: string) =

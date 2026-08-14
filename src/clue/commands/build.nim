@@ -3,10 +3,11 @@
 # (c) 2026 George Lemon | LGPLv3 License
 #          Made by Humans from OpenPeeps
 #          https://github.com/openpeeps/clue
-import std/[os, osproc, strformat, strutils, algorithm, sets, tables, json, sequtils, options, terminal]
+import std/[os, osproc, strformat, strutils, algorithm, sets, tables, json, sequtils, options, locks]
 import pkg/semver
 import pkg/kapsis/[runtime, interactive/prompts]
 import pkg/kapsis/interactive/spinny
+import pkg/malebolgia
 
 import ../pkgmanager/nimbleparser
 import ../pkgmanager/configs
@@ -106,15 +107,19 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
   var processed = initHashSet[string]()
 
   # 1. Ensure direct deps are installed with the right features, resolving
-  #    their paths. A dep already installed but lacking a requested feature
-  #    is re-resolved so its manifest records the feature (→ defines).
+  #    their paths. A registry-installed dep lacking a requested feature is
+  #    re-resolved so its manifest records the feature (→ defines). Develop-mode
+  #    installs are authoritative — their live source defines the feature, so
+  #    they're never re-installed for this purpose.
   var directNames: seq[string]
+  var directFeats = initTable[string, seq[string]]()
   for dep in directDeps:
     if dep.isNim: continue
     let name = depNameOf(dep)
     let refStr = if dep.branch.len > 0: dep.branch elif dep.tag.len > 0: dep.tag else: ""
     var depPath = resolveDepPath(name, refStr)
-    if depPath.len > 0 and not installedCoversFeatures(name, dep.features):
+    if depPath.len > 0 and isInsidePkgs(depPath) and
+        not installedCoversFeatures(name, dep.features):
       if verbose: displayInfo("Refreshing " & name & " (features: " & dep.features.join(", ") & ")")
       installPackage(name, refStr, false, dep.features, verbose)
       depPath = resolveDepPath(name, refStr)
@@ -125,6 +130,7 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
     if depPath.len > 0:
       processed.incl(name)
       directNames.add(name)
+      directFeats[name] = dep.features
       pathFlags.add("--path:" & depPath)
       if verbose: display("  dep " & name & " → " & depPath)
     else:
@@ -162,7 +168,10 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
       true)
 
   # feature defines so `when defined(features.<pkg>.<feat>)` works in code —
-  # for the root package and every dependency with active features.
+  # for the root package and every dependency with active features. Direct deps
+  # use the features parsed from the nimble `requires` lines (authoritative,
+  # covers develop-mode installs whose manifest records no features); the rest
+  # of the closure uses the features recorded at install time.
   var featureDefines = ""
   var definedFeats = initHashSet[string]()
   for f in activeRootFeatures:
@@ -170,6 +179,12 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
     if d notin definedFeats:
       definedFeats.incl(d)
       featureDefines.add(d)
+  for name, feats in directFeats:
+    for f in feats:
+      let d = " -d:features." & name & "." & f
+      if d notin definedFeats:
+        definedFeats.incl(d)
+        featureDefines.add(d)
   let featsMap = installedFeatures()
   for name in collectInstalledDepNames(directNames):
     if featsMap.hasKey(name):
@@ -192,13 +207,12 @@ proc buildCommand*(v: Values) =
   let outPath =
     if v.has("--out"): v.get("--out").getStr
     else: ""
-  # spinner only makes sense on a terminal; skipped when output is piped
-  let useSpinner = not verbose and isatty(stdout)
 
   # Module mode: `clue build foo.nim` — no nimble file needed; every installed
   # package is put on the import path so any `import xyz` resolves.
   if file.len > 0:
     var spinny: Spinny
+    let useSpinner = not verbose
     if useSpinner:
       spinny = newSpinny("Building " & file & "...", skDots, time = true)
       spinny.start()
@@ -214,8 +228,6 @@ proc buildCommand*(v: Values) =
     let cmd = "nim c" & flags & " --out:" & outFile & " " & file
     if verbose:
       display("  " & cyan(cmd))
-    if useSpinner:
-      spinny.setText("Building " & file & "...")
     let (output, exitCode) = execCmdEx(cmd)
     if exitCode != 0:
       if useSpinner:
@@ -226,10 +238,10 @@ proc buildCommand*(v: Values) =
     else:
       if verbose:
         writeRaw(output)
-      elif not useSpinner:
+      elif useSpinner:
+        spinny.success("Built " & file)
+      else:
         displaySuccess("Built " & file & " → " & outFile)
-    if useSpinner:
-      spinny.success("Built " & outFile)
     return
 
   # Project mode: build the current package from its nimble file.
@@ -264,8 +276,10 @@ proc buildCommand*(v: Values) =
     if nimble.binDir.len > 0: nimble.binDir
     else: "bin"
 
-  # Single spinner wrapping the whole build (terminal only).
+  # Single spinner wrapping the whole build; it degrades to a plain status line
+  # when the output is not a terminal (pipes/CI).
   var spinny: Spinny
+  let useSpinner = not verbose
   if useSpinner:
     spinny = newSpinny("Resolving dependencies...", skDots, time = true)
     spinny.start()
@@ -312,13 +326,45 @@ proc buildCommand*(v: Values) =
   if spinnerRunning:
     spinny.success("Built successfully")
 
+var testOutputLock: Lock
+testOutputLock.initLock()
+
+type
+  TestJob = object
+    file: string
+    base: string
+    flags: string
+
+proc printTestOutput(output: string) {.gcsafe.} =
+  if output.len == 0: return
+  withLock testOutputLock:
+    write(stdout, output)
+    if output[^1] != '\n':
+      write(stdout, "\n")
+    flushFile(stdout)
+
+proc runTest(job: TestJob): int {.gcsafe.} =
+  ## Compile and run a single test module, printing its output as soon as it
+  ## finishes. A dedicated `--nimcache` avoids concurrent `nim` processes racing
+  ## on a shared cache directory. Returns the test's exit code.
+  let outFile = getTempDir() / ("clue_test_" & job.base)
+  let ncDir = getTempDir() / ("clue_test_nc_" & job.base)
+  removeFile(outFile)
+  let cmd = &"nim c -r{job.flags} --nimcache:{ncDir} --out:{outFile} {job.file}"
+  let (output, exitCode) = execCmdEx(cmd)
+  printTestOutput(output)
+  exitCode
+
 proc testCommand*(v: Values) =
   ## Compile and run the test modules in `tests/` (files starting with `test`,
   ## e.g. `test_*.nim` / `test1.nim`) against clue-managed dependencies,
   ## printing nim's raw output (no spinner). Nim auto-loads any `tests/*.nims`
-  ## config (e.g. `config.nims`) when compiling files in that directory. Stops
-  ## at the first failing test (exit 1).
+  ## config (e.g. `config.nims`) when compiling files in that directory. Tests
+  ## run one by one by default; `--threads` compiles and runs them in parallel
+  ## on a prewarmed thread pool (capped at the CPU count) and reports the exit
+  ## code at the end.
   devShadowWarningsEnabled = true
+  let useThreads = v.has("--threads")
 
   let pkgDir = getCurrentDir()
   let nimblePath = findNimbleFile(pkgDir)
@@ -348,14 +394,36 @@ proc testCommand*(v: Values) =
     displayInfo("No test modules found in " & testsDir)
     return
 
-  for file in testFiles:
-    let base = file.extractFilename.changeFileExt("")
-    let outFile = getTempDir() / "clue_test_" & base
-    removeFile(outFile)
-    var flags = " " & pathFlags.join(" ") & featureDefines & " --hints:off --colors:on"
-    let cmd = &"nim c -r{flags} --out:{outFile} {file}"
-    let (output, exitCode) = execCmdEx(cmd)
-    writeRaw(output)
-    if exitCode != 0:
-      displayError("Test failed: " & base)
-      quit(1)
+  let flags = " " & pathFlags.join(" ") & featureDefines & " --hints:off --colors:on"
+
+  if not useThreads:
+    # Serial: one by one, stop at the first failing test (exit 1).
+    for file in testFiles:
+      let base = file.extractFilename.changeFileExt("")
+      let outFile = getTempDir() / "clue_test_" & base
+      removeFile(outFile)
+      let cmd = &"nim c -r{flags} --out:{outFile} {file}"
+      let (output, exitCode) = execCmdEx(cmd)
+      writeRaw(output)
+      if exitCode != 0:
+        displayError("Test failed: " & base)
+        quit(1)
+    return
+
+  # Parallel: spawn every test on the malebolgia pool. Each worker prints its
+  # own output as soon as it finishes (no FlowVar/`^`, nothing blocks on the
+  # slowest test). Only the exit codes are kept; the process exits non-zero if
+  # any test failed.
+  var exitCodes = newSeq[int](testFiles.len)
+  var m = createMaster()
+  m.awaitAll:
+    for i, file in testFiles:
+      let base = file.extractFilename.changeFileExt("")
+      m.spawn runTest(TestJob(file: file, base: base, flags: flags)) -> exitCodes[i]
+  var failed = false
+  for i, code in exitCodes:
+    if code != 0:
+      failed = true
+      displayError("Test failed: " & testFiles[i].extractFilename.changeFileExt(""))
+  if failed:
+    quit(1)
