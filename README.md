@@ -12,8 +12,6 @@
 </p>
 
 ### Why Clue?
-Because sometimes I have no damn clue how to... 😂
-
 Clue is an alternative to `nimble` — a friendly toolkit for installing, building
 and documenting Nim packages, resolving tricky dependencies, and managing
 per-version toolchains with virtual environments when `nimble` just doesn't cut it.
