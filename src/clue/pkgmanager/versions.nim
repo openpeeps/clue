@@ -11,7 +11,7 @@
 ## Versions are read from the remote (`git ls-remote --tags`) only when a
 ## package isn't cached yet, and locally (`git tag --list`) once cloned.
 
-import std/[os, osproc, strutils, tables, sets, sequtils, algorithm, times, json, options, locks, monotimes]
+import std/[os, osproc, strutils, tables, sets, sequtils, algorithm, times, json, options, locks, monotimes, strtabs]
 
 import pkg/semver
 import pkg/malebolgia
@@ -29,8 +29,6 @@ type
   DepEntry* = tuple[name: string, version: string]
     ## A resolved dependency entry for the installed manifest.
 
-const gitSshEnv = "GIT_SSH_COMMAND='ssh -oBatchMode=yes -oConnectTimeout=10'"
-
 import pkg/threading/semaphore
 
 const MaxConcurrentGit = 8
@@ -39,7 +37,20 @@ const MaxConcurrentGit = 8
 
 var gitSemaphore = createSemaphore(MaxConcurrentGit)
 
-proc gitExec(cmd: string): tuple[output: string, exitCode: int] {.gcsafe.} =
+proc gitEnv(nonInteractive = false): StringTableRef =
+  ## Environment for a git subprocess: the parent environment plus
+  ## GIT_SSH_COMMAND (prefer the user's SSH keys, never prompt for a password)
+  ## and, for non-interactive discovery, GIT_TERMINAL_PROMPT=0 so dead URLs fail
+  ## fast. Passed via the process `env` — never inlined into the command — so it
+  ## works on Windows, where commands aren't run through a shell.
+  result = newStringTable()
+  for k, v in envPairs():
+    result[k] = v
+  result["GIT_SSH_COMMAND"] = "ssh -oBatchMode=yes -oConnectTimeout=10"
+  if nonInteractive:
+    result["GIT_TERMINAL_PROMPT"] = "0"
+
+proc gitExec(cmd: string, env: StringTableRef = nil): tuple[output: string, exitCode: int] {.gcsafe.} =
   ## Run a git command through the shell, echoing it to stderr when debug
   ## tracing is enabled (CLUE_DEBUG=1) so hangs/timeouts are diagnosable.
   gitSemaphore.wait()
@@ -52,7 +63,7 @@ proc gitExec(cmd: string): tuple[output: string, exitCode: int] {.gcsafe.} =
     let tmpOut = getTempDir() / ("clue_git_" & $getCurrentProcessId() &
       "_" & $getMonoTime().ticks & ".out")
     var p = startProcess(cmd & " > " & quoteShell(tmpOut) & " 2>&1",
-      options = {poEvalCommand, poParentStreams, poUsePath})
+      env = env, options = {poEvalCommand, poParentStreams, poUsePath})
     result.exitCode = p.waitForExit()
     p.close()
     if fileExists(tmpOut):
@@ -60,8 +71,8 @@ proc gitExec(cmd: string): tuple[output: string, exitCode: int] {.gcsafe.} =
       removeFile(tmpOut)
   else:
     # Windows: CreateProcess is thread-safe; the existing pipe/stream path is
-    # fine there.
-    result = execCmdEx(cmd)
+    # fine there, and the command is a plain `git ...` (env passed separately).
+    result = execCmdEx(cmd, env = env)
   if debugEnabled:
     debugLog("$ " & cmd)
     debugLog("  -> exit " & $result.exitCode)
@@ -96,17 +107,14 @@ proc cloneRepo(url, dest: string, nonInteractive = false): bool {.gcsafe.} =
   ## With `nonInteractive` (version discovery) git is prevented from prompting
   ## for credentials, so dead/deleted URLs fail fast and the version is simply
   ## excluded; installs keep interactive prompts for private repositories.
-  let promptEnv =
-    if nonInteractive: "GIT_TERMINAL_PROMPT=0 " & gitSshEnv
-    else: gitSshEnv
-  let (o1, c1) = gitExec(promptEnv & " git clone " & toGitSshUrl(url) & " " & dest)
+  let env = gitEnv(nonInteractive)
+  let (o1, c1) = gitExec("git clone " & toGitSshUrl(url) & " " & dest, env = env)
   if c1 == 0:
-    discard gitExec(gitSshEnv & " git -C " & dest & " fetch --tags --quiet")
+    discard gitExec("git -C " & dest & " fetch --tags --quiet", env = env)
     return true
-  let httpsEnv = if nonInteractive: "GIT_TERMINAL_PROMPT=0 " else: ""
-  let (o2, c2) = gitExec(httpsEnv & " git clone " & url & " " & dest)
+  let (o2, c2) = gitExec("git clone " & url & " " & dest, env = env)
   if c2 == 0:
-    discard gitExec(gitSshEnv & " git -C " & dest & " fetch --tags --quiet")
+    discard gitExec("git -C " & dest & " fetch --tags --quiet", env = env)
     return true
   false
 
@@ -115,14 +123,14 @@ proc refreshRemoteTags(dest, url: string, nonInteractive = false): bool {.gcsafe
   ## git — safe to call from a thread pool worker. Returns false when both
   ## remotes fail.
   discard gitExec("git -C " & dest & " remote set-url origin " & toGitSshUrl(url))
-  let promptEnv = if nonInteractive: "GIT_TERMINAL_PROMPT=0 " & gitSshEnv else: gitSshEnv
-  let (output, exitCode) = gitExec(promptEnv & " git -C " & dest &
-    " fetch --tags --prune --quiet")
+  let env = gitEnv(nonInteractive)
+  let (output, exitCode) = gitExec("git -C " & dest &
+    " fetch --tags --prune --quiet", env = env)
   if exitCode != 0:
     # SSH not available — fall back to the original (https) remote
     discard gitExec("git -C " & dest & " remote set-url origin " & url)
-    let (out2, code2) = gitExec(promptEnv & " git -C " & dest &
-      " fetch --tags --prune --quiet")
+    let (out2, code2) = gitExec("git -C " & dest &
+      " fetch --tags --prune --quiet", env = env)
     if code2 != 0:
       return false
   true
@@ -159,7 +167,7 @@ proc checkoutHead*(dest: string, refresh = false): bool =
   ## `pkg@head` deps resolve to the latest commit; otherwise the local default
   ## branch state is used (offline-safe).
   if refresh:
-    discard gitExec(gitSshEnv & " git -C " & dest & " fetch origin --quiet")
+    discard gitExec("git -C " & dest & " fetch origin --quiet", env = gitEnv())
   let (defOut, _) = gitExec("git -C " & dest &
     " symbolic-ref --quiet refs/remotes/origin/HEAD")
   var branch = defOut.strip()
@@ -254,10 +262,11 @@ proc listRemoteTags(url: string): seq[string] =  ## List all tag refs on a git r
   ## fallback). Prompts are disabled so a dead URL fails fast, never blocks.
   var output: string
   var exitCode: int
-  (output, exitCode) = gitExec("GIT_TERMINAL_PROMPT=0 " & gitSshEnv &
-    " git ls-remote --tags " & toGitSshUrl(url))
+  (output, exitCode) = gitExec("git ls-remote --tags " & toGitSshUrl(url),
+    env = gitEnv(nonInteractive = true))
   if exitCode != 0:
-    (output, exitCode) = gitExec("GIT_TERMINAL_PROMPT=0 git ls-remote --tags " & url)
+    (output, exitCode) = gitExec("git ls-remote --tags " & url,
+      env = gitEnv(nonInteractive = true))
   if exitCode != 0: return @[]
   var seen: seq[string]
   var set = initHashSet[string]()
@@ -651,7 +660,7 @@ proc getDeps*(name, version: string, features: seq[string] = @[],
 
     # refresh the default branch for head deps when asked
     if version == "0.0.0" and refresh:
-      discard gitExec(gitSshEnv & " git -C " & dest & " fetch origin --quiet")
+      discard gitExec("git -C " & dest & " fetch origin --quiet", env = gitEnv())
 
     # read this version's nimble straight from the git object store — fast and
     # always the exact version, never a stale working tree
