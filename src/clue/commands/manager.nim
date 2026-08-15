@@ -5,10 +5,11 @@
 #          https://github.com/openpeeps/clue
 
 import std/[sequtils, options, tables, sets, strformat, strutils,
-          streams, times, os, osproc, terminal]
+          times, os, osproc, terminal, strtabs]
 
 import pkg/[semver, openparser/json]
 import pkg/kapsis/[runtime, interactive/prompts]
+import pkg/malebolgia
 
 import ../cli/live
 
@@ -54,6 +55,49 @@ proc isGitUrl*(s: string): bool =
   s.startsWith("git@") or s.startsWith("git+") or
   s.startsWith("ssh://")
 
+proc pluralize*(n: int, singular: string): string =
+  ## `pluralize(1, "version")` → "version"; `pluralize(2, "version")` → "versions".
+  singular & (if n == 1: "" else: "s")
+
+proc fetchEventText(name: string, count: int, cached: bool): string =
+  ## Live event text for version discovery of `name`: `<name> (cached)` on a
+  ## cache hit, `<name> using HEAD` when the repo has no semver tags, otherwise
+  ## `<name> (N version(s))`.
+  if cached:
+    result = name & " (cached)"
+  elif count == 0:
+    result = "fetched " & name & " using HEAD"
+  else:
+    result = "fetched " & name & " (" & $count & " " & pluralize(count, "version") & ")"
+
+type
+  InstallJob = object
+    name: string
+    cacheDir: string
+    verDir: string
+    refStr: string
+    verStr: string
+    refresh: bool
+    label: string
+    nimble: NimbleFile
+
+proc installResolvedPkg(job: InstallJob): bool {.gcsafe.} =
+  ## Thread-pool worker: checkout the resolved ref/tag in `_cache` and copy the
+  ## package into the registry (flat, clean layout). Pure file/git ops — all
+  ## paths and the parsed nimble are passed in, so it's safe on a thread pool.
+  if job.refStr.len > 0:
+    if not checkoutRef(job.cacheDir, job.refStr, job.refresh):
+      return false
+  elif job.verStr != "0.0.0":
+    let tag = tagForVersion(job.cacheDir, job.verStr)
+    if tag.len > 0:
+      discard checkoutTag(job.cacheDir, tag)
+  try:
+    installCleanCopy(job.cacheDir, job.verDir, job.nimble)
+    return true
+  except CatchableError:
+    return false
+
 proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     features: seq[string] = @[], verbose = true, url = "",
     doBuild = false, buildRelease = true, buildDebug = false) =
@@ -69,8 +113,9 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
   withClueDB do:
     # live multi-line output: only on a real terminal and when not verbose
     # (matches `clue build`); disabled while debug tracing is on so trace lines
-    # stay clean.
-    let useLive = not verbose and isatty(stdout) and not debugEnabled
+    # stay clean. `CLUE_NO_LIVE=1` (parallel `clue update`) forces plain output.
+    let useLive = getEnv("CLUE_NO_LIVE") != "1" and
+      not verbose and isatty(stdout) and not debugEnabled
     var live: Live
     var pendingWarnings: seq[string]
     proc progress(msg: string) =
@@ -142,7 +187,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     # install / `--refresh`, from the freshly-cloned local tags
     registerVersions(pkgName, discoverVersions(pkgName, rootMeta.url, refresh))
     debugLog("root: " & pkgName & " (" & rootMeta.url & "), " &
-      $registry[pkgName].len & " version(s) indexed")
+      pluralize(registry[pkgName].len, "version") & " indexed")
 
     # 4. Phase A — clone & index every reachable package. Version discovery is
     #    clone-first and runs in parallel per level (thread pool); once a repo
@@ -195,7 +240,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
         progress("checking " & $toDiscover.len & " package(s)...")
         proc onFetch(name: string, count: int, cached: bool) =
           if useLive:
-            live.event(if cached: name & " (cached)" else: "fetched " & name & " (" & $count & " version(s))")
+            live.event(fetchEventText(name, count, cached))
         let discovered = discoverVersionsBatch(toDiscover, refresh, onFetch)
         for name, versions in discovered:
           registerVersions(name, versions)
@@ -271,7 +316,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
           progress("checking " & $toDiscover.len & " package(s)...")
           proc onFetch2(name: string, count: int, cached: bool) =
             if useLive:
-              live.event(if cached: name & " (cached)" else: "fetched " & name & " (" & $count & " version(s))")
+              live.event(fetchEventText(name, count, cached))
           let discovered = discoverVersionsBatch(toDiscover, refresh, onFetch2)
           for name, versions in discovered:
             registerVersions(name, versions)
@@ -334,8 +379,11 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
         msg.add(" from " & sv.fromPkg)
       warn(msg)
 
-    # 6. Install each resolved package from the cache (clean, flat layout)
+    # 6. Install each resolved package from the cache (clean, flat layout).
+    #    The actual file copies run in parallel on a thread pool (one job per
+    #    package); cache-ensuring and the already-installed check stay here.
     var installedCount = 0
+    var installedLabels: seq[string]
     if useLive:
       let rootLabel =
         if rootMeta.refStr.len > 0: "@" & rootMeta.refStr
@@ -344,14 +392,13 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
           if v.len > 0: "@" & v else: ""
       if rootLabel.len > 0:
         live.setMain("installing " & pkgName & rootLabel)
+    var jobs: seq[InstallJob]
     for rp in resolution.packages:
       let meta = pkgRefs.getOrDefault(rp.name, PkgRef())
       let verStr =
         if meta.refStr.len > 0: meta.refStr
         else: $rp.version
       debugLog("install: " & rp.name & "@" & verStr)
-      if useLive:
-        live.event("installing " & rp.name & "@" & verStr)
       let cacheDir = cluePkgsCachePath / rp.name
       if not dirExists(cacheDir):
         var url = meta.url
@@ -364,14 +411,6 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
           continue
         if not clonePackage(url, cacheDir):
           continue
-      # checkout the exact resolved ref/tag
-      if meta.refStr.len > 0:
-        discard checkoutRef(cacheDir, meta.refStr, refresh)
-      elif verStr != "0.0.0":
-        let tag = tagForVersion(cacheDir, verStr)
-        if tag.len > 0:
-          discard checkoutTag(cacheDir, tag)
-
       let verDir = cluePkgsPath / rp.name / verStr
       let label =
         if meta.refStr.len > 0: " @" & verStr
@@ -382,20 +421,30 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
         else:
           progress("installing " & rp.name & label & " (already installed)")
         installedCount.inc
+        installedLabels.add(rp.name & "@" & verStr)
         continue
-      try:
-        let nimblePath = cacheDir / rp.name.changeFileExt("nimble")
-        var pkgNimble = NimbleFile(srcDir: "")
-        if fileExists(nimblePath):
-          pkgNimble = parseNimbleFile(nimblePath)
-        installCleanCopy(cacheDir, verDir, pkgNimble)
-        installedCount.inc
-        if useLive:
-          live.event("installed " & rp.name & label)
+      jobs.add(InstallJob(name: rp.name, cacheDir: cacheDir, verDir: verDir,
+        refStr: meta.refStr, verStr: verStr, refresh: refresh, label: label,
+        nimble: block:
+          let nimblePath = cacheDir / rp.name.changeFileExt("nimble")
+          if fileExists(nimblePath): parseNimbleFile(nimblePath)
+          else: NimbleFile(srcDir: "")))
+    if jobs.len > 0:
+      var results = newSeq[bool](jobs.len)
+      var m = createMaster()
+      m.awaitAll:
+        for i, job in jobs:
+          m.spawn installResolvedPkg(job) -> results[i]
+      for i, ok in results:
+        if ok:
+          installedCount.inc
+          installedLabels.add(jobs[i].name & "@" & jobs[i].verStr)
+          if useLive:
+            live.event("installed " & jobs[i].name & jobs[i].label)
+          else:
+            progress("installing " & jobs[i].name & jobs[i].label)
         else:
-          progress("installing " & rp.name & label)
-      except CatchableError:
-        warn("Failed to install " & rp.name & " v" & verStr)
+          warn("Failed to install " & jobs[i].name & " v" & jobs[i].verStr)
 
     # 7. Record install manifests (resolved dep graph, used for pruning).
     #    Only the explicitly-installed package is a root; transitive deps
@@ -414,12 +463,17 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
       recordInstall(rp.name, verStr, deps, root = rp.name == pkgName,
         features = feats, installPath = cluePkgsPath / rp.name / verStr)
 
+    # Success summary: `Installed N package(s)` (the install location is
+    # implied) followed by the installed packages, one per line in cyan.
     if useLive:
-      live.success("Installed " & $installedCount & " package(s) to " & cluePkgsPath)
+      live.success("Installed " & $installedCount & " " & pluralize(installedCount, "package"))
+    elif installedCount > 0:
+      displaySuccess("Installed " & $installedCount & " " & pluralize(installedCount, "package"))
+    for lbl in installedLabels:
+      display("  " & cyan(lbl))
+    if useLive:
       for w in pendingWarnings:
         displayWarning(w)
-    elif installedCount > 0:
-      displaySuccess("Installed " & $installedCount & " package(s) to " & cluePkgsPath)
 
     # 8. Prune orphans / out-of-range versions
     pruneOrphans(verbose)
@@ -490,11 +544,27 @@ proc installCommand*(v: Values) =
     installPackage(pkgName, pkgRef, refresh, features, verbose,
       doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug)
 
+proc updateRootSubprocess(exe, name: string): int {.gcsafe.} =
+  ## Thread-pool worker for `clue update` (no argument): runs `clue update
+  ## <name>` in an isolated process (streaming its output straight to the
+  ## terminal), so parallel roots never share the DB, git or spinner state.
+  ## `CLUE_NO_LIVE=1` keeps the subprocess output plain — without it, several
+  ## live spinners would fight over the shared terminal.
+  var subEnv = newStringTable()
+  for k, v in envPairs():
+    subEnv[k] = v
+  subEnv["CLUE_NO_LIVE"] = "1"
+  var p = startProcess(exe, args = ["update", name], env = subEnv,
+    options = {poUsePath, poParentStreams})
+  result = p.waitForExit()
+  p.close()
+
 proc updateCommand*(v: Values) =
   ## Fetch new tags from remote for a package — or every installed root
   ## package — and upgrade it, and its whole dependency tree, to the newest
   ## satisfying versions. Develop-mode installs are skipped: they point at the
-  ## user's own source tree, not the registry.
+  ## user's own source tree, not the registry. With no argument the installed
+  ## roots are updated in parallel (each in an isolated process).
   let verbose = v.has("--verbose")
   proc updatePkg(name: string) =
     let recs = installedRecords(name)
@@ -509,8 +579,17 @@ proc updateCommand*(v: Values) =
     if roots.len == 0:
       displayInfo("No installed packages to update")
       return
-    for name in roots:
-      updatePkg(name)
+    if roots.len == 1:
+      updatePkg(roots[0])
+    else:
+      let exe = getAppFilename()
+      var codes = newSeq[int](roots.len)
+      var m = createMaster()
+      m.awaitAll:
+        for i, name in roots:
+          m.spawn updateRootSubprocess(exe, name) -> codes[i]
+      if codes.anyIt(it != 0):
+        quit(1)
 
 proc developCommand*(v: Values) =
   ## Develop-mode (editable) install of the current nimble package: the install

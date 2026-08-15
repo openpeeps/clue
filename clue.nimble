@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.1.6"
+version       = "0.1.7"
 author        = "OpenPeeps"
 description   = "Package manager for Nim development"
 license       = "MIT"
@@ -16,6 +16,7 @@ requires "nim >= 2.0.0"
 requires "semver >= 1.2.3"
 requires "kapsis >= 0.4.2"
 requires "malebolgia >= 1.3.0"
+requires "threading >= 0.2.0"
 requires "boogie >= 0.1.0"
 requires "openparser >= 0.1.4"
 requires "sweetsyntax >= 0.1.0"

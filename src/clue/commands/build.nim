@@ -361,8 +361,7 @@ proc testCommand*(v: Values) =
   ## printing nim's raw output (no spinner). Nim auto-loads any `tests/*.nims`
   ## config (e.g. `config.nims`) when compiling files in that directory. Tests
   ## run one by one by default; `--threads` compiles and runs them in parallel
-  ## on a prewarmed thread pool (capped at the CPU count) and reports the exit
-  ## code at the end.
+  ## on the malebolgia pool and reports the exit code at the end.
   devShadowWarningsEnabled = true
   let useThreads = v.has("--threads")
 

@@ -13,13 +13,8 @@
 
 import std/[os, osproc, strutils, tables, sets, sequtils, algorithm, times, json, options, locks, monotimes]
 
-# threadpool is deprecated in favor of taskpools/weave, but remains fully
-# supported; silence the hint so the build stays clean.
-{.push warning[Deprecated]: off.}
-import std/threadpool
-{.pop.}
-
 import pkg/semver
+import pkg/malebolgia
 import pkg/kapsis/interactive/prompts
 
 import ./configs
@@ -36,17 +31,40 @@ type
 
 const gitSshEnv = "GIT_SSH_COMMAND='ssh -oBatchMode=yes -oConnectTimeout=10'"
 
+import pkg/threading/semaphore
+
+const MaxConcurrentGit = 8
+  ## Cap on concurrent git processes: keeps `clue install`'s parallel cloning
+  ## fast without saturating the machine.
+
+var gitSemaphore = createSemaphore(MaxConcurrentGit)
+
 proc gitExec(cmd: string): tuple[output: string, exitCode: int] {.gcsafe.} =
   ## Run a git command through the shell, echoing it to stderr when debug
   ## tracing is enabled (CLUE_DEBUG=1) so hangs/timeouts are diagnosable.
-  if debugEnabled:
-    let start = getMonoTime()
-    debugLog("$ " & cmd)
-    result = execCmdEx(cmd)
-    let elapsed = (getMonoTime() - start).inMilliseconds()
-    debugLog("  -> exit " & $result.exitCode & " (" & $elapsed & "ms)")
+  gitSemaphore.wait()
+  defer: gitSemaphore.signal()
+  when defined(posix):
+    # Run via the shell with the child inheriting our std fds (poParentStreams
+    # → osproc allocates no pipes/streams), redirecting the command's output to
+    # a temp file read back afterwards. This avoids osproc's pipe/stream setup,
+    # which races (intermittent EBADF) when several threads spawn at once.
+    let tmpOut = getTempDir() / ("clue_git_" & $getCurrentProcessId() &
+      "_" & $getMonoTime().ticks & ".out")
+    var p = startProcess(cmd & " > " & quoteShell(tmpOut) & " 2>&1",
+      options = {poEvalCommand, poParentStreams, poUsePath})
+    result.exitCode = p.waitForExit()
+    p.close()
+    if fileExists(tmpOut):
+      result.output = readFile(tmpOut)
+      removeFile(tmpOut)
   else:
+    # Windows: CreateProcess is thread-safe; the existing pipe/stream path is
+    # fine there.
     result = execCmdEx(cmd)
+  if debugEnabled:
+    debugLog("$ " & cmd)
+    debugLog("  -> exit " & $result.exitCode)
 
 var failedClones = initHashSet[string]()
   ## _cache dirs whose clone already failed this run — skip retrying (e.g. a
@@ -437,13 +455,13 @@ proc discoverVersionsBatch*(pkgs: openArray[PkgRef], refresh = false,
     onDone: proc(name: string, versions: int, cached: bool) = nil):
     Table[string, seq[DiscoveredVersion]] =
   ## Discover versions for many packages at once. The clone-and-list steps run
-  ## concurrently on a thread pool; DB cache writes happen sequentially on the
-  ## caller's thread since the store isn't thread-safe. `onDone` is called on
-  ## the caller's thread as each package finishes (for live progress), with
+  ## concurrently on the malebolgia pool; DB cache writes happen sequentially on
+  ## the caller's thread since the store isn't thread-safe. `onDone` is called
+  ## on the caller's thread as each package finishes (for live progress), with
   ## `cached` true when it was served from the local DB (no network). With
   ## `refresh` existing clones are fetched (`git fetch --tags`) so new remote
   ## tags are picked up for every package.
-  var jobs: seq[FlowVar[tuple[name: string, tags: seq[string]]]]
+  var toFetch: seq[PkgRef]
   for pkg in pkgs:
     if pkg.name.len == 0 or result.hasKey(pkg.name):
       continue
@@ -454,17 +472,22 @@ proc discoverVersionsBatch*(pkgs: openArray[PkgRef], refresh = false,
         if onDone != nil:
           onDone(pkg.name, cached.len, true)
         continue
-    jobs.add(spawn fetchTagsJob((pkg.name, pkg.url, cluePkgsCachePath / pkg.name, refresh)))
-  for fv in jobs:
-    while not fv.isReady:
-      sleep(20)
-    let (name, tags) = ^fv
-    let versions = discoverFromTags(name, tags)
-    debugLog("discover " & name & ": " & $versions.len & " version(s), " & $tags.len & " tag(s)")
-    cacheVersions(name, versions)
-    result[name] = versions
-    if onDone != nil:
-      onDone(name, versions.len, false)
+    toFetch.add(pkg)
+  if toFetch.len > 0:
+    var results = newSeq[tuple[name: string, tags: seq[string]]](toFetch.len)
+    var m = createMaster()
+    m.awaitAll:
+      for i, pkg in toFetch:
+        m.spawn fetchTagsJob((pkg.name, pkg.url, cluePkgsCachePath / pkg.name, refresh)) ->
+          results[i]
+    for i in 0 ..< toFetch.len:
+      let (name, tags) = results[i]
+      let versions = discoverFromTags(name, tags)
+      debugLog("discover " & name & ": " & $versions.len & " version(s), " & $tags.len & " tag(s)")
+      cacheVersions(name, versions)
+      result[name] = versions
+      if onDone != nil:
+        onDone(name, versions.len, false)
 
 proc headVersion*(name: string): Version =
   ## Version to register for a package with no semver tags: the version
