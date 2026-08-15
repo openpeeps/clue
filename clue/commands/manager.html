@@ -93,6 +93,10 @@
   <li><a class="reference" href="#pkgNameFromUrl%2Cstring" title="pkgNameFromUrl(url: string): string">pkgNameFromUrl(url: string): string</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">pluralize
+  <li><a class="reference" href="#pluralize%2Cint%2Cstring" title="pluralize(n: int; singular: string): string">pluralize(n: int; singular: string): string</a></li>
+
+</ul>
 <ul class="simple nested-toc-section">pruneCommand
   <li><a class="reference" href="#pruneCommand%2CValues" title="pruneCommand(v: Values)">pruneCommand(v: Values)</a></li>
 
@@ -171,7 +175,7 @@
     <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span>
     <span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">ResourceExhaustedError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
     <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
-    <span class="Identifier">ExecIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
@@ -188,9 +192,9 @@
     <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span>
     <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">ResourceExhaustedError</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span>
     <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span>
-    <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
     <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
-    <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     Install a package and its dependencies into ~/.clue/packages. Uses fast, cached version discovery and only installs versions that satisfy the resolved constraints. Prunes orphans afterwards. <tt class="docutils literal"><span class="pre"><span class="Identifier">features</span></span></tt> activates the root package's <tt class="docutils literal"><span class="pre"><span class="Identifier">feature</span> <span class="StringLit">&quot;name&quot;</span><span class="Punctuation">:</span></span></tt> requires. <tt class="docutils literal"><span class="pre"><span class="Identifier">verbose</span></span></tt> controls progress output (clue build calls it quietly). <tt class="docutils literal"><span class="pre"><span class="Identifier">url</span></span></tt> bypasses the registry lookup and installs straight from a git URL. <tt class="docutils literal"><span class="pre"><span class="Identifier">doBuild</span></span></tt> compiles the installed binaries (release by default) into ~/.clue/bin after the install — never done implicitly, since compiling a package executes its <tt class="docutils literal"><span class="pre"><span class="Punctuation">{</span><span class="Operator">.</span><span class="Identifier">compile</span><span class="Operator">.</span><span class="Punctuation">}</span></span></tt> / <tt class="docutils literal"><span class="pre"><span class="Identifier">staticExec</span></span></tt> code.
@@ -233,6 +237,18 @@
 </div>
 
 </div>
+<div id="pluralize-procs-all">
+  <div id="pluralize,int,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#pluralize%2Cint%2Cstring"><span class="Identifier">pluralize</span></a><span class="Other">(</span><span class="Identifier">n</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">;</span> <span class="Identifier">singular</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    <tt class="docutils literal"><span class="pre"><span class="Identifier">pluralize</span><span class="Punctuation">(</span><span class="DecNumber">1</span><span class="Punctuation">,</span> <span class="StringLit">&quot;version&quot;</span><span class="Punctuation">)</span></span></tt> → &quot;version&quot;; <tt class="docutils literal"><span class="pre"><span class="Identifier">pluralize</span><span class="Punctuation">(</span><span class="DecNumber">2</span><span class="Punctuation">,</span> <span class="StringLit">&quot;version&quot;</span><span class="Punctuation">)</span></span></tt> → &quot;versions&quot;.
+    
+  </dd>
+</div>
+
+</div>
 <div id="pruneCommand-procs-all">
   <div id="pruneCommand,Values">
   <dt><pre><span class="Keyword">proc</span> <a href="#pruneCommand%2CValues"><span class="Identifier">pruneCommand</span></a><span class="Other">(</span><span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">Values</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span>
@@ -266,12 +282,12 @@
   <div id="updateCommand,Values">
   <dt><pre><span class="Keyword">proc</span> <a href="#updateCommand%2CValues"><span class="Identifier">updateCommand</span></a><span class="Other">(</span><span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">Values</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span>
     <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">ResourceExhaustedError</span><span class="Other">,</span>
-    <span class="Identifier">InvalidVersionError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
-                                 <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
-                                 <span class="Identifier">ExecIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteDirEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
+    <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Fetch new tags from remote for a package — or every installed root package — and upgrade it, and its whole dependency tree, to the newest satisfying versions. Develop-mode installs are skipped: they point at the user's own source tree, not the registry.
+    Fetch new tags from remote for a package — or every installed root package — and upgrade it, and its whole dependency tree, to the newest satisfying versions. Develop-mode installs are skipped: they point at the user's own source tree, not the registry. With no argument the installed roots are updated in parallel (each in an isolated process).
     
   </dd>
 </div>
@@ -297,7 +313,7 @@
     <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span>
     <span class="Identifier">InvalidVersionError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span>
                                  <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
-                                 <span class="Identifier">ExecIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+                                 <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     Show available versions for a package.
@@ -316,7 +332,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-10 16:58:42 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-15 20:52:58 UTC</small>
       </div>
     </div>
   </div>

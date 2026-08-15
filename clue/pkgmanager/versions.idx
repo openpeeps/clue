@@ -1,31 +1,31 @@
 nimTitle	versions	clue/pkgmanager/versions.html	module clue/pkgmanager/versions		0
-nim	DiscoveredVersion	clue/pkgmanager/versions.html#DiscoveredVersion	object DiscoveredVersion		30
-nim	DepEntry	clue/pkgmanager/versions.html#DepEntry	tuple DepEntry		34
-nim	toGitSshUrl	clue/pkgmanager/versions.html#toGitSshUrl,string	proc toGitSshUrl(url: string): string		57
-nim	clonePackage	clue/pkgmanager/versions.html#clonePackage,string,string	proc clonePackage(url, dest: string; refresh = false; nonInteractive = false): bool		112
-nim	checkoutTag	clue/pkgmanager/versions.html#checkoutTag,string,string	proc checkoutTag(dest, tag: string): bool		134
-nim	checkoutHead	clue/pkgmanager/versions.html#checkoutHead,string	proc checkoutHead(dest: string; refresh = false): bool		139
-nim	checkoutRef	clue/pkgmanager/versions.html#checkoutRef,string,string	proc checkoutRef(dest, refStr: string; refresh = false): bool		164
-nim	GitHeadInfo	clue/pkgmanager/versions.html#GitHeadInfo	object GitHeadInfo		172
-nim	gitHeadInfo	clue/pkgmanager/versions.html#gitHeadInfo,string,string	proc gitHeadInfo(name, url: string): Option[GitHeadInfo]		178
-nim	tagForVersion	clue/pkgmanager/versions.html#tagForVersion,string,string	proc tagForVersion(dest: string; version: string): string		266
-nim	installCleanCopy	clue/pkgmanager/versions.html#installCleanCopy,string,string,NimbleFile	proc installCleanCopy(cacheDir, verDir: string; nimble: NimbleFile)		288
-nim	cachedVersions	clue/pkgmanager/versions.html#cachedVersions,string	proc cachedVersions(name: string): seq[DiscoveredVersion]		357
-nim	discoverVersions	clue/pkgmanager/versions.html#discoverVersions,string,string	proc discoverVersions(name, url: string; refresh = false; cloneOnMiss = true): seq[\n    DiscoveredVersion]		391
-nim	discoverVersionsBatch	clue/pkgmanager/versions.html#discoverVersionsBatch,openArray[PkgRef],proc(string,int,bool)	proc discoverVersionsBatch(pkgs: openArray[PkgRef]; refresh = false; onDone: proc (\n    name: string; versions: int; cached: bool) = nil): Table[string,\n    seq[DiscoveredVersion]]		436
-nim	headVersion	clue/pkgmanager/versions.html#headVersion,string	proc headVersion(name: string): Version		469
-nim	getDeps	clue/pkgmanager/versions.html#getDeps,string,string,seq[string],string	proc getDeps(name, version: string; features: seq[string] = @[]; refresh = false;\n        url = ""): seq[NimbleDependency]		593
-nim	recordInstall	clue/pkgmanager/versions.html#recordInstall,string,string,seq[DepEntry],seq[string],string	proc recordInstall(name, version: string; deps: seq[DepEntry]; root = false;\n              features: seq[string] = @[]; installPath = "")		662
-nim	installedPath	clue/pkgmanager/versions.html#installedPath,string,string	proc installedPath(name, version: string): string		688
-nim	resolveInstalledPath	clue/pkgmanager/versions.html#resolveInstalledPath,string,string	proc resolveInstalledPath(name, preferRef: string): string		700
-nim	InstalledRecord	clue/pkgmanager/versions.html#InstalledRecord	object InstalledRecord		725
-nim	installedRecords	clue/pkgmanager/versions.html#installedRecords,string	proc installedRecords(name: string): seq[InstalledRecord]		730
-nim	isDevInstall	clue/pkgmanager/versions.html#isDevInstall,InstalledRecord	proc isDevInstall(rec: InstalledRecord): bool		743
-nim	installedRoots	clue/pkgmanager/versions.html#installedRoots	proc installedRoots(): seq[string]		750
-nim	devShadowWarningsEnabled	clue/pkgmanager/versions.html#devShadowWarningsEnabled	var devShadowWarningsEnabled		760
-nim	collectInstalledDepNames	clue/pkgmanager/versions.html#collectInstalledDepNames,seq[string]	proc collectInstalledDepNames(rootNames: seq[string]): seq[string]		791
-nim	allInstalledPaths	clue/pkgmanager/versions.html#allInstalledPaths	proc allInstalledPaths(): seq[string]		860
-nim	installedFeatures	clue/pkgmanager/versions.html#installedFeatures	proc installedFeatures(): Table[string, seq[string]]		885
-nim	unrecordInstall	clue/pkgmanager/versions.html#unrecordInstall,string,string	proc unrecordInstall(name, version: string)		903
-nim	pruneOrphans	clue/pkgmanager/versions.html#pruneOrphans	proc pruneOrphans(verbose = true)		912
-nim	installedCount	clue/pkgmanager/versions.html#installedCount	proc installedCount(): int		983
+nim	DiscoveredVersion	clue/pkgmanager/versions.html#DiscoveredVersion	object DiscoveredVersion		25
+nim	DepEntry	clue/pkgmanager/versions.html#DepEntry	tuple DepEntry		29
+nim	toGitSshUrl	clue/pkgmanager/versions.html#toGitSshUrl,string	proc toGitSshUrl(url: string): string		75
+nim	clonePackage	clue/pkgmanager/versions.html#clonePackage,string,string	proc clonePackage(url, dest: string; refresh = false; nonInteractive = false): bool		130
+nim	checkoutTag	clue/pkgmanager/versions.html#checkoutTag,string,string	proc checkoutTag(dest, tag: string): bool		152
+nim	checkoutHead	clue/pkgmanager/versions.html#checkoutHead,string	proc checkoutHead(dest: string; refresh = false): bool		157
+nim	checkoutRef	clue/pkgmanager/versions.html#checkoutRef,string,string	proc checkoutRef(dest, refStr: string; refresh = false): bool		182
+nim	GitHeadInfo	clue/pkgmanager/versions.html#GitHeadInfo	object GitHeadInfo		190
+nim	gitHeadInfo	clue/pkgmanager/versions.html#gitHeadInfo,string,string	proc gitHeadInfo(name, url: string): Option[GitHeadInfo]		196
+nim	tagForVersion	clue/pkgmanager/versions.html#tagForVersion,string,string	proc tagForVersion(dest: string; version: string): string		284
+nim	installCleanCopy	clue/pkgmanager/versions.html#installCleanCopy,string,string,NimbleFile	proc installCleanCopy(cacheDir, verDir: string; nimble: NimbleFile)		306
+nim	cachedVersions	clue/pkgmanager/versions.html#cachedVersions,string	proc cachedVersions(name: string): seq[DiscoveredVersion]		375
+nim	discoverVersions	clue/pkgmanager/versions.html#discoverVersions,string,string	proc discoverVersions(name, url: string; refresh = false; cloneOnMiss = true): seq[\n    DiscoveredVersion]		409
+nim	discoverVersionsBatch	clue/pkgmanager/versions.html#discoverVersionsBatch,openArray[PkgRef],proc(string,int,bool)	proc discoverVersionsBatch(pkgs: openArray[PkgRef]; refresh = false; onDone: proc (\n    name: string; versions: int; cached: bool) = nil): Table[string,\n    seq[DiscoveredVersion]]		454
+nim	headVersion	clue/pkgmanager/versions.html#headVersion,string	proc headVersion(name: string): Version		492
+nim	getDeps	clue/pkgmanager/versions.html#getDeps,string,string,seq[string],string	proc getDeps(name, version: string; features: seq[string] = @[]; refresh = false;\n        url = ""): seq[NimbleDependency]		616
+nim	recordInstall	clue/pkgmanager/versions.html#recordInstall,string,string,seq[DepEntry],seq[string],string	proc recordInstall(name, version: string; deps: seq[DepEntry]; root = false;\n              features: seq[string] = @[]; installPath = "")		685
+nim	installedPath	clue/pkgmanager/versions.html#installedPath,string,string	proc installedPath(name, version: string): string		711
+nim	resolveInstalledPath	clue/pkgmanager/versions.html#resolveInstalledPath,string,string	proc resolveInstalledPath(name, preferRef: string): string		723
+nim	InstalledRecord	clue/pkgmanager/versions.html#InstalledRecord	object InstalledRecord		748
+nim	installedRecords	clue/pkgmanager/versions.html#installedRecords,string	proc installedRecords(name: string): seq[InstalledRecord]		753
+nim	isDevInstall	clue/pkgmanager/versions.html#isDevInstall,InstalledRecord	proc isDevInstall(rec: InstalledRecord): bool		766
+nim	installedRoots	clue/pkgmanager/versions.html#installedRoots	proc installedRoots(): seq[string]		773
+nim	devShadowWarningsEnabled	clue/pkgmanager/versions.html#devShadowWarningsEnabled	var devShadowWarningsEnabled		783
+nim	collectInstalledDepNames	clue/pkgmanager/versions.html#collectInstalledDepNames,seq[string]	proc collectInstalledDepNames(rootNames: seq[string]): seq[string]		814
+nim	allInstalledPaths	clue/pkgmanager/versions.html#allInstalledPaths	proc allInstalledPaths(): seq[string]		883
+nim	installedFeatures	clue/pkgmanager/versions.html#installedFeatures	proc installedFeatures(): Table[string, seq[string]]		908
+nim	unrecordInstall	clue/pkgmanager/versions.html#unrecordInstall,string,string	proc unrecordInstall(name, version: string)		927
+nim	pruneOrphans	clue/pkgmanager/versions.html#pruneOrphans	proc pruneOrphans(verbose = true)		936
+nim	installedCount	clue/pkgmanager/versions.html#installedCount	proc installedCount(): int		1007

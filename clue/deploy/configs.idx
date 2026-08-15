@@ -1,0 +1,17 @@
+nimTitle	configs	clue/deploy/configs.html	module clue/deploy/configs		0
+nim	ReleaseTarget	clue/deploy/configs.html#ReleaseTarget	object ReleaseTarget		16
+nim	ReleaseConfig	clue/deploy/configs.html#ReleaseConfig	object ReleaseConfig		20
+nim	SystemdConfig	clue/deploy/configs.html#SystemdConfig	object SystemdConfig		32
+nim	WebProfile	clue/deploy/configs.html#WebProfile	object WebProfile		42
+nim	WebConfig	clue/deploy/configs.html#WebConfig	object WebConfig		59
+nim	GithubConfig	clue/deploy/configs.html#GithubConfig	object GithubConfig		63
+nim	DeployConfig	clue/deploy/configs.html#DeployConfig	object DeployConfig		66
+nim	compressOn	clue/deploy/configs.html#compressOn,WebProfile	proc compressOn(p: WebProfile): bool		75
+nim	partialOn	clue/deploy/configs.html#partialOn,WebProfile	proc partialOn(p: WebProfile): bool		76
+nim	sdDaemonReload	clue/deploy/configs.html#sdDaemonReload,SystemdConfig	proc sdDaemonReload(s: SystemdConfig): bool		77
+nim	sdRestart	clue/deploy/configs.html#sdRestart,SystemdConfig	proc sdRestart(s: SystemdConfig): bool		78
+nim	sdSudo	clue/deploy/configs.html#sdSudo,SystemdConfig	proc sdSudo(s: SystemdConfig): bool		79
+nim	sdStatus	clue/deploy/configs.html#sdStatus,SystemdConfig	proc sdStatus(s: SystemdConfig): bool		80
+nim	expandPath	clue/deploy/configs.html#expandPath,string	proc expandPath(s: string): string		82
+nim	findDeployConfig	clue/deploy/configs.html#findDeployConfig,string	proc findDeployConfig(customPath = ""): string		92
+nim	parseDeployConfig	clue/deploy/configs.html#parseDeployConfig,string	proc parseDeployConfig(path: string): DeployConfig		104

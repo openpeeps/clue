@@ -28,7 +28,7 @@
     <label for="nav-toggle" id="nav-overlay"></label>
     <div class="container">
       <h1 class="title">Index</h1>
-      Modules: <a href="index.html">clue</a>, <a href="clue/cli/live.html">clue/cli/live</a>, <a href="clue/commands/build.html">clue/commands/build</a>, <a href="clue/commands/docs.html">clue/commands/docs</a>, <a href="clue/commands/doctor.html">clue/commands/doctor</a>, <a href="clue/commands/manager.html">clue/commands/manager</a>, <a href="clue/docbuilder/builder.html">clue/docbuilder/builder</a>, <a href="clue/docbuilder/configs.html">clue/docbuilder/configs</a>, <a href="clue/docbuilder/httpserver.html">clue/docbuilder/httpserver</a>, <a href="clue/docbuilder/overviewgen.html">clue/docbuilder/overviewgen</a>, <a href="clue/pkgmanager/builder.html">clue/pkgmanager/builder</a>, <a href="clue/pkgmanager/configs.html">clue/pkgmanager/configs</a>, <a href="clue/pkgmanager/nimbleparser.html">clue/pkgmanager/nimbleparser</a>, <a href="clue/pkgmanager/resolver.html">clue/pkgmanager/resolver</a>, <a href="clue/pkgmanager/versions.html">clue/pkgmanager/versions</a>.<br/><p /><h2>API symbols</h2>
+      Modules: <a href="index.html">clue</a>, <a href="clue/cli/live.html">clue/cli/live</a>, <a href="clue/commands/build.html">clue/commands/build</a>, <a href="clue/commands/deploy.html">clue/commands/deploy</a>, <a href="clue/commands/docs.html">clue/commands/docs</a>, <a href="clue/commands/doctor.html">clue/commands/doctor</a>, <a href="clue/commands/manager.html">clue/commands/manager</a>, <a href="clue/deploy/configs.html">clue/deploy/configs</a>, <a href="clue/deploy/init.html">clue/deploy/init</a>, <a href="clue/deploy/web.html">clue/deploy/web</a>, <a href="clue/docbuilder/builder.html">clue/docbuilder/builder</a>, <a href="clue/docbuilder/configs.html">clue/docbuilder/configs</a>, <a href="clue/docbuilder/httpserver.html">clue/docbuilder/httpserver</a>, <a href="clue/docbuilder/overviewgen.html">clue/docbuilder/overviewgen</a>, <a href="clue/pkgmanager/builder.html">clue/pkgmanager/builder</a>, <a href="clue/pkgmanager/configs.html">clue/pkgmanager/configs</a>, <a href="clue/pkgmanager/nimbleparser.html">clue/pkgmanager/nimbleparser</a>, <a href="clue/pkgmanager/resolver.html">clue/pkgmanager/resolver</a>, <a href="clue/pkgmanager/versions.html">clue/pkgmanager/versions</a>.<br/><p /><h2>API symbols</h2>
 <dl><dt><a name="%60%24%60" href="#%60%24%60"><span>`$`:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="resolver: proc `$`(rp: ResolvedPackage): string" href="clue/pkgmanager/resolver.html#%24%2CResolvedPackage">resolver: proc `$`(rp: ResolvedPackage): string</a></li>
@@ -143,6 +143,10 @@
                      pkgName: string; verbose: bool): tuple[
     pathFlags: seq[string], featureDefines: string]</a></li>
           </ul></dd>
+<dt><a name="compressOn" href="#compressOn"><span>compressOn:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc compressOn(p: WebProfile): bool" href="clue/deploy/configs.html#compressOn%2CWebProfile">configs: proc compressOn(p: WebProfile): bool</a></li>
+          </ul></dd>
 <dt><a name="debugEnabled" href="#debugEnabled"><span>debugEnabled:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: var debugEnabled" href="clue/pkgmanager/configs.html#debugEnabled">configs: var debugEnabled</a></li>
@@ -159,9 +163,31 @@
 <li><a class="reference external"
           data-doc-search-tag="versions: tuple DepEntry" href="clue/pkgmanager/versions.html#DepEntry">versions: tuple DepEntry</a></li>
           </ul></dd>
+<dt><a name="DeployConfig" href="#DeployConfig"><span>DeployConfig:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: object DeployConfig" href="clue/deploy/configs.html#DeployConfig">configs: object DeployConfig</a></li>
+          </ul></dd>
+<dt><a name="deployInitCommand" href="#deployInitCommand"><span>deployInitCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="deploy: proc deployInitCommand(v: Values)" href="clue/commands/deploy.html#deployInitCommand%2CValues">deploy: proc deployInitCommand(v: Values)</a></li>
+          </ul></dd>
+<dt><a name="deployWeb" href="#deployWeb"><span>deployWeb:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="web: proc deployWeb(cfg: DeployConfig; profileName, keyOverride: string;
+          dryRun, yes, verbose, statusOnly: bool): int" href="clue/deploy/web.html#deployWeb%2CDeployConfig%2Cstring%2Cstring%2Cbool%2Cbool%2Cbool%2Cbool">web: proc deployWeb(cfg: DeployConfig; profileName, keyOverride: string;
+          dryRun, yes, verbose, statusOnly: bool): int</a></li>
+          </ul></dd>
+<dt><a name="deployWebCommand" href="#deployWebCommand"><span>deployWebCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="deploy: proc deployWebCommand(v: Values)" href="clue/commands/deploy.html#deployWebCommand%2CValues">deploy: proc deployWebCommand(v: Values)</a></li>
+          </ul></dd>
 <dt><a name="DepProvider" href="#DepProvider"><span>DepProvider:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="resolver: type DepProvider" href="clue/pkgmanager/resolver.html#DepProvider">resolver: type DepProvider</a></li>
+          </ul></dd>
+<dt><a name="detectNimVersion" href="#detectNimVersion"><span>detectNimVersion:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="init: proc detectNimVersion(): string" href="clue/deploy/init.html#detectNimVersion">init: proc detectNimVersion(): string</a></li>
           </ul></dd>
 <dt><a name="developCommand" href="#developCommand"><span>developCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -213,9 +239,17 @@
 <li><a class="reference external"
           data-doc-search-tag="live: proc event(live: Live; text: string)" href="clue/cli/live.html#event%2CLive%2Cstring">live: proc event(live: Live; text: string)</a></li>
           </ul></dd>
+<dt><a name="expandPath" href="#expandPath"><span>expandPath:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc expandPath(s: string): string" href="clue/deploy/configs.html#expandPath%2Cstring">configs: proc expandPath(s: string): string</a></li>
+          </ul></dd>
 <dt><a name="fetchPkgMeta" href="#fetchPkgMeta"><span>fetchPkgMeta:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: proc fetchPkgMeta(pkgName: string): Option[PkgRef]" href="clue/pkgmanager/configs.html#fetchPkgMeta%2Cstring">configs: proc fetchPkgMeta(pkgName: string): Option[PkgRef]</a></li>
+          </ul></dd>
+<dt><a name="findDeployConfig" href="#findDeployConfig"><span>findDeployConfig:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc findDeployConfig(customPath = &quot;&quot;): string" href="clue/deploy/configs.html#findDeployConfig%2Cstring">configs: proc findDeployConfig(customPath = &quot;&quot;): string</a></li>
           </ul></dd>
 <dt><a name="findNimbleFile" href="#findNimbleFile"><span>findNimbleFile:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -243,6 +277,14 @@
 <li><a class="reference external"
           data-doc-search-tag="versions: proc gitHeadInfo(name, url: string): Option[GitHeadInfo]" href="clue/pkgmanager/versions.html#gitHeadInfo%2Cstring%2Cstring">versions: proc gitHeadInfo(name, url: string): Option[GitHeadInfo]</a></li>
           </ul></dd>
+<dt><a name="GithubConfig" href="#GithubConfig"><span>GithubConfig:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: object GithubConfig" href="clue/deploy/configs.html#GithubConfig">configs: object GithubConfig</a></li>
+          </ul></dd>
+<dt><a name="gitOriginRepo" href="#gitOriginRepo"><span>gitOriginRepo:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="init: proc gitOriginRepo(): string" href="clue/deploy/init.html#gitOriginRepo">init: proc gitOriginRepo(): string</a></li>
+          </ul></dd>
 <dt><a name="headVersion" href="#headVersion"><span>headVersion:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="versions: proc headVersion(name: string): Version" href="clue/pkgmanager/versions.html#headVersion%2Cstring">versions: proc headVersion(name: string): Version</a></li>
@@ -250,6 +292,10 @@
 <dt><a name="initClue" href="#initClue"><span>initClue:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: proc initClue()" href="clue/pkgmanager/configs.html#initClue">configs: proc initClue()</a></li>
+          </ul></dd>
+<dt><a name="initDeploy" href="#initDeploy"><span>initDeploy:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="init: proc initDeploy(deployType: string; writeWorkflow, yes, force: bool)" href="clue/deploy/init.html#initDeploy%2Cstring%2Cbool%2Cbool%2Cbool">init: proc initDeploy(deployType: string; writeWorkflow, yes, force: bool)</a></li>
           </ul></dd>
 <dt><a name="initDocsDB" href="#initDocsDB"><span>initDocsDB:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -347,9 +393,17 @@
 <li><a class="reference external"
           data-doc-search-tag="resolver: proc parseConstraint(s: string): VersionConstraint" href="clue/pkgmanager/resolver.html#parseConstraint%2Cstring">resolver: proc parseConstraint(s: string): VersionConstraint</a></li>
           </ul></dd>
+<dt><a name="parseDeployConfig" href="#parseDeployConfig"><span>parseDeployConfig:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc parseDeployConfig(path: string): DeployConfig" href="clue/deploy/configs.html#parseDeployConfig%2Cstring">configs: proc parseDeployConfig(path: string): DeployConfig</a></li>
+          </ul></dd>
 <dt><a name="parseFeatureFlags" href="#parseFeatureFlags"><span>parseFeatureFlags:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="manager: proc parseFeatureFlags(s: string): seq[string]" href="clue/commands/manager.html#parseFeatureFlags%2Cstring">manager: proc parseFeatureFlags(s: string): seq[string]</a></li>
+          </ul></dd>
+<dt><a name="parseGitRepo" href="#parseGitRepo"><span>parseGitRepo:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="init: proc parseGitRepo(url: string): string" href="clue/deploy/init.html#parseGitRepo%2Cstring">init: proc parseGitRepo(url: string): string</a></li>
           </ul></dd>
 <dt><a name="parseNimbleFile" href="#parseNimbleFile"><span>parseNimbleFile:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -363,6 +417,10 @@
 <li><a class="reference external"
           data-doc-search-tag="nimbleparser: proc parseRequiresArg(arg: string): NimbleDependency" href="clue/pkgmanager/nimbleparser.html#parseRequiresArg%2Cstring">nimbleparser: proc parseRequiresArg(arg: string): NimbleDependency</a></li>
           </ul></dd>
+<dt><a name="partialOn" href="#partialOn"><span>partialOn:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc partialOn(p: WebProfile): bool" href="clue/deploy/configs.html#partialOn%2CWebProfile">configs: proc partialOn(p: WebProfile): bool</a></li>
+          </ul></dd>
 <dt><a name="pkgNameFromUrl" href="#pkgNameFromUrl"><span>pkgNameFromUrl:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="manager: proc pkgNameFromUrl(url: string): string" href="clue/commands/manager.html#pkgNameFromUrl%2Cstring">manager: proc pkgNameFromUrl(url: string): string</a></li>
@@ -370,6 +428,10 @@
 <dt><a name="PkgRef" href="#PkgRef"><span>PkgRef:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: object PkgRef" href="clue/pkgmanager/configs.html#PkgRef">configs: object PkgRef</a></li>
+          </ul></dd>
+<dt><a name="pluralize" href="#pluralize"><span>pluralize:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="manager: proc pluralize(n: int; singular: string): string" href="clue/commands/manager.html#pluralize%2Cint%2Cstring">manager: proc pluralize(n: int; singular: string): string</a></li>
           </ul></dd>
 <dt><a name="pruneCommand" href="#pruneCommand"><span>pruneCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -388,6 +450,14 @@
           data-doc-search-tag="versions: proc recordInstall(name, version: string; deps: seq[DepEntry]; root = false;
               features: seq[string] = @[]; installPath = &quot;&quot;)" href="clue/pkgmanager/versions.html#recordInstall%2Cstring%2Cstring%2Cseq%5BDepEntry%5D%2Cseq%5Bstring%5D%2Cstring">versions: proc recordInstall(name, version: string; deps: seq[DepEntry]; root = false;
               features: seq[string] = @[]; installPath = &quot;&quot;)</a></li>
+          </ul></dd>
+<dt><a name="ReleaseConfig" href="#ReleaseConfig"><span>ReleaseConfig:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: object ReleaseConfig" href="clue/deploy/configs.html#ReleaseConfig">configs: object ReleaseConfig</a></li>
+          </ul></dd>
+<dt><a name="ReleaseTarget" href="#ReleaseTarget"><span>ReleaseTarget:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: object ReleaseTarget" href="clue/deploy/configs.html#ReleaseTarget">configs: object ReleaseTarget</a></li>
           </ul></dd>
 <dt><a name="Resolution" href="#Resolution"><span>Resolution:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -433,6 +503,22 @@
 <li><a class="reference external"
           data-doc-search-tag="resolver: proc satisfiesAll(v: Version; constraints: openArray[VersionConstraint]): bool" href="clue/pkgmanager/resolver.html#satisfiesAll%2CVersion%2CopenArray%5BVersionConstraint%5D">resolver: proc satisfiesAll(v: Version; constraints: openArray[VersionConstraint]): bool</a></li>
           </ul></dd>
+<dt><a name="sdDaemonReload" href="#sdDaemonReload"><span>sdDaemonReload:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc sdDaemonReload(s: SystemdConfig): bool" href="clue/deploy/configs.html#sdDaemonReload%2CSystemdConfig">configs: proc sdDaemonReload(s: SystemdConfig): bool</a></li>
+          </ul></dd>
+<dt><a name="sdRestart" href="#sdRestart"><span>sdRestart:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc sdRestart(s: SystemdConfig): bool" href="clue/deploy/configs.html#sdRestart%2CSystemdConfig">configs: proc sdRestart(s: SystemdConfig): bool</a></li>
+          </ul></dd>
+<dt><a name="sdStatus" href="#sdStatus"><span>sdStatus:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc sdStatus(s: SystemdConfig): bool" href="clue/deploy/configs.html#sdStatus%2CSystemdConfig">configs: proc sdStatus(s: SystemdConfig): bool</a></li>
+          </ul></dd>
+<dt><a name="sdSudo" href="#sdSudo"><span>sdSudo:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc sdSudo(s: SystemdConfig): bool" href="clue/deploy/configs.html#sdSudo%2CSystemdConfig">configs: proc sdSudo(s: SystemdConfig): bool</a></li>
+          </ul></dd>
 <dt><a name="serveDocs" href="#serveDocs"><span>serveDocs:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="httpserver: proc serveDocs(docDir, pkgName: string; port: Port)" href="clue/docbuilder/httpserver.html#serveDocs%2Cstring%2Cstring%2CPort">httpserver: proc serveDocs(docDir, pkgName: string; port: Port)</a></li>
@@ -456,6 +542,10 @@
 <dt><a name="success" href="#success"><span>success:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="live: proc success(live: Live; msg: string)" href="clue/cli/live.html#success%2CLive%2Cstring">live: proc success(live: Live; msg: string)</a></li>
+          </ul></dd>
+<dt><a name="SystemdConfig" href="#SystemdConfig"><span>SystemdConfig:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: object SystemdConfig" href="clue/deploy/configs.html#SystemdConfig">configs: object SystemdConfig</a></li>
           </ul></dd>
 <dt><a name="tagForVersion" href="#tagForVersion"><span>tagForVersion:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -545,6 +635,14 @@
 <li><a class="reference external"
           data-doc-search-tag="configs: let versionsDBPath" href="clue/pkgmanager/configs.html#versionsDBPath">configs: let versionsDBPath</a></li>
           </ul></dd>
+<dt><a name="WebConfig" href="#WebConfig"><span>WebConfig:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: object WebConfig" href="clue/deploy/configs.html#WebConfig">configs: object WebConfig</a></li>
+          </ul></dd>
+<dt><a name="WebProfile" href="#WebProfile"><span>WebProfile:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: object WebProfile" href="clue/deploy/configs.html#WebProfile">configs: object WebProfile</a></li>
+          </ul></dd>
 <dt><a name="withClueDB" href="#withClueDB"><span>withClueDB:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: template withClueDB(stmt)" href="clue/pkgmanager/configs.html#withClueDB.t">configs: template withClueDB(stmt)</a></li>
@@ -557,7 +655,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-10 16:58:43 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-15 20:52:59 UTC</small>
       </div>
     </div>
   </div>

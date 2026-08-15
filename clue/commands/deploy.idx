@@ -1,0 +1,3 @@
+nimTitle	deploy	clue/commands/deploy.html	module clue/commands/deploy		0
+nim	deployInitCommand	clue/commands/deploy.html#deployInitCommand,Values	proc deployInitCommand(v: Values)		12
+nim	deployWebCommand	clue/commands/deploy.html#deployWebCommand,Values	proc deployWebCommand(v: Values)		21

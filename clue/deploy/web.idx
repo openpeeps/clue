@@ -1,0 +1,2 @@
+nimTitle	web	clue/deploy/web.html	module clue/deploy/web		0
+nim	deployWeb	clue/deploy/web.html#deployWeb,DeployConfig,string,string,bool,bool,bool,bool	proc deployWeb(cfg: DeployConfig; profileName, keyOverride: string;\n          dryRun, yes, verbose, statusOnly: bool): int		55

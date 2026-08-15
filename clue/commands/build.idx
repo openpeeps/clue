@@ -1,4 +1,4 @@
 nimTitle	build	clue/commands/build.html	module clue/commands/build		0
-nim	collectResolvedPaths	clue/commands/build.html#collectResolvedPaths,NimbleFile,seq[string],string,bool	proc collectResolvedPaths(nimble: NimbleFile; activeRootFeatures: seq[string];\n                     pkgName: string; verbose: bool): tuple[\n    pathFlags: seq[string], featureDefines: string]		93
-nim	buildCommand	clue/commands/build.html#buildCommand,Values	proc buildCommand(v: Values)		184
-nim	testCommand	clue/commands/build.html#testCommand,Values	proc testCommand(v: Values)		315
+nim	collectResolvedPaths	clue/commands/build.html#collectResolvedPaths,NimbleFile,seq[string],string,bool	proc collectResolvedPaths(nimble: NimbleFile; activeRootFeatures: seq[string];\n                     pkgName: string; verbose: bool): tuple[\n    pathFlags: seq[string], featureDefines: string]		94
+nim	buildCommand	clue/commands/build.html#buildCommand,Values	proc buildCommand(v: Values)		199
+nim	testCommand	clue/commands/build.html#testCommand,Values	proc testCommand(v: Values)		358
