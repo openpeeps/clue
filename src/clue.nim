@@ -46,6 +46,10 @@ when isMainModule:
         ## List available versions for a package
       prune:
         ## Remove orphaned or out-of-range installed packages
+      registry:
+        ## Manage the package registry index (nim-lang/packages)
+        update:
+          ## Fetch a fresh packages.json and re-index available packages
 
       -- "Environment Management"
       venv string("--nim"):

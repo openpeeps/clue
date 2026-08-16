@@ -159,7 +159,7 @@ proc clonePackage*(url, dest: string, refresh = false, nonInteractive = false): 
 
 proc checkoutTag*(dest, tag: string): bool =
   ## Checkout an exact tag/ref in the cached repo (detached HEAD).
-  let (output, code) = gitExec("git -C " & dest & " checkout " & tag & " --quiet 2>/dev/null")
+  let (output, code) = gitExec("git -C " & dest & " checkout " & tag & " --quiet")
   code == 0
 
 proc checkoutHead*(dest: string, refresh = false): bool =
@@ -176,13 +176,13 @@ proc checkoutHead*(dest: string, refresh = false): bool =
   if branch.len == 0:
     branch = "master"
   let (output, code) = gitExec("git -C " & dest &
-    " checkout -q origin/" & branch & " -- 2>/dev/null")
+    " checkout -q origin/" & branch & " --")
   if code == 0:
     return true
   # fallback: try the common default branch names
   for b in ["master", "main"]:
     let (out2, code2) = gitExec("git -C " & dest &
-      " checkout -q origin/" & b & " -- 2>/dev/null")
+      " checkout -q origin/" & b & " --")
     if code2 == 0:
       return true
   false
@@ -191,7 +191,7 @@ proc checkoutRef*(dest, refStr: string, refresh = false): bool =
   ## Checkout a branch or arbitrary ref in the cached repo.
   if refStr.len > 0 and refStr.toLowerAscii == "head":
     return checkoutHead(dest, refresh)
-  let (output, code) = gitExec("git -C " & dest & " checkout " & refStr & " --quiet 2>/dev/null")
+  let (output, code) = gitExec("git -C " & dest & " checkout " & refStr & " --quiet")
   code == 0
 
 type
@@ -614,12 +614,12 @@ proc readNimbleContent(dest, name, version: string): string =
   let (output, exitCode) =
     if version == "0.0.0":
       gitExec("git -C " & dest & " show origin/" & defaultBranch(dest) & ":" &
-        nimbleName & " 2>/dev/null")
+        nimbleName)
     else:
       let tag = tagForVersion(dest, version)
       if tag.len == 0:
         return ""
-      gitExec("git -C " & dest & " show " & tag & ":" & nimbleName & " 2>/dev/null")
+      gitExec("git -C " & dest & " show " & tag & ":" & nimbleName)
   if exitCode == 0: output else: ""
 
 proc getDeps*(name, version: string, features: seq[string] = @[],

@@ -126,6 +126,9 @@ var versionsDB*: Store
   ## registry/install-state DB (clue.db).
 var clueInitialized = false
 
+proc seedPackagesTable(nimblePackages: JsonNode): int
+  ## Defined below, after `initClue`.
+
 proc initClue*() =
   # Open the stores + run migrations exactly once per process — `withClueDB` is
   # used per DB operation, so re-initializing on every call is very slow.
@@ -277,24 +280,64 @@ proc initClue*() =
         displayWarning("Could not download package registry: " & e.msg)
         nimblePackages = newJArray()
 
-    for localPkg in nimblePackages:
-      if localPkg.hasKey("alias") or not localPkg.hasKey("web"):
-        continue
-      try:
-        let mthd = if localPkg.hasKey"method": localPkg["method"].getStr else: ""
-        clueDB.insertRow("packages", row({
-          "name": newTextValue(localPkg["name"].getStr),
-          "url": newTextValue(localPkg["url"].getStr),
-          "method": newTextValue(mthd),
-          "tags": newJsonValue(localPkg["tags"]),
-          "description": newTextValue(localPkg["description"].getStr),
-          "license": newTextValue(localPkg["license"].getStr),
-          "web": newTextValue(localPkg["web"].getStr)
-        }))
-      except CatchableError:
-        discard
-
+    discard seedPackagesTable(nimblePackages)
     clueDB.checkpoint()
+
+proc seedPackagesTable(nimblePackages: JsonNode): int =
+  ## Insert every non-alias package from the registry index into the `packages`
+  ## table. The caller must hold the `withClueDB` context. Returns the number of
+  ## packages inserted.
+  for localPkg in nimblePackages:
+    if localPkg.hasKey("alias") or not localPkg.hasKey("web"):
+      continue
+    try:
+      let mthd = if localPkg.hasKey"method": localPkg["method"].getStr else: ""
+      clueDB.insertRow("packages", row({
+        "name": newTextValue(localPkg["name"].getStr),
+        "url": newTextValue(localPkg["url"].getStr),
+        "method": newTextValue(mthd),
+        "tags": newJsonValue(localPkg["tags"]),
+        "description": newTextValue(localPkg["description"].getStr),
+        "license": newTextValue(localPkg["license"].getStr),
+        "web": newTextValue(localPkg["web"].getStr)
+      }))
+      inc result
+    except CatchableError:
+      discard
+
+proc refreshRegistry*(): bool =
+  ## Fetch a fresh packages.json from the nim registry and re-seed the
+  ## `packages` table in clue.db. Non-destructive: on any failure the previous
+  ## index is kept.
+  try:
+    let nimbleDir = nimbleLocalPackages.parentDir()
+    discard existsOrCreateDir(nimbleDir)
+    let tmpFile = nimbleLocalPackages & ".tmp"
+    let (output, exitCode) = execCmdEx("curl -fsSL --connect-timeout 10 -o " &
+      tmpFile & " " & nimblePackagesUrl)
+    if exitCode != 0:
+      displayError("Failed to download package registry: " & output)
+      return false
+    var nimblePackages: JsonNode
+    try:
+      nimblePackages = fromJsonFile(tmpFile)
+    except CatchableError:
+      removeFile(tmpFile)
+      displayError("Failed to parse downloaded registry: " & getCurrentExceptionMsg())
+      return false
+    moveFile(tmpFile, nimbleLocalPackages)
+    var count = 0
+    initClue()
+    let tbl = clueDB.getTable("packages").get()
+    for (pk, row) in tbl.allRows():
+      discard clueDB.deleteRow("packages", pk)
+    count = seedPackagesTable(nimblePackages)
+    clueDB.checkpoint()
+    displaySuccess("Updated package registry (" & $count & " packages)")
+    return true
+  except CatchableError as e:
+    displayError("Failed to update package registry: " & e.msg)
+    false
 
 template withClueDB*(stmt) =
   initClue()

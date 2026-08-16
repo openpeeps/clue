@@ -499,6 +499,9 @@ proc installCommand*(v: Values) =
   if raw.len == 0:
     # Local install: copy the current nimble package into the registry
     # (~/.clue/packages/<name>/<version>) with a clean, nimble-style layout.
+    # Dependencies are installed too (like `clue install <pkg>`), so a
+    # subsequent `clue test`/`clue build` finds the whole closure already
+    # present instead of fetching it on the fly.
     let nimblePath = findNimbleFile(getCurrentDir())
     if nimblePath.len == 0:
       displayError("No .nimble file found in " & getCurrentDir())
@@ -516,6 +519,12 @@ proc installCommand*(v: Values) =
     recordInstall(pkgName, version, deps, root = true,
       features = @[], installPath = verDir)
     displaySuccess("Installed " & pkgName & "@" & version & " to " & verDir)
+    for d in nimble.requires:
+      if d.isNim: continue
+      let dep = depName(d)
+      if dep.len == 0: continue
+      let refStr = if d.branch.len > 0: d.branch elif d.tag.len > 0: d.tag else: ""
+      installPackage(dep, refStr, false, d.features, verbose)
     if doBuild:
       if not buildInstalled(pkgName, buildRelease, buildDebug, verbose):
         return
@@ -636,6 +645,12 @@ proc versionsCommand*(v: Values) =
 proc pruneCommand*(v: Values) =
   ## Prune orphaned or out-of-range installed packages.
   pruneOrphans()
+
+proc registryUpdateCommand*(v: Values) =
+  ## Fetch a fresh packages.json from the nim registry and re-index the
+  ## available packages.
+  if not refreshRegistry():
+    quit(1)
 
 template whenPackageExists(pkgName: string, body: untyped): untyped =
   let pkgBase = cluePkgsPath / pkgName

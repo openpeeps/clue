@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.1.7"
+version       = "0.1.8"
 author        = "OpenPeeps"
 description   = "Package manager for Nim development"
 license       = "MIT"
@@ -24,3 +24,8 @@ requires "sweetsyntax >= 0.1.0"
 task test, "run unit tests":
   exec "nim c -r --hints:off --out:/tmp/clue_resolver_test src/clue/pkgmanager/resolver.nim"
   exec "nim c -r --hints:off --out:/tmp/clue_scenarios tests/resolver_scenarios.nim"
+  for f in [
+      "test_resolver_dfs", "test_resolver_units", "test_nimbleparser",
+      "test_versions", "test_configs", "test_manager",
+      "test_deploy_configs", "test_deploy_init", "test_deploy_web"]:
+    exec "nim c -r --hints:off --out:/tmp/clue_" & f & " tests/" & f & ".nim"
