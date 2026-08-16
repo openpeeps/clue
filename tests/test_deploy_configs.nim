@@ -1,7 +1,7 @@
 # Clue deploy configs — unit tests for `clue.deploy.yaml` / `.json`
 # parsing, default filling, path expansion and the option helpers.
 
-import std/[os, options, tables, unittest]
+import std/[os, options, strutils, tables, unittest]
 import clue/deploy/configs
 
 proc writeTemp(name: string, content: string): string =
@@ -27,7 +27,10 @@ suite "deploy configs — defaults":
 suite "deploy configs — expandPath":
   test "expands leading tilde":
     let p = expandPath("~/foo/bar")
-    check p == getHomeDir() / "foo/bar"
+    # expandPath does a raw string concat (getHomeDir() & "foo/bar"), so the
+    # separators may differ from the normalized `\` path on Windows — compare
+    # both sides with a normalized separator.
+    check p.replace('\\', '/') == (getHomeDir() / "foo/bar").replace('\\', '/')
 
   test "expands env vars with $VAR and ${VAR}":
     putEnv("CLUE_TEST_VAR", "abc")
