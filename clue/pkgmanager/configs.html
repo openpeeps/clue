@@ -153,6 +153,10 @@
   <li><a class="reference" href="#isInsidePkgs%2Cstring" title="isInsidePkgs(dir: string): bool">isInsidePkgs(dir: string): bool</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">refreshRegistry
+  <li><a class="reference" href="#refreshRegistry" title="refreshRegistry(): bool">refreshRegistry(): bool</a></li>
+
+</ul>
 <ul class="simple nested-toc-section">safeRemoveDir
   <li><a class="reference" href="#safeRemoveDir%2Cstring" title="safeRemoveDir(dir: string)">safeRemoveDir(dir: string)</a></li>
 
@@ -407,9 +411,9 @@
   <div id="initClue">
   <dt><pre><span class="Keyword">proc</span> <a href="#initClue"><span class="Identifier">initClue</span></a><span class="Other">(</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span>
                            <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span>
-                           <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
-    <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+                           <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteDirEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
+    <span class="Identifier">ExecIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
@@ -424,6 +428,19 @@
   <dd>
     
     True when <tt class="docutils literal"><span class="pre"><span class="Identifier">dir</span></span></tt> lives inside the clue package registry (~/.clue/packages). Everything clue manages lives here; anything outside it must never be deleted (e.g. develop-mode installs that point at the user's source tree).
+    
+  </dd>
+</div>
+
+</div>
+<div id="refreshRegistry-procs-all">
+  <div id="refreshRegistry">
+  <dt><pre><span class="Keyword">proc</span> <a href="#refreshRegistry"><span class="Identifier">refreshRegistry</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
+    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Fetch a fresh packages.json from the nim registry and re-seed the <tt class="docutils literal"><span class="pre"><span class="Identifier">packages</span></span></tt> table in clue.db. Non-destructive: on any failure the previous index is kept.
     
   </dd>
 </div>
@@ -480,7 +497,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-15 22:16:26 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-16 16:17:17 UTC</small>
       </div>
     </div>
   </div>

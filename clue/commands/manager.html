@@ -101,6 +101,10 @@
   <li><a class="reference" href="#pruneCommand%2CValues" title="pruneCommand(v: Values)">pruneCommand(v: Values)</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">registryUpdateCommand
+  <li><a class="reference" href="#registryUpdateCommand%2CValues" title="registryUpdateCommand(v: Values)">registryUpdateCommand(v: Values)</a></li>
+
+</ul>
 <ul class="simple nested-toc-section">uninstallCommand
   <li><a class="reference" href="#uninstallCommand%2CValues" title="uninstallCommand(v: Values)">uninstallCommand(v: Values)</a></li>
 
@@ -173,7 +177,7 @@
   <div id="installCommand,Values">
   <dt><pre><span class="Keyword">proc</span> <a href="#installCommand%2CValues"><span class="Identifier">installCommand</span></a><span class="Other">(</span><span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">Values</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span>
     <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span>
-    <span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">ResourceExhaustedError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
+    <span class="Identifier">ResourceExhaustedError</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
     <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
     <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
@@ -264,6 +268,19 @@
 </div>
 
 </div>
+<div id="registryUpdateCommand-procs-all">
+  <div id="registryUpdateCommand,Values">
+  <dt><pre><span class="Keyword">proc</span> <a href="#registryUpdateCommand%2CValues"><span class="Identifier">registryUpdateCommand</span></a><span class="Other">(</span><span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">Values</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
+    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Fetch a fresh packages.json from the nim registry and re-index the available packages.
+    
+  </dd>
+</div>
+
+</div>
 <div id="uninstallCommand-procs-all">
   <div id="uninstallCommand,Values">
   <dt><pre><span class="Keyword">proc</span> <a href="#uninstallCommand%2CValues"><span class="Identifier">uninstallCommand</span></a><span class="Other">(</span><span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">Values</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span>
@@ -332,7 +349,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-15 22:16:26 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-16 16:17:17 UTC</small>
       </div>
     </div>
   </div>

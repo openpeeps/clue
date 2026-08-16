@@ -19,6 +19,7 @@ nim	NimbleDependency	clue/pkgmanager/configs.html#NimbleDependency	object Nimble
 nim	NimbleFile	clue/pkgmanager/configs.html#NimbleFile	object NimbleFile		101
 nim	clueDB	clue/pkgmanager/configs.html#clueDB	var clueDB		123
 nim	versionsDB	clue/pkgmanager/configs.html#versionsDB	var versionsDB		124
-nim	initClue	clue/pkgmanager/configs.html#initClue	proc initClue()		129
-nim	withClueDB	clue/pkgmanager/configs.html#withClueDB.t	template withClueDB(stmt)		299
-nim	fetchPkgMeta	clue/pkgmanager/configs.html#fetchPkgMeta,string	proc fetchPkgMeta(pkgName: string): Option[PkgRef]		303
+nim	initClue	clue/pkgmanager/configs.html#initClue	proc initClue()		132
+nim	refreshRegistry	clue/pkgmanager/configs.html#refreshRegistry	proc refreshRegistry(): bool		308
+nim	withClueDB	clue/pkgmanager/configs.html#withClueDB.t	template withClueDB(stmt)		342
+nim	fetchPkgMeta	clue/pkgmanager/configs.html#fetchPkgMeta,string	proc fetchPkgMeta(pkgName: string): Option[PkgRef]		346
