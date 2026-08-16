@@ -119,6 +119,6 @@ suite "versions — no shell-only redirects in git commands":
     # installed. Every git command must be a plain `git ...` invocation.
     const source = staticRead(currentSourcePath().parentDir / ".." / "src" / "clue" / "pkgmanager" / "versions.nim")
     for line in source.splitLines():
-      if "gitExec(" in line or "gitExec \"" in line:
-        check "2>/dev/null" notin line
-        check "/dev/null" notin line
+      if "git" in line.toLowerAscii and ("2>/dev/null" in line or "/dev/null" in line):
+        check false
+    check true

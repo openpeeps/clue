@@ -38,7 +38,14 @@ suite "configs — safeRemoveDir refuses outside the registry":
     createDir(link.parentDir())
     defer:
       removeDir(target)
-      if symlinkExists(link): removeFile(link)
+      # Windows can only remove a directory symlink via RemoveDirectory, not
+      # DeleteFile, so try both and ignore cleanup failures.
+      if symlinkExists(link):
+        try:
+          removeFile(link)
+        except OSError:
+          try: removeDir(link)
+          except OSError: discard
     createSymlink(target, link)
     safeRemoveDir(link)
     check symlinkExists(link)
@@ -51,7 +58,12 @@ suite "configs — safeRemoveSymlink refuses outside develop":
     createDir(link.parentDir())
     defer:
       removeDir(target)
-      if symlinkExists(link): removeFile(link)
+      if symlinkExists(link):
+        try:
+          removeFile(link)
+        except OSError:
+          try: removeDir(link)
+          except OSError: discard
     createSymlink(target, link)
     safeRemoveSymlink(link)
     check symlinkExists(link)
