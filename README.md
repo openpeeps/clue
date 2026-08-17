@@ -37,10 +37,6 @@ per-version toolchains with virtual environments when `nimble` just doesn't cut 
 | `^` | caret (compatible) | `requires "pkg ^ 1.2.0"` → `>=1.2.0 <2.0.0` |
 | `~` or `~>` | tilde (approx) | `requires "pkg ~> 1.2.0"` → `>=1.2.0 <1.3.0` |
 
-> [!WARNING]
-> `=<` is **not valid** — use `<=` instead. Invalid operators are silently
-> treated as `*` (any version), which will not enforce the intended constraint.
-
 ## 😍 Key Features
 - Package management: cached version discovery, transitive dependency resolution, feature flags, SSH installs and orphan pruning
 - Build: the current package from its nimble file (`--release`, `--debug`, `--features`), or a bare module (`clue build foo.nim`) with every installed package on the import path

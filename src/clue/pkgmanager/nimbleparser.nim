@@ -78,6 +78,9 @@ proc parseRequiresArg*(arg: string): NimbleDependency =
           url: parts[0],
           constraint: parseConstraint(op & normalizeVersion(parts[2])),
           features: result.features)
+      elif parts.len >= 3 and parts[1].len > 0 and parts[1][0] in {'>', '<', '=', '!', '^', '~'}:
+        raise newException(ResolverError,
+          "Invalid constraint operator '" & parts[1] & "' for " & parts[0])
       else:
         result = NimbleDependency(url: arg, constraint:
           VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0)),
@@ -97,6 +100,9 @@ proc parseRequiresArg*(arg: string): NimbleDependency =
   if parts.len >= 3 and parts[1] in ["==", "=", ">=", ">", "<=", "<", "^", "~>"]:
     let op = if parts[1] == "==": "=" else: parts[1]
     result.constraint = parseConstraint(op & normalizeVersion(parts[2]))
+  elif parts.len >= 3 and parts[1].len > 0 and parts[1][0] in {'>', '<', '=', '!', '^', '~'}:
+    raise newException(ResolverError,
+      "Invalid constraint operator '" & parts[1] & "' for " & namePart)
   else:
     result.constraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0))
   result.isNim = result.name == "nim"
