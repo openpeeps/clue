@@ -6,12 +6,12 @@
 import std/[os, osproc, strformat, strutils, algorithm, sets, tables, json, sequtils, options, locks]
 import pkg/semver
 import pkg/kapsis/[runtime, interactive/prompts]
-import pkg/kapsis/interactive/spinny
 import pkg/malebolgia
 
 import ../pkgmanager/nimbleparser
 import ../pkgmanager/configs
 import ../pkgmanager/versions
+import ../pkgmanager/resolver
 import ./manager
 
 proc writeRaw(s: string) =
@@ -23,6 +23,52 @@ proc writeRaw(s: string) =
 
 proc depNameOf(d: NimbleDependency): string =
   if d.name.len > 0: d.name else: d.url
+
+proc installedVersionSatisfies(depPath: string, constraint: VersionConstraint): bool =
+  ## True when the installed version extracted from `depPath` satisfies the
+  ## nimble constraint. Any/0.0.0 constraints always pass.
+  if constraint.kind == vcAny: return true
+  if constraint.kind == vcExact and constraint.version.major == 0 and
+     constraint.version.minor == 0 and constraint.version.patch == 0:
+    return true
+  # path is like ~/.clue/packages/<name>/<version> — extract the last component
+  let versionStr = depPath.lastPathPart
+  try:
+    let installedVer = parseVersion(versionStr)
+    return installedVer.satisfies(constraint)
+  except CatchableError:
+    return true  # can't parse — assume OK, don't block the build
+
+proc detectNimVersion(): string =
+  ## The installed `nim --version` as `major.minor.patch` (fallback "2.2.10").
+  let (outp, code) = execCmdEx("nim --version")
+  if code != 0:
+    return "2.2.10"
+  for line in outp.splitLines():
+    if "Nim Compiler Version" in line:
+      for w in line.splitWhitespace():
+        if w.len > 0 and w[0] in {'0'..'9'}:
+          let parts = w.split('.')
+          if parts.len >= 2:
+            return if parts.len >= 3: parts[0] & "." & parts[1] & "." & parts[2]
+                   else: parts[0] & "." & parts[1]
+  "2.2.10"
+
+proc checkNimConstraint*(nimble: NimbleFile) =
+  ## Warn when the nimble `requires "nim >= X.Y.Z"` constraint is not satisfied
+  ## by the installed Nim compiler. Non-fatal: a warning is printed but the
+  ## build/test proceeds (the user may know what they're doing).
+  for d in nimble.requires:
+    if not d.isNim: continue
+    if d.constraint.kind == vcAny: continue
+    let currentNim = detectNimVersion()
+    try:
+      let curVer = parseVersion(currentNim)
+      if not curVer.satisfies(d.constraint):
+        displayWarning("Nim " & currentNim & " does not satisfy constraint " &
+          $d.constraint & " — build may fail")
+    except CatchableError:
+      discard
 
 proc installedCoversFeatures(name: string, feats: seq[string]): bool =
   ## True when the installed manifest for `name` was resolved with every
@@ -118,14 +164,20 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
     let name = depNameOf(dep)
     let refStr = if dep.branch.len > 0: dep.branch elif dep.tag.len > 0: dep.tag else: ""
     var depPath = resolveDepPath(name, refStr)
-    if depPath.len > 0 and isInsidePkgs(depPath) and
-        not installedCoversFeatures(name, dep.features):
-      if verbose: displayInfo("Refreshing " & name & " (features: " & dep.features.join(", ") & ")")
-      installPackage(name, refStr, false, dep.features, verbose)
-      depPath = resolveDepPath(name, refStr)
+    if depPath.len > 0 and isInsidePkgs(depPath):
+      var needsReinstall = false
+      if not installedCoversFeatures(name, dep.features):
+        if verbose: displayInfo("Refreshing " & name & " (features: " & dep.features.join(", ") & ")")
+        needsReinstall = true
+      elif not installedVersionSatisfies(depPath, dep.constraint):
+        if verbose: displayInfo("Reinstalling " & name & " (constraint " & $dep.constraint & " not satisfied by " & depPath.lastPathPart & ")")
+        needsReinstall = true
+      if needsReinstall:
+        installPackage(name, refStr, false, dep.features, verbose, constraint = dep.constraint)
+        depPath = resolveDepPath(name, refStr)
     if depPath.len == 0:
       if verbose: displayInfo("Dependency not installed, fetching: " & name)
-      installPackage(name, refStr, false, dep.features, verbose)
+      installPackage(name, refStr, false, dep.features, verbose, constraint = dep.constraint)
       depPath = resolveDepPath(name, refStr)
     if depPath.len > 0:
       processed.incl(name)
@@ -211,11 +263,6 @@ proc buildCommand*(v: Values) =
   # Module mode: `clue build foo.nim` — no nimble file needed; every installed
   # package is put on the import path so any `import xyz` resolves.
   if file.len > 0:
-    var spinny: Spinny
-    let useSpinner = not verbose
-    if useSpinner:
-      spinny = newSpinny("Building " & file & "...", skDots, time = true)
-      spinny.start()
     let pathFlags = allInstalledPaths().mapIt("--path:" & it)
     var flags = " " & pathFlags.join(" ") & " --colors:on"
     if isRelease:
@@ -230,16 +277,11 @@ proc buildCommand*(v: Values) =
       display("  " & cyan(cmd))
     let (output, exitCode) = execCmdEx(cmd)
     if exitCode != 0:
-      if useSpinner:
-        spinny.error("Build failed for " & file)
-      else:
-        displayError("Build failed for " & file)
+      displayError("Build failed for " & file)
       writeRaw(output)
     else:
       if verbose:
         writeRaw(output)
-      elif useSpinner:
-        spinny.success("Built " & file)
       else:
         displaySuccess("Built " & file & " → " & outFile)
     return
@@ -264,6 +306,8 @@ proc buildCommand*(v: Values) =
   let nimble = parseNimbleFile(nimblePath)
   let pkgName = nimblePath.extractFilename.changeFileExt("")
 
+  checkNimConstraint(nimble)
+
   if nimble.bin.len == 0:
     displayInfo("No binaries defined in " & nimblePath)
     return
@@ -276,14 +320,6 @@ proc buildCommand*(v: Values) =
     if nimble.binDir.len > 0: nimble.binDir
     else: "bin"
 
-  # Single spinner wrapping the whole build; it degrades to a plain status line
-  # when the output is not a terminal (pipes/CI).
-  var spinny: Spinny
-  let useSpinner = not verbose
-  if useSpinner:
-    spinny = newSpinny("Resolving dependencies...", skDots, time = true)
-    spinny.start()
-
   let (pathFlags, featureDefines) =
     collectResolvedPaths(nimble, activeRootFeatures, pkgName, verbose)
 
@@ -292,7 +328,6 @@ proc buildCommand*(v: Values) =
   # 3. Compile each binary. `--colors:on` keeps nim's ANSI colors in the
   #    captured output; errors are always printed (raw, colored), and with
   #    --verbose the warnings/hints are shown too.
-  var spinnerRunning = useSpinner
   for bin in nimble.bin:
     let srcFile = pkgDir / srcDir / bin.addFileExt("nim")
     let outFile = pkgDir / binDir / bin
@@ -305,26 +340,17 @@ proc buildCommand*(v: Values) =
     let cmd = &"nim c{flags} --out:{outFile} {srcFile}"
     if verbose:
       display("  " & cyan(cmd))
-    if spinnerRunning:
-      spinny.setText("Building " & bin & "...")
 
     let (output, exitCode) = execCmdEx(cmd)
     if exitCode != 0:
       # errors always shown, regardless of --verbose, colors preserved
-      if spinnerRunning:
-        spinny.error("Build failed for " & bin)
-        spinnerRunning = false
-      else:
-        displayError("Build failed for " & bin)
+      displayError("Build failed for " & bin)
       writeRaw(output)
     else:
       if verbose:
         writeRaw(output)
-      elif not useSpinner:
-        displaySuccess("Built " & bin & " → " & outFile)
-
-  if spinnerRunning:
-    spinny.success("Built successfully")
+      else:
+        displaySuccess("Built → " & outFile)
 
 var testOutputLock: Lock
 testOutputLock.initLock()
@@ -358,7 +384,7 @@ proc runTest(job: TestJob): int {.gcsafe.} =
 proc testCommand*(v: Values) =
   ## Compile and run the test modules in `tests/` (files starting with `test`,
   ## e.g. `test_*.nim` / `test1.nim`) against clue-managed dependencies,
-  ## printing nim's raw output (no spinner). Nim auto-loads any `tests/*.nims`
+  ## printing nim's raw output. Nim auto-loads any `tests/*.nims`
   ## config (e.g. `config.nims`) when compiling files in that directory. Tests
   ## run one by one by default; `--threads` compiles and runs them in parallel
   ## on the malebolgia pool and reports the exit code at the end.
@@ -372,6 +398,8 @@ proc testCommand*(v: Values) =
     return
   let nimble = parseNimbleFile(nimblePath)
   let pkgName = nimblePath.extractFilename.changeFileExt("")
+
+  checkNimConstraint(nimble)
 
   var activeRootFeatures: seq[string]
   if v.has("--features"):

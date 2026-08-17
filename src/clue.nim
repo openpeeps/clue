@@ -66,7 +66,7 @@ when isMainModule:
       -- "Documentation"
       docs:
         ## Generate Nim docs for local packages
-        gen string(pkgname):
+        gen string(pkg):
           ## Build documentation for an installed package
-        open string(pkgname), ?port("--port"):
+        open string(pkg), ?port("--port"):
           ## Serve local docs over HTTP (default port 11000)

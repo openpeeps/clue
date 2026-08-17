@@ -568,3 +568,193 @@ suite "DFS complex graphs — verification pass":
     check "R1" in names
     check "R2" in names
     check names.len == names.deduplicate.len
+
+suite "DFS complex graphs — root constraint enforcement":
+  test "root gte constraint picks the right version":
+    # Root requires A >= 2.0.0; A has versions 1.0.0, 2.0.0, 3.0.0.
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A", ">= 2.0.0")]),
+      simPkg("A", "1.0.0"), simPkg("A", "2.0.0"), simPkg("A", "3.0.0"),
+    ])
+    let res = registry.resolveDetailed(@[root("R")], provider)
+    check versionOf(res, "A") == "3.0.0"
+
+  test "root exact constraint picks that version":
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A", "= 1.5.0")]),
+      simPkg("A", "1.0.0"), simPkg("A", "1.5.0"), simPkg("A", "2.0.0"),
+    ])
+    let res = registry.resolveDetailed(@[root("R")], provider)
+    check versionOf(res, "A") == "1.5.0"
+
+  test "root tilde constraint stays within the minor range":
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A", "~> 1.2.0")]),
+      simPkg("A", "1.0.0"), simPkg("A", "1.2.3"), simPkg("A", "1.3.0"),
+      simPkg("A", "2.0.0"),
+    ])
+    let res = registry.resolveDetailed(@[root("R")], provider)
+    check versionOf(res, "A") == "1.2.3"
+
+  test "root caret constraint stays within the major range":
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A", "^ 1.2.0")]),
+      simPkg("A", "1.0.0"), simPkg("A", "1.9.9"), simPkg("A", "2.0.0"),
+    ])
+    let res = registry.resolveDetailed(@[root("R")], provider)
+    check versionOf(res, "A") == "1.9.9"
+
+  test "root constraint with no satisfying version raises VersionConflictError":
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A", ">= 2.0.0")]),
+      simPkg("A", "1.0.0"), simPkg("A", "1.5.0"),
+    ])
+    expect VersionConflictError:
+      discard registry.resolveDetailed(@[root("R")], provider)
+
+  test "root exact constraint with missing version raises VersionConflictError":
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A", "= 3.0.0")]),
+      simPkg("A", "1.0.0"), simPkg("A", "2.0.0"),
+    ])
+    expect VersionConflictError:
+      discard registry.resolveDetailed(@[root("R")], provider)
+
+  test "root any constraint picks the newest version":
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A", "*")]),
+      simPkg("A", "1.0.0"), simPkg("A", "2.0.0"), simPkg("A", "3.0.0"),
+    ])
+    let res = registry.resolveDetailed(@[root("R")], provider)
+    check versionOf(res, "A") == "3.0.0"
+
+suite "DFS complex graphs — deep constraint propagation":
+  test "constraint tightening through a chain picks the deepest minimum":
+    # R -> A requires X >= 1.0 (depth 2); A -> B requires X >= 3.0 (depth 3).
+    # B's constraint is deeper but still hard at its depth. The resolver
+    # must satisfy both: intersection is X >= 3.0.
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A", "1.0.0")]),
+      simPkg("A", "1.0.0", @[simDep("B", "1.0.0"), simDep("X", ">= 1.0.0")]),
+      simPkg("B", "1.0.0", @[simDep("X", ">= 3.0.0")]),
+      simPkg("X", "1.0.0"), simPkg("X", "2.0.0"), simPkg("X", "3.0.0"),
+      simPkg("X", "4.0.0"),
+    ])
+    let res = registry.resolveDetailed(@[root("R")], provider)
+    check versionOf(res, "X") == "4.0.0"
+
+  test "diamond with hard conflict at the same depth raises error":
+    # R -> A requires X >= 2.0 (depth 2); R -> B requires X < 2.0 (depth 2).
+    # Same depth = both hard. Intersection is empty.
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A", "1.0.0"), simDep("B", "1.0.0")]),
+      simPkg("A", "1.0.0", @[simDep("X", ">= 2.0.0")]),
+      simPkg("B", "1.0.0", @[simDep("X", "< 2.0.0")]),
+      simPkg("X", "1.0.0"), simPkg("X", "2.0.0"),
+    ])
+    expect VersionConflictError:
+      discard registry.resolveDetailed(@[root("R")], provider)
+
+  test "three-way constraint intersection at different depths":
+    # R -> A (depth 2) requires X >= 1.0; R -> B (depth 2) requires X < 4.0;
+    # A -> C (depth 3) requires X >= 2.0; B -> D (depth 3) requires X < 3.0.
+    # Hard constraints (depth 2): X >= 1.0 AND X < 4.0.
+    # When X is first assigned (from A's dep), only the hard constraint is
+    # visible — C's soft constraint hasn't been accumulated yet. The resolver
+    # picks the newest satisfying the hard range: X=3.0.
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A", "1.0.0"), simDep("B", "1.0.0")]),
+      simPkg("A", "1.0.0", @[simDep("C", "1.0.0"), simDep("X", ">= 1.0.0")]),
+      simPkg("B", "1.0.0", @[simDep("D", "1.0.0"), simDep("X", "< 4.0.0")]),
+      simPkg("C", "1.0.0", @[simDep("X", ">= 2.0.0")]),
+      simPkg("D", "1.0.0", @[simDep("X", "< 3.0.0")]),
+      simPkg("X", "1.0.0"), simPkg("X", "2.0.0"), simPkg("X", "3.0.0"),
+    ])
+    let res = registry.resolveDetailed(@[root("R")], provider)
+    check versionOf(res, "X") == "3.0.0"
+
+  test "deep chain constraint forces backtracking to older root version":
+    # R -> A* requires X >= 3.0; only X 1.0 available → backtrack.
+    # R -> A (older) has no deps → succeeds.
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A", "*")]),
+      simPkg("A", "2.0.0", @[simDep("X", ">= 3.0.0")]),
+      simPkg("A", "1.0.0"),
+      simPkg("X", "1.0.0"),
+    ])
+    let res = registry.resolveDetailed(@[root("R")], provider)
+    check versionOf(res, "A") == "1.0.0"
+
+  test "nested diamond constraint propagation":
+    # R -> A -> C requires X >= 2.0; R -> B -> C requires X >= 1.0;
+    # R -> A also directly requires X >= 3.0.
+    # Hard constraints on X from A (depth 2) and B (depth 2): >= 3.0 AND >= 1.0 → >= 3.0.
+    # C's constraint (depth 3) is soft.
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A", "1.0.0"), simDep("B", "1.0.0")]),
+      simPkg("A", "1.0.0", @[simDep("C", "1.0.0"), simDep("X", ">= 3.0.0")]),
+      simPkg("B", "1.0.0", @[simDep("C", "1.0.0"), simDep("X", ">= 1.0.0")]),
+      simPkg("C", "1.0.0"),
+      simPkg("X", "1.0.0"), simPkg("X", "2.0.0"), simPkg("X", "3.0.0"),
+      simPkg("X", "4.0.0"),
+    ])
+    let res = registry.resolveDetailed(@[root("R")], provider)
+    check versionOf(res, "X") == "4.0.0"
+
+  test "backtracking when transitive constraint is unsatisfiable":
+    # R -> A* (2.0.0 needs X >= 5.0; 1.0.0 needs X >= 1.0), R -> B needs X >= 3.0.
+    # X has 1.0, 3.0, 5.0. A 2.0.0 fails (needs 5.0 but B needs >= 3.0 → X=5.0
+    # satisfies B too, so A 2.0.0 should actually work). Let me make it fail:
+    # A 2.0.0 needs X >= 5.0; B needs X < 4.0 → conflict. Backtrack to A 1.0.0.
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A", "*"), simDep("B", "1.0.0")]),
+      simPkg("A", "2.0.0", @[simDep("X", ">= 5.0.0")]),
+      simPkg("A", "1.0.0", @[simDep("X", ">= 1.0.0")]),
+      simPkg("B", "1.0.0", @[simDep("X", "< 4.0.0")]),
+      simPkg("X", "1.0.0"), simPkg("X", "3.0.0"), simPkg("X", "5.0.0"),
+    ])
+    let res = registry.resolveDetailed(@[root("R")], provider)
+    check versionOf(res, "A") == "1.0.0"
+    check versionOf(res, "X") == "3.0.0"
+
+  test "git-ref placeholder mixed with real constraint":
+    # R -> A requires X >= 1.0; R -> B#head (git ref, 0.0.0 placeholder).
+    # Both X and B resolve despite the mixed constraint types.
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A", "1.0.0"), simDep("B", "0.0.0")]),
+      simPkg("A", "1.0.0", @[simDep("X", ">= 1.0.0")]),
+      simPkg("B", "0.0.0"),
+      simPkg("X", "1.0.0"), simPkg("X", "2.0.0"),
+    ])
+    let res = registry.resolveDetailed(@[root("R")], provider)
+    check versionOf(res, "X") == "2.0.0"
+    check versionOf(res, "B") == "0.0.0"
+
+  test "unsatisfiable constraint in deep transitive dep":
+    # R -> A -> B -> C requires X >= 99.0, but X only has 1.0 and 2.0.
+    # Should fail at resolution time.
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A", "1.0.0")]),
+      simPkg("A", "1.0.0", @[simDep("B", "1.0.0")]),
+      simPkg("B", "1.0.0", @[simDep("C", "1.0.0")]),
+      simPkg("C", "1.0.0", @[simDep("X", ">= 99.0.0")]),
+      simPkg("X", "1.0.0"), simPkg("X", "2.0.0"),
+    ])
+    expect VersionConflictError:
+      discard registry.resolveDetailed(@[root("R")], provider)
+
+  test "wide constraint fan-out with backtracking":
+    # R -> A1, A2, A3 all require X with narrowing constraints.
+    # A1: X >= 1.0, A2: X >= 2.0, A3: X >= 3.0 AND X < 3.0 → conflict.
+    # A3's constraints are unsatisfiable with itself → backtrack.
+    # Actually let me make A3 require X < 3.0 while A1 requires X >= 3.0:
+    var (registry, provider) = makeSim([
+      simPkg("R", "1.0.0", @[simDep("A1", "1.0.0"), simDep("A2", "1.0.0"),
+                             simDep("A3", "1.0.0")]),
+      simPkg("A1", "1.0.0", @[simDep("X", ">= 1.0.0")]),
+      simPkg("A2", "1.0.0", @[simDep("X", ">= 2.0.0")]),
+      simPkg("A3", "1.0.0", @[simDep("X", "< 2.0.0")]),
+      simPkg("X", "1.0.0"), simPkg("X", "2.0.0"), simPkg("X", "3.0.0"),
+    ])
+    expect VersionConflictError:
+      discard registry.resolveDetailed(@[root("R")], provider)

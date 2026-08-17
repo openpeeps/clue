@@ -7,11 +7,11 @@ import pkg/kapsis/interactive/prompts
 import ../docbuilder/[configs, builder, httpserver]
 
 proc docsGenCommand*(v: Values) =
-  let pkgName = v.get("pkgname").getStr
+  let pkgName = v.get("pkg").getStr
   buildDocs(pkgName)
 
 proc docsOpenCommand*(v: Values) =
-  let pkgName = v.get("pkgname").getStr
+  let pkgName = v.get("pkg").getStr
   let port =
     if v.has("--port"): v.get("--port").getPort
     else: Port(11000)

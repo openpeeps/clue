@@ -11,8 +11,6 @@ import pkg/[semver, openparser/json]
 import pkg/kapsis/[runtime, interactive/prompts]
 import pkg/malebolgia
 
-import ../cli/live
-
 import ../pkgmanager/resolver
 import ../pkgmanager/configs
 import ../pkgmanager/versions
@@ -100,7 +98,8 @@ proc installResolvedPkg(job: InstallJob): bool {.gcsafe.} =
 
 proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     features: seq[string] = @[], verbose = true, url = "",
-    doBuild = false, buildRelease = true, buildDebug = false) =
+    doBuild = false, buildRelease = true, buildDebug = false,
+    constraint: VersionConstraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0))) =
   ## Install a package and its dependencies into ~/.clue/packages.
   ## Uses fast, cached version discovery and only installs versions that
   ## satisfy the resolved constraints. Prunes orphans afterwards.
@@ -110,26 +109,17 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
   ## `doBuild` compiles the installed binaries (release by default) into
   ## ~/.clue/bin after the install — never done implicitly, since compiling a
   ## package executes its `{.compile.}` / `staticExec` code.
+  ## `constraint` is the version constraint from the nimble `requires` line
+  ## (e.g., `>= 0.1.9`). When `pkgRef` is empty and `constraint` is not `*`,
+  ## the constraint is used as the root constraint for resolution.
   withClueDB do:
-    # live multi-line output: only on a real terminal and when not verbose
-    # (matches `clue build`); disabled while debug tracing is on so trace lines
-    # stay clean. `CLUE_NO_LIVE=1` (parallel `clue update`) forces plain output.
-    let useLive = getEnv("CLUE_NO_LIVE") != "1" and
-      not verbose and isatty(stdout) and not debugEnabled
-    var live: Live
-    var pendingWarnings: seq[string]
+    let showProgress = verbose or isatty(stdout)
     proc progress(msg: string) =
-      if useLive: live.setMain(msg)
-      elif verbose: displayInfo(msg)
+      if showProgress: displayInfo(msg)
     proc warn(msg: string) =
-      if useLive: pendingWarnings.add(msg)
-      else: displayWarning(msg)
+      displayWarning(msg)
     proc fail(msg: string) =
-      if useLive: live.error(msg)
-      else: displayError(msg)
-    if useLive:
-      live = newLive("installing " & pkgName & "...")
-      live.start()
+      displayError(msg)
 
     var rootMeta: PkgRef
     if url.len > 0:
@@ -157,7 +147,9 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     # 2. Root constraint: explicit semver ref, else latest (vcAny).
     #    Non-semver refs (git branches/tags via `pkg@ref` / `#ref`) install
     #    the ref directly. Feature refs (`pkg[feat]`) are NOT git refs.
-    var rootConstraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0))
+    #    When a nimble `requires` constraint is provided (e.g., `>= 0.1.9`),
+    #    it is used as the root constraint instead of vcAny.
+    var rootConstraint = constraint
     if pkgRef.len > 0:
       try:
         rootConstraint = VersionConstraint(kind: vcExact, version: parseVersion(pkgRef))
@@ -239,8 +231,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
         debugLog("Phase A: fetching " & $toDiscover.len & " package(s)")
         progress("checking " & $toDiscover.len & " package(s)...")
         proc onFetch(name: string, count: int, cached: bool) =
-          if useLive:
-            live.event(fetchEventText(name, count, cached))
+          progress(fetchEventText(name, count, cached))
         let discovered = discoverVersionsBatch(toDiscover, refresh, onFetch)
         for name, versions in discovered:
           registerVersions(name, versions)
@@ -315,8 +306,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
             return
           progress("checking " & $toDiscover.len & " package(s)...")
           proc onFetch2(name: string, count: int, cached: bool) =
-            if useLive:
-              live.event(fetchEventText(name, count, cached))
+            progress(fetchEventText(name, count, cached))
           let discovered = discoverVersionsBatch(toDiscover, refresh, onFetch2)
           for name, versions in discovered:
             registerVersions(name, versions)
@@ -384,14 +374,13 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     #    package); cache-ensuring and the already-installed check stay here.
     var installedCount = 0
     var installedLabels: seq[string]
-    if useLive:
-      let rootLabel =
-        if rootMeta.refStr.len > 0: "@" & rootMeta.refStr
-        else:
-          let v = name2ver.getOrDefault(pkgName)
-          if v.len > 0: "@" & v else: ""
-      if rootLabel.len > 0:
-        live.setMain("installing " & pkgName & rootLabel)
+    let rootLabel =
+      if rootMeta.refStr.len > 0: "@" & rootMeta.refStr
+      else:
+        let v = name2ver.getOrDefault(pkgName)
+        if v.len > 0: "@" & v else: ""
+    if rootLabel.len > 0:
+      progress("installing " & pkgName & rootLabel)
     var jobs: seq[InstallJob]
     for rp in resolution.packages:
       let meta = pkgRefs.getOrDefault(rp.name, PkgRef())
@@ -416,10 +405,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
         if meta.refStr.len > 0: " @" & verStr
         else: " v" & verStr
       if dirExists(verDir):
-        if useLive:
-          live.event(rp.name & label & " (cached)")
-        else:
-          progress("installing " & rp.name & label & " (already installed)")
+        progress(rp.name & label & " (cached)")
         installedCount.inc
         installedLabels.add(rp.name & "@" & verStr)
         continue
@@ -439,10 +425,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
         if ok:
           installedCount.inc
           installedLabels.add(jobs[i].name & "@" & jobs[i].verStr)
-          if useLive:
-            live.event("installed " & jobs[i].name & jobs[i].label)
-          else:
-            progress("installing " & jobs[i].name & jobs[i].label)
+          progress("installed " & jobs[i].name & jobs[i].label)
         else:
           warn("Failed to install " & jobs[i].name & " v" & jobs[i].verStr)
 
@@ -465,15 +448,10 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
 
     # Success summary: `Installed N package(s)` (the install location is
     # implied) followed by the installed packages, one per line in cyan.
-    if useLive:
-      live.success("Installed " & $installedCount & " " & pluralize(installedCount, "package"))
-    elif installedCount > 0:
+    if installedCount > 0:
       displaySuccess("Installed " & $installedCount & " " & pluralize(installedCount, "package"))
     for lbl in installedLabels:
       display("  " & cyan(lbl))
-    if useLive:
-      for w in pendingWarnings:
-        displayWarning(w)
 
     # 8. Prune orphans / out-of-range versions
     pruneOrphans(verbose)
@@ -524,7 +502,7 @@ proc installCommand*(v: Values) =
       let dep = depName(d)
       if dep.len == 0: continue
       let refStr = if d.branch.len > 0: d.branch elif d.tag.len > 0: d.tag else: ""
-      installPackage(dep, refStr, false, d.features, verbose)
+      installPackage(dep, refStr, false, d.features, verbose, constraint = d.constraint)
     if doBuild:
       if not buildInstalled(pkgName, buildRelease, buildDebug, verbose):
         return
@@ -556,13 +534,10 @@ proc installCommand*(v: Values) =
 proc updateRootSubprocess(exe, name: string): int {.gcsafe.} =
   ## Thread-pool worker for `clue update` (no argument): runs `clue update
   ## <name>` in an isolated process (streaming its output straight to the
-  ## terminal), so parallel roots never share the DB, git or spinner state.
-  ## `CLUE_NO_LIVE=1` keeps the subprocess output plain — without it, several
-  ## live spinners would fight over the shared terminal.
+  ## terminal), so parallel roots never share the DB or git state.
   var subEnv = newStringTable()
   for k, v in envPairs():
     subEnv[k] = v
-  subEnv["CLUE_NO_LIVE"] = "1"
   var p = startProcess(exe, args = ["update", name], env = subEnv,
     options = {poUsePath, poParentStreams})
   result = p.waitForExit()
