@@ -79,7 +79,9 @@ proc parseRequiresArg*(arg: string): NimbleDependency =
           constraint: parseConstraint(op & normalizeVersion(parts[2])),
           features: result.features)
       else:
-        result = NimbleDependency(url: arg, features: result.features)
+        result = NimbleDependency(url: arg, constraint:
+          VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0)),
+          features: result.features)
     return
 
   # name[#ref] and optional `>= constraint`

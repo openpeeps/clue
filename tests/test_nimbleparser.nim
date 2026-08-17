@@ -62,6 +62,31 @@ suite "nimbleparser — parseRequiresArg":
     let d = parseRequiresArg("https://github.com/openpeeps/spry")
     check d.url == "https://github.com/openpeeps/spry"
 
+  test "=< falls through to any (not a valid operator)":
+    let d = parseRequiresArg("spry =< 1.2.0")
+    check d.name == "spry"
+    check $d.constraint == "*"
+
+  test "=< on URL dep falls through to any":
+    let d = parseRequiresArg("https://github.com/openpeeps/spry =< 1.2.0")
+    check d.url == "https://github.com/openpeeps/spry =< 1.2.0"
+    check $d.constraint == "*"
+
+  test "!= falls through to any (not a valid operator)":
+    let d = parseRequiresArg("spry != 1.2.0")
+    check d.name == "spry"
+    check $d.constraint == "*"
+
+  test ">< falls through to any (not a valid operator)":
+    let d = parseRequiresArg("spry >< 1.2.0")
+    check d.name == "spry"
+    check $d.constraint == "*"
+
+  test "<> falls through to any (not a valid operator)":
+    let d = parseRequiresArg("spry <> 1.2.0")
+    check d.name == "spry"
+    check $d.constraint == "*"
+
 suite "nimbleparser — parseNimbleString metadata":
   test "captures scalar metadata fields":
     let f = parseNimbleString("""
