@@ -8,6 +8,7 @@ import std/[os, osproc, strutils, options, sequtils, tables, times]
 
 import pkg/boogie/stores/rdbms
 import pkg/openparser/json
+import pkg/semver
 
 import pkg/kapsis/interactive/prompts
 
@@ -316,14 +317,14 @@ proc refreshRegistry*(): bool =
     let (output, exitCode) = execCmdEx("curl -fsSL --connect-timeout 10 -o " &
       tmpFile & " " & nimblePackagesUrl)
     if exitCode != 0:
-      displayError("Failed to download package registry: " & output)
+      displayError("Failed to download package registry: " & output, quitProcess = true)
       return false
     var nimblePackages: JsonNode
     try:
       nimblePackages = fromJsonFile(tmpFile)
     except CatchableError:
       removeFile(tmpFile)
-      displayError("Failed to parse downloaded registry: " & getCurrentExceptionMsg())
+      displayError("Failed to parse downloaded registry: " & getCurrentExceptionMsg(), quitProcess = true)
       return false
     moveFile(tmpFile, nimbleLocalPackages)
     var count = 0
@@ -336,7 +337,7 @@ proc refreshRegistry*(): bool =
     displaySuccess("Updated package registry (" & $count & " packages)")
     return true
   except CatchableError as e:
-    displayError("Failed to update package registry: " & e.msg)
+    displayError("Failed to update package registry: " & e.msg, quitProcess = true)
     false
 
 template withClueDB*(stmt) =
@@ -353,3 +354,39 @@ proc fetchPkgMeta*(pkgName: string): Option[PkgRef] =
   none(PkgRef)
 
 # parseNimbleFile is defined in nimbleparser.nim
+
+proc detectNimVersion*(): string =
+  ## The installed `nim --version` as `major.minor.patch` (fallback "2.2.10").
+  let (outp, code) = execCmdEx("nim --version")
+  if code != 0:
+    return "2.2.10"
+  for line in outp.splitLines():
+    if "Nim Compiler Version" in line:
+      for w in line.splitWhitespace():
+        if w.len > 0 and w[0] in {'0'..'9'}:
+          let parts = w.split('.')
+          if parts.len >= 2:
+            return if parts.len >= 3: parts[0] & "." & parts[1] & "." & parts[2]
+                   else: parts[0] & "." & parts[1]
+  "2.2.10"
+
+proc checkNimConstraint*(nimble: NimbleFile) =
+  ## Check the nimble `requires "nim ..."` constraint against the installed
+  ## Nim compiler. Exact (`=`) mismatches are fatal — the build will fail.
+  ## Range mismatches (`>=`, `<`, etc.) emit a warning since the build may
+  ## still work.
+  for d in nimble.requires:
+    if not d.isNim: continue
+    if d.constraint.kind == vcAny: continue
+    let currentNim = detectNimVersion()
+    try:
+      let curVer = parseVersion(currentNim)
+      if not curVer.satisfies(d.constraint):
+        if d.constraint.kind == vcExact:
+          displayError("Nim " & currentNim & " does not satisfy exact constraint " &
+            $d.constraint & " — required by nimble, cannot proceed", quitProcess = true)
+        else:
+          displayWarning("Nim " & currentNim & " does not satisfy constraint " &
+            $d.constraint & " — build may fail")
+    except CatchableError:
+      discard

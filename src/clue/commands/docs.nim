@@ -48,6 +48,6 @@ proc docsOpenCommand*(v: Values) =
         docDir = best.path
 
   if docDir.len == 0 or not dirExists(docDir):
-    displayError("No documentation found for '" & name & "'. Run `clue docs.gen " & name & "` first.")
+    displayError("No documentation found for '" & name & "'. Run `clue docs.gen " & name & "` first.", quitProcess = true)
     return
   serveDocs(docDir, name, port)

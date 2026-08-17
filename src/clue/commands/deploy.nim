@@ -37,17 +37,17 @@ proc deployWebCommand*(v: Values) =
   try:
     path = findDeployConfig(configPath)
   except CatchableError as e:
-    displayError(e.msg)
+    displayError(e.msg, quitProcess = true)
     return
   if path.len == 0:
-    displayError("No clue.deploy.yaml / clue.deploy.json found. Run `clue deploy.init` first.")
+    displayError("No clue.deploy.yaml / clue.deploy.json found. Run `clue deploy.init` first.", quitProcess = true)
     return
 
   var cfg: DeployConfig
   try:
     cfg = parseDeployConfig(path)
   except CatchableError as e:
-    displayError("Failed to parse " & path & ": " & e.msg)
+    displayError("Failed to parse " & path & ": " & e.msg, quitProcess = true)
     return
 
   let code = deployWeb(cfg, profileName, keyOverride, dryRun, yes, verbose, statusOnly)

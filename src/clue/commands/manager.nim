@@ -120,6 +120,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
       displayWarning(msg)
     proc fail(msg: string) =
       displayError(msg)
+      quit(1)
 
     var rootMeta: PkgRef
     if url.len > 0:
@@ -482,10 +483,13 @@ proc installCommand*(v: Values) =
     # present instead of fetching it on the fly.
     let nimblePath = findNimbleFile(getCurrentDir())
     if nimblePath.len == 0:
-      displayError("No .nimble file found in " & getCurrentDir())
+      displayError("No .nimble file found in " & getCurrentDir(), quitProcess = true)
       return
     let nimble = parseNimbleFile(nimblePath)
     let pkgName = nimblePath.extractFilename.changeFileExt("")
+
+    checkNimConstraint(nimble)
+
     let version = if nimble.version.len > 0: nimble.version else: "0.0.0"
     let verDir = cluePkgsPath / pkgName / version
     safeRemoveDir(verDir)
@@ -520,7 +524,7 @@ proc installCommand*(v: Values) =
       url = url[0 ..< hashPos]
     let name = pkgNameFromUrl(url)
     if name.len == 0:
-      displayError("Could not derive a package name from: " & raw)
+      displayError("Could not derive a package name from: " & raw, quitProcess = true)
       return
     installPackage(name, urlRef, refresh, features, verbose, url = toGitSshUrl(url),
       doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug)
@@ -584,7 +588,7 @@ proc developCommand*(v: Values) =
   ## up via the recorded path (`import pkg/<name>` resolves against live source).
   let nimblePath = findNimbleFile(getCurrentDir())
   if nimblePath.len == 0:
-    displayError("No .nimble file found in " & getCurrentDir())
+    displayError("No .nimble file found in " & getCurrentDir(), quitProcess = true)
     return
   let nimble = parseNimbleFile(nimblePath)
   let pkgName = nimblePath.extractFilename.changeFileExt("")
@@ -606,7 +610,7 @@ proc versionsCommand*(v: Values) =
   let pkgName = v.get("pkg").getStr
   let metaOpt = fetchPkgMeta(pkgName)
   if metaOpt.isNone:
-    displayError("Package not found in registry: " & pkgName)
+    displayError("Package not found in registry: " & pkgName, quitProcess = true)
     return
   let meta = metaOpt.get()
   let versions = discoverVersions(pkgName, meta.url, v.has("--refresh"))
@@ -641,12 +645,12 @@ template whenPackageExists(pkgName: string, body: untyped): untyped =
                       .where("name", newTextValue(pkgName))
                       .toSeq()
     if res.len == 0:
-      displayError("Package not found: " & pkgName)
+      displayError("Package not found: " & pkgName, quitProcess = true)
       return
     block:
       `body`
   else:
-    displayError("Package not found: " & cyan(pkgName))
+    displayError("Package not found: " & cyan(pkgName), quitProcess = true)
 
 proc uninstallCommand*(v: Values) =
   let pkgInput = split(v.get("pkg").getStr, "@")
@@ -661,7 +665,7 @@ proc uninstallCommand*(v: Values) =
         found = true
         break
     if not found:
-      displayError("Version not installed: " & pkgName & "@" & pkgVersion)
+      displayError("Version not installed: " & pkgName & "@" & pkgVersion, quitProcess = true)
       return
     if rec.isDevInstall:
       # develop-mode install: only the DB entry (and the ~/.clue/develop
@@ -682,7 +686,7 @@ proc uninstallCommand*(v: Values) =
         else:
           displayInfo("Removal cancelled.")
       else:
-        displayError("Version not installed: " & pkgName & "@" & pkgVersion)
+        displayError("Version not installed: " & pkgName & "@" & pkgVersion, quitProcess = true)
   else:
     # unversioned: the installed records are the source of truth (dev installs
     # have no files under ~/.clue/packages, only DB entries)
@@ -694,7 +698,7 @@ proc uninstallCommand*(v: Values) =
           hasDirs = true
           break
     if recs.len == 0 and not hasDirs:
-      displayError("Package not found: " & cyan(pkgName))
+      displayError("Package not found: " & cyan(pkgName), quitProcess = true)
       return
     if promptConfirm("Remove all versions of " & cyan(pkgName) & "?"):
       safeRemoveDir(cluePkgsPath / pkgName)
@@ -807,20 +811,20 @@ proc venvCommand*(v: Values) =
   ## Create a virtual environment for a Nim package
   let requestedVersion = v.get("--nim").getStr
   if requestedVersion.len == 0:
-    displayError("Please specify a Nim version: --nim:<version>")
+    displayError("Please specify a Nim version: --nim:<version>", quitProcess = true)
     return
 
   # Check choosenim availability and installed versions
   let choosenimInfoOpt = getChoosenimInfo()
   if choosenimInfoOpt.isNone:
-    displayError("`choosenim` is not installed or not available in PATH.")
+    displayError("`choosenim` is not installed or not available in PATH.", quitProcess = true)
     return
 
   let choosenimInfo = choosenimInfoOpt.get()
 
   # Validate requested version is installed
   if requestedVersion notin choosenimInfo.versions:
-    displayError("Nim version " & cyan(requestedVersion) & " is not installed.")
+    displayError("Nim version " & cyan(requestedVersion) & " is not installed.", quitProcess = true)
     displayInfo("Installed versions: " & choosenimInfo.versions.join(", "))
     displayInfo("Install it with: choosenim " & requestedVersion)
     return
@@ -835,7 +839,7 @@ proc venvCommand*(v: Values) =
 
   let nimVersionPath = getNimVersionPath(choosenimHome, requestedVersion)
   if not dirExists(nimVersionPath):
-    displayError("Toolchain path not found: " & nimVersionPath)
+    displayError("Toolchain path not found: " & nimVersionPath, quitProcess = true)
     displayInfo("Try reinstalling with: choosenim " & requestedVersion)
     return
 

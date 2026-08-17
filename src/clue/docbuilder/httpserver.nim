@@ -35,11 +35,11 @@ proc loadAssets(docDir: string): tuple[files: TableRef[string, string], index: s
 proc serveDocs*(docDir, pkgName: string, port: Port) =
   ## Serve the preloaded docs for `pkgName` over HTTP, opening the browser.
   if not dirExists(docDir):
-    displayError("Documentation not found for " & pkgName & " at " & docDir)
+    displayError("Documentation not found for " & pkgName & " at " & docDir, quitProcess = true)
     return
   let (files, index) = loadAssets(docDir)
   if files.len == 0:
-    displayError("No documentation assets found in " & docDir)
+    displayError("No documentation assets found in " & docDir, quitProcess = true)
     return
   let mimes = newMimetypes()
   let server = newAsyncHttpServer()

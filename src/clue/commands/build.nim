@@ -39,37 +39,6 @@ proc installedVersionSatisfies(depPath: string, constraint: VersionConstraint): 
   except CatchableError:
     return true  # can't parse — assume OK, don't block the build
 
-proc detectNimVersion(): string =
-  ## The installed `nim --version` as `major.minor.patch` (fallback "2.2.10").
-  let (outp, code) = execCmdEx("nim --version")
-  if code != 0:
-    return "2.2.10"
-  for line in outp.splitLines():
-    if "Nim Compiler Version" in line:
-      for w in line.splitWhitespace():
-        if w.len > 0 and w[0] in {'0'..'9'}:
-          let parts = w.split('.')
-          if parts.len >= 2:
-            return if parts.len >= 3: parts[0] & "." & parts[1] & "." & parts[2]
-                   else: parts[0] & "." & parts[1]
-  "2.2.10"
-
-proc checkNimConstraint*(nimble: NimbleFile) =
-  ## Warn when the nimble `requires "nim >= X.Y.Z"` constraint is not satisfied
-  ## by the installed Nim compiler. Non-fatal: a warning is printed but the
-  ## build/test proceeds (the user may know what they're doing).
-  for d in nimble.requires:
-    if not d.isNim: continue
-    if d.constraint.kind == vcAny: continue
-    let currentNim = detectNimVersion()
-    try:
-      let curVer = parseVersion(currentNim)
-      if not curVer.satisfies(d.constraint):
-        displayWarning("Nim " & currentNim & " does not satisfy constraint " &
-          $d.constraint & " — build may fail")
-    except CatchableError:
-      discard
-
 proc installedCoversFeatures(name: string, feats: seq[string]): bool =
   ## True when the installed manifest for `name` was resolved with every
   ## requested feature (so `-d:features.<name>.<feat>` is meaningful).
@@ -277,7 +246,7 @@ proc buildCommand*(v: Values) =
       display("  " & cyan(cmd))
     let (output, exitCode) = execCmdEx(cmd)
     if exitCode != 0:
-      displayError("Build failed for " & file)
+      displayError("Build failed for " & file, quitProcess = true)
       writeRaw(output)
     else:
       if verbose:
@@ -300,7 +269,7 @@ proc buildCommand*(v: Values) =
   let nimblePath = findNimbleFile(pkgDir)
 
   if nimblePath.len == 0:
-    displayError("No .nimble file found in " & pkgDir)
+    displayError("No .nimble file found in " & pkgDir, quitProcess = true)
     return
 
   let nimble = parseNimbleFile(nimblePath)
@@ -344,7 +313,7 @@ proc buildCommand*(v: Values) =
     let (output, exitCode) = execCmdEx(cmd)
     if exitCode != 0:
       # errors always shown, regardless of --verbose, colors preserved
-      displayError("Build failed for " & bin)
+      displayError("Build failed for " & bin, quitProcess = true)
       writeRaw(output)
     else:
       if verbose:
@@ -394,7 +363,7 @@ proc testCommand*(v: Values) =
   let pkgDir = getCurrentDir()
   let nimblePath = findNimbleFile(pkgDir)
   if nimblePath.len == 0:
-    displayError("No .nimble file found in " & pkgDir)
+    displayError("No .nimble file found in " & pkgDir, quitProcess = true)
     return
   let nimble = parseNimbleFile(nimblePath)
   let pkgName = nimblePath.extractFilename.changeFileExt("")
@@ -433,7 +402,7 @@ proc testCommand*(v: Values) =
       let (output, exitCode) = execCmdEx(cmd)
       writeRaw(output)
       if exitCode != 0:
-        displayError("Test failed: " & base)
+        displayError("Test failed: " & base, quitProcess = true)
         quit(1)
     return
 
@@ -451,6 +420,6 @@ proc testCommand*(v: Values) =
   for i, code in exitCodes:
     if code != 0:
       failed = true
-      displayError("Test failed: " & testFiles[i].extractFilename.changeFileExt(""))
+      displayError("Test failed: " & testFiles[i].extractFilename.changeFileExt(""), quitProcess = true)
   if failed:
     quit(1)

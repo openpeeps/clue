@@ -76,7 +76,7 @@ proc buildInstalled*(name: string, release = true, debug = false,
   ## so a cascade of tool binaries is installed in dependency order.
   let rootDir = resolveInstalledPath(name, "")
   if rootDir.len == 0:
-    displayError("Not installed: " & name & ". Run `clue install " & name & "` first.")
+    displayError("Not installed: " & name & ". Run `clue install " & name & "` first.", quitProcess = true)
     return false
   discard existsOrCreateDir(clueBinPath)
 
@@ -99,7 +99,7 @@ proc buildInstalled*(name: string, release = true, debug = false,
     elif verbose: displayInfo(msg)
   proc fail(msg: string) =
     if useLive: live.error(msg)
-    else: displayError(msg)
+    else: displayError(msg, quitProcess = true)
   if useLive:
     live = newLive("building " & name & " binaries...")
     live.start()

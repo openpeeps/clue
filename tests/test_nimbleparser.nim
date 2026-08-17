@@ -25,6 +25,11 @@ suite "nimbleparser — parseRequiresArg":
     check d.name == "spry"
     check $d.constraint == "= 1.2.0"
 
+  test "name with = operator":
+    let d = parseRequiresArg("spry = 1.2.0")
+    check d.name == "spry"
+    check $d.constraint == "= 1.2.0"
+
   test "short versions are padded to three components":
     let d = parseRequiresArg("spry >= 1.2")
     check $d.constraint == ">= 1.2.0"

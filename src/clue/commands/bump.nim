@@ -47,19 +47,19 @@ proc bumpCommand*(v: Values) =
 
   let nimblePath = findNimbleFile(getCurrentDir())
   if nimblePath.len == 0:
-    displayError("No .nimble file found in " & getCurrentDir())
+    displayError("No .nimble file found in " & getCurrentDir(), quitProcess = true)
     return
 
   var content: string
   try:
     content = readFile(nimblePath)
   except CatchableError as e:
-    displayError("Failed to read " & nimblePath & ": " & e.msg)
+    displayError("Failed to read " & nimblePath & ": " & e.msg, quitProcess = true)
     return
 
   let found = parseCurrentVersion(content)
   if found.version.len == 0:
-    displayError("No version field found in " & nimblePath)
+    displayError("No version field found in " & nimblePath, quitProcess = true)
     return
 
   let newVersion = bumpVersion(found.version, versionArg, major)
@@ -74,7 +74,7 @@ proc bumpCommand*(v: Values) =
   try:
     writeFile(nimblePath, lines.join("\n"))
   except CatchableError as e:
-    displayError("Failed to write " & nimblePath & ": " & e.msg)
+    displayError("Failed to write " & nimblePath & ": " & e.msg, quitProcess = true)
     return
 
   displaySuccess(found.version & " -> " & newVersion & " in " & nimblePath)

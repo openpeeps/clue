@@ -152,16 +152,16 @@ proc upgradeCommand*(v: Values) =
   let (_, dlCode) = execCmdEx("curl -fsSL --connect-timeout 15 " &
     quoteShell(url) & " -o " & quoteShell(archive))
   if dlCode != 0:
-    displayError("Failed to download the release: " & url)
+    displayError("Failed to download the release: " & url, quitProcess = true)
     return
 
   if not extractArchive(workDir, archive, asset, ext):
-    displayError("Failed to extract the release archive")
+    displayError("Failed to extract the release archive", quitProcess = true)
     return
 
   let extracted = findBinary(workDir, asset)
   if extracted.len == 0:
-    displayError("No clue binary found in the release archive")
+    displayError("No clue binary found in the release archive", quitProcess = true)
     return
 
   # Back up the current binary, then install the new one. On Windows the
@@ -188,11 +188,11 @@ proc upgradeCommand*(v: Values) =
       copyFile(extracted, target)
       installed = true
     except OSError as e:
-      displayError("Failed to install " & target & ": " & e.msg)
+      displayError("Failed to install " & target & ": " & e.msg, quitProcess = true)
       return
 
   if not installed:
-    displayError("Failed to install " & target)
+    displayError("Failed to install " & target, quitProcess = true)
     return
 
   when defined(posix):

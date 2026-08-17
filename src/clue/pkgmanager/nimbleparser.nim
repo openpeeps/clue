@@ -72,7 +72,7 @@ proc parseRequiresArg*(arg: string): NimbleDependency =
         url: arg[0..<hashPos], tag: arg[hashPos+1..^1], features: result.features)
     else:
       let parts = arg.splitWhitespace()
-      if parts.len >= 3 and parts[1] in ["==", ">=", ">", "<=", "<", "^", "~>"]:
+      if parts.len >= 3 and parts[1] in ["==", "=", ">=", ">", "<=", "<", "^", "~>"]:
         let op = if parts[1] == "==": "=" else: parts[1]
         result = NimbleDependency(
           url: parts[0],
@@ -94,7 +94,7 @@ proc parseRequiresArg*(arg: string): NimbleDependency =
     namePart = namePart[0..<hashPos].strip()
 
   result = NimbleDependency(name: namePart, branch: refStr, features: result.features)
-  if parts.len >= 3 and parts[1] in ["==", ">=", ">", "<=", "<", "^", "~>"]:
+  if parts.len >= 3 and parts[1] in ["==", "=", ">=", ">", "<=", "<", "^", "~>"]:
     let op = if parts[1] == "==": "=" else: parts[1]
     result.constraint = parseConstraint(op & normalizeVersion(parts[2]))
   else:

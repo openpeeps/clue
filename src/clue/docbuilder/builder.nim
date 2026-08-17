@@ -37,7 +37,7 @@ proc buildDocs*(pkgRef: string) =
   let records = installedRecords(pkgName)
   if records.len == 0:
     displayError("Package not installed: " & pkgName &
-      ". Run `clue install " & pkgName & "` first.")
+      ". Run `clue install " & pkgName & "` first.", quitProcess = true)
     return
 
   var version = wantVersion
@@ -48,7 +48,7 @@ proc buildDocs*(pkgRef: string) =
         pkgDir = r.path
         break
     if pkgDir.len == 0:
-      displayError("Version not installed: " & pkgName & "@" & version)
+      displayError("Version not installed: " & pkgName & "@" & version, quitProcess = true)
       return
   else:
     # latest semver installed version
@@ -62,13 +62,13 @@ proc buildDocs*(pkgRef: string) =
       except CatchableError:
         discard
     if best.path.len == 0:
-      displayError("No installable version found for " & pkgName)
+      displayError("No installable version found for " & pkgName, quitProcess = true)
       return
     pkgDir = best.path
 
   let nimblePath = findNimbleFile(pkgDir)
   if nimblePath.len == 0:
-    displayError("No .nimble file found in " & pkgDir)
+    displayError("No .nimble file found in " & pkgDir, quitProcess = true)
     return
   let nimble = parseNimbleFile(nimblePath)
   let srcDir =
@@ -77,7 +77,7 @@ proc buildDocs*(pkgRef: string) =
 
   let mainFile = resolveMainFile(pkgDir, pkgName, srcDir)
   if mainFile.len == 0:
-    displayError("Main source file not found in " & pkgDir)
+    displayError("Main source file not found in " & pkgDir, quitProcess = true)
     return
 
   let srcPath = if dirExists(pkgDir / srcDir): pkgDir / srcDir else: pkgDir
@@ -91,7 +91,7 @@ proc buildDocs*(pkgRef: string) =
   displayInfo("Building docs for " & pkgName & " v" & version)
   let result = execCmdEx(cmd)
   if result.exitCode != 0:
-    displayError("nim doc failed for " & pkgName & " v" & version & ":\n" & result.output)
+    displayError("nim doc failed for " & pkgName & " v" & version & ":\n" & result.output, quitProcess = true)
     return
 
   withDocsDB do:

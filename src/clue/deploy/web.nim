@@ -56,23 +56,23 @@ proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
     dryRun, yes, verbose, statusOnly: bool): int =
   ## Deploy the `web` target. Returns a process exit code (0 on success).
   if cfg.web.profiles == nil or not cfg.web.profiles.hasKey(profileName):
-    displayError("Web profile not found: " & profileName)
+    displayError("Web profile not found: " & profileName, quitProcess = true)
     return 1
   var prof = cfg.web.profiles[profileName]
   if keyOverride.len > 0:
     prof.sshKey = keyOverride
   if prof.host.len == 0 or prof.user.len == 0 or prof.remoteDir.len == 0:
-    displayError("Web profile '" & profileName & "' requires host, user and remoteDir")
+    displayError("Web profile '" & profileName & "' requires host, user and remoteDir", quitProcess = true)
     return 1
   let localDir = cfg.web.localDir
   if not dirExists(localDir):
-    displayError("Local directory not found: " & localDir)
+    displayError("Local directory not found: " & localDir, quitProcess = true)
     return 1
 
   # `--status`: just report the service state, no deploy.
   if statusOnly:
     if prof.systemd.service.len == 0:
-      displayError("No systemd service configured for profile '" & profileName & "'")
+      displayError("No systemd service configured for profile '" & profileName & "'", quitProcess = true)
       return 1
     let (output, code) = runRemote(prof, "systemctl status " & prof.systemd.service, verbose)
     write(stdout, output)
@@ -84,7 +84,7 @@ proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
       display("  > " & c)
     let (_, code) = execCmdEx(c)
     if code != 0:
-      displayError("preBuild failed: " & c)
+      displayError("preBuild failed: " & c, quitProcess = true)
       return code
 
   # rsync (confirm unless --yes; --dry-run is a no-op transfer)
@@ -97,7 +97,7 @@ proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
   let (output, code) = execCmdEx(cmd)
   write(stdout, output)
   if code != 0:
-    displayError("rsync failed for profile " & profileName)
+    displayError("rsync failed for profile " & profileName, quitProcess = true)
     return code
   if dryRun:
     return 0
@@ -109,7 +109,7 @@ proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
     if sd.unitFile.len > 0:
       let unitPath = expandPath(sd.unitFile)
       if not fileExists(unitPath):
-        displayError("systemd unit file not found: " & unitPath)
+        displayError("systemd unit file not found: " & unitPath, quitProcess = true)
         return 1
       let remoteUnit =
         if sd.unitRemotePath.len > 0: sd.unitRemotePath
@@ -121,31 +121,31 @@ proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
       let (o, c) = execCmdEx(uploadCmd)
       write(stdout, o)
       if c != 0:
-        displayError("Failed to install systemd unit " & remoteUnit)
+        displayError("Failed to install systemd unit " & remoteUnit, quitProcess = true)
         return c
     if sdDaemonReload(sd):
       let (o, c) = runRemote(prof, sudoPrefix & "systemctl daemon-reload", verbose)
       write(stdout, o)
       if c != 0:
-        displayError("systemctl daemon-reload failed")
+        displayError("systemctl daemon-reload failed", quitProcess = true)
         return c
     if sd.enable:
       let (o, c) = runRemote(prof, sudoPrefix & "systemctl enable " & sd.service, verbose)
       write(stdout, o)
       if c != 0:
-        displayError("systemctl enable failed")
+        displayError("systemctl enable failed", quitProcess = true)
         return c
     if sdRestart(sd):
       let (o, c) = runRemote(prof, sudoPrefix & "systemctl restart " & sd.service, verbose)
       write(stdout, o)
       if c != 0:
-        displayError("systemctl restart failed for " & sd.service)
+        displayError("systemctl restart failed for " & sd.service, quitProcess = true)
         return c
     if sdStatus(sd):
       let (o, c) = runRemote(prof, "systemctl --quiet is-active " & sd.service, verbose)
       write(stdout, o)
       if c != 0:
-        displayError("Service not active after restart: " & sd.service)
+        displayError("Service not active after restart: " & sd.service, quitProcess = true)
         return c
 
   # post-deploy hooks (remote)
@@ -153,6 +153,6 @@ proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
     let (o, code2) = runRemote(prof, c, verbose)
     write(stdout, o)
     if code2 != 0:
-      displayError("postDeploy failed: " & c)
+      displayError("postDeploy failed: " & c, quitProcess = true)
       return code2
   0

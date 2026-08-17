@@ -218,13 +218,13 @@ proc initDeploy*(deployType: string, writeWorkflow, yes, force: bool) =
   ## Scaffold `clue.deploy.yaml` (+ optionally `.github/workflows/release.yml`).
   let nimblePath = findNimbleFile(getCurrentDir())
   if nimblePath.len == 0:
-    displayError("No .nimble file found in " & getCurrentDir() & ". `clue deploy.init` needs a nimble package.")
+    displayError("No .nimble file found in " & getCurrentDir() & ". `clue deploy.init` needs a nimble package.", quitProcess = true)
     return
   let nimble = parseNimbleFile(nimblePath)
   let project = nimblePath.extractFilename.changeFileExt("")
   let version = if nimble.version.len > 0: nimble.version else: "0.0.0"
   if deployType notin ["cli", "desktop", "web"]:
-    displayError("Invalid --type: " & deployType & " (use cli, desktop or web)")
+    displayError("Invalid --type: " & deployType & " (use cli, desktop or web)", quitProcess = true)
     return
   let repo = gitOriginRepo()
 
@@ -238,7 +238,7 @@ proc initDeploy*(deployType: string, writeWorkflow, yes, force: bool) =
 
   let cfgPath = getCurrentDir() / "clue.deploy.yaml"
   if fileExists(cfgPath) and not force:
-    displayError("clue.deploy.yaml already exists. Use --force to overwrite.")
+    displayError("clue.deploy.yaml already exists. Use --force to overwrite.", quitProcess = true)
     return
   writeFile(cfgPath, buildDeployYaml(project, deployType, version, repo, host, user, remoteDir))
   displaySuccess("Created " & cfgPath)
@@ -249,7 +249,7 @@ proc initDeploy*(deployType: string, writeWorkflow, yes, force: bool) =
   if genWorkflow:
     let wfPath = getCurrentDir() / ".github" / "workflows" / "release.yml"
     if fileExists(wfPath) and not force:
-      displayError(wfPath & " already exists. Use --force to overwrite.")
+      displayError(wfPath & " already exists. Use --force to overwrite.", quitProcess = true)
       return
     createDir(wfPath.parentDir())
     writeFile(wfPath, buildReleaseWorkflow(project, detectNimVersion()))
