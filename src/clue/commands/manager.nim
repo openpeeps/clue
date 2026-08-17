@@ -625,7 +625,7 @@ proc pruneCommand*(v: Values) =
   ## Prune orphaned or out-of-range installed packages.
   pruneOrphans()
 
-proc registryUpdateCommand*(v: Values) =
+proc fetchCommand*(v: Values) =
   ## Fetch a fresh packages.json from the nim registry and re-index the
   ## available packages.
   if not refreshRegistry():

@@ -24,6 +24,8 @@ when isMainModule:
         ## Editable install for live library discovery
       dump string(pkg), ?bool("--refresh"):
         ## Dump package info and git activity
+      fetch:
+        ## Fetch a fresh packages.json and re-index available packages
       install ?string(pkg), ?bool("--refresh"), ?string("--features"),
               ?bool("--verbose"), ?bool("--build"), ?bool("--debug"):
         ## Install a package from the registry (or local)
@@ -33,16 +35,10 @@ when isMainModule:
         ## Upgrade a package and its dependencies
       uninstall string(pkg):
         ## Uninstall a package
-      upgrade:
-        ## Self-update clue from GitHub releases
       versions string(pkg), ?bool("--refresh"):
         ## List available versions
       prune:
         ## Remove orphaned packages
-      registry:
-        ## Manage the package registry index (nim-lang/packages)
-        update:
-          ## Fetch a fresh packages.json and re-index available packages
 
       -- "Environment Management"
       venv string("--nim"):
@@ -71,6 +67,8 @@ when isMainModule:
         open string(pkg), ?port("--port"):
           ## Serve local docs over HTTP (default port 11000)
 
-      -- "Code Quality"
+      -- "Code Quality & Maintenance"
       doctor:
         ## Analyze code quality with nimalyzer
+      upgrade:
+        ## Self-update clue from GitHub releases

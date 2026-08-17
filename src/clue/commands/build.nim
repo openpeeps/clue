@@ -392,34 +392,40 @@ proc testCommand*(v: Values) =
 
   let flags = " " & pathFlags.join(" ") & featureDefines & " --hints:off --colors:on"
 
+  var failedTests: seq[string]
+
   if not useThreads:
-    # Serial: one by one, stop at the first failing test (exit 1).
     for file in testFiles:
       let base = file.extractFilename.changeFileExt("")
+      displayInfo("Compiling " & base & ".nim (C backend)")
       let outFile = getTempDir() / "clue_test_" & base
       removeFile(outFile)
       let cmd = &"nim c -r{flags} --out:{outFile} {file}"
       let (output, exitCode) = execCmdEx(cmd)
       writeRaw(output)
       if exitCode != 0:
-        displayError("Test failed: " & base, quitProcess = true)
-        quit(1)
-    return
+        displayError("Test failed: " & base)
+        failedTests.add(base)
+      else:
+        displaySuccess("Test passed: " & base)
+  else:
+    var exitCodes = newSeq[int](testFiles.len)
+    var m = createMaster()
+    m.awaitAll:
+      for i, file in testFiles:
+        let base = file.extractFilename.changeFileExt("")
+        displayInfo("Compiling " & base & ".nim (C backend)")
+        m.spawn runTest(TestJob(file: file, base: base, flags: flags)) -> exitCodes[i]
+    for i, code in exitCodes:
+      let base = testFiles[i].extractFilename.changeFileExt("")
+      if code != 0:
+        displayError("Test failed: " & base)
+        failedTests.add(base)
+      else:
+        displaySuccess("Test passed: " & base)
 
-  # Parallel: spawn every test on the malebolgia pool. Each worker prints its
-  # own output as soon as it finishes (no FlowVar/`^`, nothing blocks on the
-  # slowest test). Only the exit codes are kept; the process exits non-zero if
-  # any test failed.
-  var exitCodes = newSeq[int](testFiles.len)
-  var m = createMaster()
-  m.awaitAll:
-    for i, file in testFiles:
-      let base = file.extractFilename.changeFileExt("")
-      m.spawn runTest(TestJob(file: file, base: base, flags: flags)) -> exitCodes[i]
-  var failed = false
-  for i, code in exitCodes:
-    if code != 0:
-      failed = true
-      displayError("Test failed: " & testFiles[i].extractFilename.changeFileExt(""), quitProcess = true)
-  if failed:
+  if failedTests.len > 0:
+    displayError($failedTests.len & " test " & pluralize(failedTests.len, "failed") & ": " & failedTests.join(", "))
     quit(1)
+  else:
+    displaySuccess("All " & $testFiles.len & " " & pluralize(testFiles.len, "test") & " passed!")
