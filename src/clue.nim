@@ -7,7 +7,7 @@
 when isMainModule:
   # Build the CLI with Kapsis
   import pkg/kapsis
-  import ./clue/commands/[manager, build, docs, doctor, deploy]
+  import ./clue/commands/[manager, build, docs, doctor, deploy, upgrade, bump]
 
   initKapsis do:
     commands:
@@ -17,35 +17,28 @@ when isMainModule:
       -- "Package Management"
       build ?string(file), ?bool("--release"), ?bool("--debug"),
             ?string("--features"), ?bool("--verbose"), ?string("--out"):
-        ## Build the current Nim package from its nimble file, or a single
-        ## module (`clue build foo.nim`) with installed packages on the path
+        ## Build the current package or a single module
+      bump ?string(version), ?bool("--major"):
+        ## Bump the version in the current .nimble file
+      develop:
+        ## Editable install for live library discovery
+      dump string(pkg), ?bool("--refresh"):
+        ## Dump package info and git activity
       install ?string(pkg), ?bool("--refresh"), ?string("--features"),
               ?bool("--verbose"), ?bool("--build"), ?bool("--debug"):
-        ## Install a package from remote source into the clue registry (or the
-        ## current nimble package). `--build` also compiles its binaries
-        ## (release by default) to ~/.clue/bin — opt-in, since building executes
-        ## the package's {.compile.}/staticExec code
-      update ?string(pkg), ?bool("--verbose"):
-        ## Fetch new tags from remote for a package (or every installed root
-        ## package) and upgrade it and its dependencies to the newest
-        ## satisfying versions
+        ## Install a package from the registry (or local)
       test ?string("--features"), ?bool("--threads"):
-        ## Compile and run the test modules in tests/ (files starting with
-        ## `test`, with any tests/*.nims config picked up automatically)
-        ## against clue-managed dependencies, printing nim's output.
-        ## `--threads` compiles and runs them in parallel (one by one by default)
-      develop:
-        ## Develop-mode (editable) install of the current nimble package — no
-        ## compilation, just makes the package importable by other packages via
-        ## library discovery (its files are never copied nor deleted)
+        ## Compile and run test modules in tests/
+      update ?string(pkg), ?bool("--verbose"):
+        ## Upgrade a package and its dependencies
       uninstall string(pkg):
-        ## Uninstall a package from the system
-      dump string(pkg), ?bool("--refresh"):
-        ## Dump package info from registry, available versions and git activity
+        ## Uninstall a package
+      upgrade:
+        ## Self-update clue from GitHub releases
       versions string(pkg), ?bool("--refresh"):
-        ## List available versions for a package
+        ## List available versions
       prune:
-        ## Remove orphaned or out-of-range installed packages
+        ## Remove orphaned packages
       registry:
         ## Manage the package registry index (nim-lang/packages)
         update:
@@ -62,7 +55,7 @@ when isMainModule:
       deploy:
         ## Deploy the current project using clue.deploy.yaml (cli/desktop/web)
         init ?string("--type"), ?bool("--workflow"), ?bool("--yes"), ?bool("--force"):
-          ## Scaffold clue.deploy.yaml (+ optionally .github/workflows/release.yml)
+          ## Scaffold clue.deploy.yaml
         web ?bool("--dry-run"), ?bool("--yes"), ?bool("--verbose"), ?string("--config"),
             ?string("--key"), ?string("--profile"), ?bool("--status"):
           ## Deploy the web target over rsync/ssh (systemd-managed)
@@ -74,6 +67,6 @@ when isMainModule:
       docs:
         ## Generate Nim docs for local packages
         gen string(pkgname):
-          ## Build documentation for an installed package (`pkg` or `pkg@version`)
+          ## Build documentation for an installed package
         open string(pkgname), ?port("--port"):
           ## Serve local docs over HTTP (default port 11000)
