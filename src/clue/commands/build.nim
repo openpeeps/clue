@@ -246,8 +246,8 @@ proc buildCommand*(v: Values) =
       display("  " & cyan(cmd))
     let (output, exitCode) = execCmdEx(cmd)
     if exitCode != 0:
-      displayError("Build failed for " & file, quitProcess = true)
       writeRaw(output)
+      displayError("Build failed for " & file, quitProcess = true)
     else:
       if verbose:
         writeRaw(output)
@@ -313,8 +313,8 @@ proc buildCommand*(v: Values) =
     let (output, exitCode) = execCmdEx(cmd)
     if exitCode != 0:
       # errors always shown, regardless of --verbose, colors preserved
-      displayError("Build failed for " & bin, quitProcess = true)
       writeRaw(output)
+      displayError("Build failed for " & bin, quitProcess = true)
     else:
       if verbose:
         writeRaw(output)
@@ -351,8 +351,8 @@ proc runTest(job: TestJob): int {.gcsafe.} =
   exitCode
 
 proc testCommand*(v: Values) =
-  ## Compile and run the test modules in `tests/` (files starting with `test`,
-  ## e.g. `test_*.nim` / `test1.nim`) against clue-managed dependencies,
+  ## Compile and run the test modules in `tests/` (files starting with `t`,
+  ## e.g. `test_*.nim`, `t_*.nim` / `t1.nim`) against clue-managed dependencies,
   ## printing nim's raw output. Nim auto-loads any `tests/*.nims`
   ## config (e.g. `config.nims`) when compiling files in that directory. Tests
   ## run one by one by default; `--threads` compiles and runs them in parallel
@@ -382,7 +382,7 @@ proc testCommand*(v: Values) =
   let testsDir = pkgDir / "tests"
   var testFiles: seq[string]
   if dirExists(testsDir):
-    for f in walkFiles(testsDir / "test*.nim"):
+    for f in walkFiles(testsDir / "t*.nim"):
       testFiles.add(f)
   sort(testFiles)
 

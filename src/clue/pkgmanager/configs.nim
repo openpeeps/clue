@@ -17,7 +17,7 @@ import ./resolver
 export rdbms
 
 ## Permanent debug tracing: enable with `CLUE_DEBUG=1` (or `-d:clueDebug`).
-var debugEnabled* = getEnv("CLUE_DEBUG") == "1" or defined(clueDebug)
+var debugEnabled*: bool = getEnv("CLUE_DEBUG") == "1" or defined(clueDebug)
 
 proc debugLog*(msg: string) =
   ## Echo a debug trace line to stderr (never interferes with the spinner on

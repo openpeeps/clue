@@ -5,9 +5,9 @@ import std/[os, options, strutils, tables, unittest]
 import clue/deploy/configs
 
 proc writeTemp(name: string, content: string): string =
-  let dir = getTempDir() / "clue_deploy_configs" / $getCurrentProcessId()
+  let dir: string = getTempDir() / "clue_deploy_configs" / $getCurrentProcessId()
   createDir(dir)
-  let path = dir / name
+  let path: string = dir / name
   writeFile(path, content)
   path
 

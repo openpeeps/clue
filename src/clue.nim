@@ -70,3 +70,7 @@ when isMainModule:
           ## Build documentation for an installed package
         open string(pkg), ?port("--port"):
           ## Serve local docs over HTTP (default port 11000)
+
+      -- "Code Quality"
+      doctor:
+        ## Analyze code quality with nimalyzer
