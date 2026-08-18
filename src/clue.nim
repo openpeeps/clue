@@ -29,7 +29,7 @@ when isMainModule:
       install ?string(pkg), ?bool("--refresh"), ?string("--features"),
               ?bool("--verbose"), ?bool("--build"), ?bool("--debug"):
         ## Install a package from the registry (or local)
-      test ?string("--features"), ?bool("--threads"):
+      test:
         ## Compile and run test modules in tests/
       update ?string(pkg), ?bool("--verbose"):
         ## Upgrade a package and its dependencies

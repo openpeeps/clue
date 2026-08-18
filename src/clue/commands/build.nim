@@ -13,6 +13,7 @@ import ../pkgmanager/configs
 import ../pkgmanager/versions
 import ../pkgmanager/resolver
 import ./manager
+import ./nimscript
 
 proc writeRaw(s: string) =
   ## Write compiler output verbatim (preserves ANSI colors).
@@ -351,81 +352,64 @@ proc runTest(job: TestJob): int {.gcsafe.} =
   exitCode
 
 proc testCommand*(v: Values) =
-  ## Compile and run the test modules in `tests/` (files starting with `t`,
-  ## e.g. `test_*.nim`, `t_*.nim` / `t1.nim`) against clue-managed dependencies,
-  ## printing nim's raw output. Nim auto-loads any `tests/*.nims`
-  ## config (e.g. `config.nims`) when compiling files in that directory. Tests
-  ## run one by one by default; `--threads` compiles and runs them in parallel
-  ## on the malebolgia pool and reports the exit code at the end.
-  devShadowWarningsEnabled = true
-  let useThreads = v.has("--threads")
-
+  ## Compile and run test modules via nimscript. If the .nimble file defines
+  ## a `task test`, it is executed directly. Otherwise a built-in default
+  ## discovers `tests/t*.nim` and compiles each with `nim c -r`.
   let pkgDir = getCurrentDir()
   let nimblePath = findNimbleFile(pkgDir)
   if nimblePath.len == 0:
     displayError("No .nimble file found in " & pkgDir, quitProcess = true)
     return
-  let nimble = parseNimbleFile(nimblePath)
-  let pkgName = nimblePath.extractFilename.changeFileExt("")
 
-  checkNimConstraint(nimble)
+  checkNimConstraint(parseNimbleFile(nimblePath))
 
-  var activeRootFeatures: seq[string]
-  if v.has("--features"):
-    activeRootFeatures = parseFeatureFlags(v.get("--features").getStr)
-  if "dev" notin activeRootFeatures:
-    activeRootFeatures.add("dev")
-
-  let (pathFlags, featureDefines) =
-    collectResolvedPaths(nimble, activeRootFeatures, pkgName, verbose = false)
-
-  let testsDir = pkgDir / "tests"
-  var testFiles: seq[string]
-  if dirExists(testsDir):
-    for f in walkFiles(testsDir / "t*.nim"):
-      testFiles.add(f)
-  sort(testFiles)
-
-  if testFiles.len == 0:
-    displayInfo("No test modules found in " & testsDir)
-    return
-
-  let flags = " " & pathFlags.join(" ") & featureDefines & " --hints:off --colors:on"
-
-  var failedTests: seq[string]
-
-  if not useThreads:
-    for file in testFiles:
-      let base = file.extractFilename.changeFileExt("")
-      displayInfo("Compiling " & base & ".nim (C backend)")
-      let outFile = getTempDir() / "clue_test_" & base
-      removeFile(outFile)
-      let cmd = &"nim c -r{flags} --out:{outFile} {file}"
-      let (output, exitCode) = execCmdEx(cmd)
-      writeRaw(output)
+  # Check if the .nimble file defines a custom `task test`
+  let tasks = listTasks(nimblePath)
+  for (name, _) in tasks:
+    if name.toLowerAscii == "test":
+      displayInfo("Running task 'test' from " & nimblePath.extractFilename() & "...")
+      let beforeCode = execNimscript(nimblePath, "testBefore")
+      if beforeCode != 0:
+        displayWarning("before hook for 'test' failed (exit " & $beforeCode & ")")
+      let exitCode = execNimscript(nimblePath, "test")
+      let afterCode = execNimscript(nimblePath, "testAfter")
+      if afterCode != 0:
+        displayWarning("after hook for 'test' failed (exit " & $afterCode & ")")
       if exitCode != 0:
-        displayError("Test failed: " & base)
-        failedTests.add(base)
-      else:
-        displaySuccess("Test passed: " & base)
-  else:
-    var exitCodes = newSeq[int](testFiles.len)
-    var m = createMaster()
-    m.awaitAll:
-      for i, file in testFiles:
-        let base = file.extractFilename.changeFileExt("")
-        displayInfo("Compiling " & base & ".nim (C backend)")
-        m.spawn runTest(TestJob(file: file, base: base, flags: flags)) -> exitCodes[i]
-    for i, code in exitCodes:
-      let base = testFiles[i].extractFilename.changeFileExt("")
-      if code != 0:
-        displayError("Test failed: " & base)
-        failedTests.add(base)
-      else:
-        displaySuccess("Test passed: " & base)
+        displayError("Task 'test' failed (exit " & $exitCode & ")")
+        quit(1)
+      return
 
-  if failedTests.len > 0:
-    displayError($failedTests.len & " test " & pluralize(failedTests.len, "failed") & ": " & failedTests.join(", "))
+  # No custom task — run built-in default via nimscript
+  displayInfo("Running default test task...")
+  let defaultTaskCode = """
+import os, osproc, strutils, times
+
+var failed: seq[string]
+var passed: int
+
+for kind, path in walkDir("tests"):
+  if kind == pcFile and path.endsWith(".nim") and path.extractFilename.startsWith("t"):
+    let name = path.extractFilename.changeFileExt("")
+    echo "Compiling " & name & ".nim (C backend)"
+    let outFile = getTempDir() / ("clue_test_" & name)
+    let (output, code) = execCmdEx("nim c -r --hints:off --colors:on --out:" & outFile & " " & path)
+    if output.len > 0:
+      echo output
+    if code != 0:
+      echo "FAILED: " & name
+      failed.add(name)
+    else:
+      echo "OK: " & name
+      inc passed
+
+if failed.len > 0:
+  echo $failed.len & " test(s) failed: " & failed.join(", ")
+  quit(1)
+else:
+  echo "All " & $passed & " test(s) passed!"
+"""
+  let exitCode = execNimscriptCode(defaultTaskCode, "test")
+  if exitCode != 0:
+    displayError("Tests failed (exit " & $exitCode & ")", quitProcess = true)
     quit(1)
-  else:
-    displaySuccess("All " & $testFiles.len & " " & pluralize(testFiles.len, "test") & " passed!")

@@ -405,6 +405,37 @@ proc listTasks*(nimblePath: string): seq[tuple[name, description: string]] =
   except CatchableError:
     discard
 
+proc execNimscriptCode*(code: string, actionName: string): int =
+  ## Execute a raw nimscript string via a temp .nims file.
+  ## Creates a temporary .nims file with the code, runs `nim e` on it,
+  ## then cleans up.
+  let nimsFile = getTempDir() / "clue_nimscript_code_" & $getCurrentProcessId() & ".nims"
+  let outFile = getTempDir() / "clue_nimscript_code_" & $getCurrentProcessId() & ".out"
+  let nimBin = detectNimBin()
+
+  writeFile(nimsFile, code)
+
+  var cmd = nimBin & " e --hints:off --verbosity:0" &
+    " --define:nimbleExe=clue" &
+    " --define:NimbleVersion=0.1.9" &
+    " --define:NimbleMajor=0" &
+    " --define:NimbleMinor=1" &
+    " --define:NimblePatch=9" &
+    " " & nimsFile.quoteShell &
+    " " & nimsFile.quoteShell &
+    " " & outFile.quoteShell &
+    " " & actionName
+
+  result = execCmd(cmd)
+
+  # Clean up temp files
+  if fileExists(nimsFile):
+    try: removeFile(nimsFile)
+    except CatchableError: discard
+  if fileExists(outFile):
+    try: removeFile(outFile)
+    except CatchableError: discard
+
 proc taskCommand*(v: Values) =
   ## List or execute nimscript tasks from the current project's .nimble file.
   let pkgDir = getCurrentDir()
