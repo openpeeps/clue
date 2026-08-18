@@ -1,2 +1,2 @@
 nimTitle	doctor	clue/commands/doctor.html	module clue/commands/doctor		0
-nim	doctorCheckCommand	clue/commands/doctor.html#doctorCheckCommand,Values	proc doctorCheckCommand(v: Values)		4
+nim	doctorCommand	clue/commands/doctor.html#doctorCommand,Values	proc doctorCommand(v: Values)		60

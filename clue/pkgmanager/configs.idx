@@ -1,25 +1,27 @@
 nimTitle	configs	clue/pkgmanager/configs.html	module clue/pkgmanager/configs		0
-nim	debugEnabled	clue/pkgmanager/configs.html#debugEnabled	var debugEnabled		19
-nim	debugLog	clue/pkgmanager/configs.html#debugLog,string	proc debugLog(msg: string)		21
-nim	cluePath	clue/pkgmanager/configs.html#cluePath	let cluePath		28
-nim	clueDBPath	clue/pkgmanager/configs.html#clueDBPath	let clueDBPath		29
-nim	versionsDBPath	clue/pkgmanager/configs.html#versionsDBPath	let versionsDBPath		30
-nim	cluePkgsPath	clue/pkgmanager/configs.html#cluePkgsPath	let cluePkgsPath		31
-nim	cluePkgsCachePath	clue/pkgmanager/configs.html#cluePkgsCachePath	let cluePkgsCachePath		32
-nim	clueBinPath	clue/pkgmanager/configs.html#clueBinPath	let clueBinPath		33
-nim	clueDevelopPath	clue/pkgmanager/configs.html#clueDevelopPath	let clueDevelopPath		34
-nim	nimbleLocalPackages	clue/pkgmanager/configs.html#nimbleLocalPackages	let nimbleLocalPackages		35
-nim	nimblePackagesUrl	clue/pkgmanager/configs.html#nimblePackagesUrl	let nimblePackagesUrl		36
-nim	isInsidePkgs	clue/pkgmanager/configs.html#isInsidePkgs,string	proc isInsidePkgs(dir: string): bool		38
-nim	safeRemoveDir	clue/pkgmanager/configs.html#safeRemoveDir,string	proc safeRemoveDir(dir: string)		44
-nim	safeRemoveSymlink	clue/pkgmanager/configs.html#safeRemoveSymlink,string	proc safeRemoveSymlink(p: string)		54
-nim	Package	clue/pkgmanager/configs.html#Package	object Package		65
-nim	PkgRef	clue/pkgmanager/configs.html#PkgRef	object PkgRef		86
-nim	NimbleDependency	clue/pkgmanager/configs.html#NimbleDependency	object NimbleDependency		91
-nim	NimbleFile	clue/pkgmanager/configs.html#NimbleFile	object NimbleFile		101
-nim	clueDB	clue/pkgmanager/configs.html#clueDB	var clueDB		123
-nim	versionsDB	clue/pkgmanager/configs.html#versionsDB	var versionsDB		124
-nim	initClue	clue/pkgmanager/configs.html#initClue	proc initClue()		132
-nim	refreshRegistry	clue/pkgmanager/configs.html#refreshRegistry	proc refreshRegistry(): bool		308
-nim	withClueDB	clue/pkgmanager/configs.html#withClueDB.t	template withClueDB(stmt)		342
-nim	fetchPkgMeta	clue/pkgmanager/configs.html#fetchPkgMeta,string	proc fetchPkgMeta(pkgName: string): Option[PkgRef]		346
+nim	debugEnabled	clue/pkgmanager/configs.html#debugEnabled	var debugEnabled		20
+nim	debugLog	clue/pkgmanager/configs.html#debugLog,string	proc debugLog(msg: string)		22
+nim	cluePath	clue/pkgmanager/configs.html#cluePath	let cluePath		29
+nim	clueDBPath	clue/pkgmanager/configs.html#clueDBPath	let clueDBPath		30
+nim	versionsDBPath	clue/pkgmanager/configs.html#versionsDBPath	let versionsDBPath		31
+nim	cluePkgsPath	clue/pkgmanager/configs.html#cluePkgsPath	let cluePkgsPath		32
+nim	cluePkgsCachePath	clue/pkgmanager/configs.html#cluePkgsCachePath	let cluePkgsCachePath		33
+nim	clueBinPath	clue/pkgmanager/configs.html#clueBinPath	let clueBinPath		34
+nim	clueDevelopPath	clue/pkgmanager/configs.html#clueDevelopPath	let clueDevelopPath		35
+nim	nimbleLocalPackages	clue/pkgmanager/configs.html#nimbleLocalPackages	let nimbleLocalPackages		36
+nim	nimblePackagesUrl	clue/pkgmanager/configs.html#nimblePackagesUrl	let nimblePackagesUrl		37
+nim	isInsidePkgs	clue/pkgmanager/configs.html#isInsidePkgs,string	proc isInsidePkgs(dir: string): bool		39
+nim	safeRemoveDir	clue/pkgmanager/configs.html#safeRemoveDir,string	proc safeRemoveDir(dir: string)		45
+nim	safeRemoveSymlink	clue/pkgmanager/configs.html#safeRemoveSymlink,string	proc safeRemoveSymlink(p: string)		55
+nim	Package	clue/pkgmanager/configs.html#Package	object Package		66
+nim	PkgRef	clue/pkgmanager/configs.html#PkgRef	object PkgRef		87
+nim	NimbleDependency	clue/pkgmanager/configs.html#NimbleDependency	object NimbleDependency		92
+nim	NimbleFile	clue/pkgmanager/configs.html#NimbleFile	object NimbleFile		102
+nim	clueDB	clue/pkgmanager/configs.html#clueDB	var clueDB		126
+nim	versionsDB	clue/pkgmanager/configs.html#versionsDB	var versionsDB		127
+nim	initClue	clue/pkgmanager/configs.html#initClue	proc initClue()		135
+nim	refreshRegistry	clue/pkgmanager/configs.html#refreshRegistry	proc refreshRegistry(): bool		311
+nim	withClueDB	clue/pkgmanager/configs.html#withClueDB.t	template withClueDB(stmt)		345
+nim	fetchPkgMeta	clue/pkgmanager/configs.html#fetchPkgMeta,string	proc fetchPkgMeta(pkgName: string): Option[PkgRef]		349
+nim	detectNimVersion	clue/pkgmanager/configs.html#detectNimVersion	proc detectNimVersion(): string		360
+nim	checkNimConstraint	clue/pkgmanager/configs.html#checkNimConstraint,NimbleFile	proc checkNimConstraint(nimble: NimbleFile)		375

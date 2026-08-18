@@ -1,5 +1,5 @@
 nimTitle	nimbleparser	clue/pkgmanager/nimbleparser.html	module clue/pkgmanager/nimbleparser		0
 nim	parseRequiresArg	clue/pkgmanager/nimbleparser.html#parseRequiresArg,string	proc parseRequiresArg(arg: string): NimbleDependency		63
-nim	parseNimbleString	clue/pkgmanager/nimbleparser.html#parseNimbleString,string	proc parseNimbleString(code: string): NimbleFile		279
-nim	parseNimbleFile	clue/pkgmanager/nimbleparser.html#parseNimbleFile,string	proc parseNimbleFile(path: string): NimbleFile		293
-nim	findNimbleFile	clue/pkgmanager/nimbleparser.html#findNimbleFile,string	proc findNimbleFile(dir: string): string		297
+nim	parseNimbleString	clue/pkgmanager/nimbleparser.html#parseNimbleString,string	proc parseNimbleString(code: string): NimbleFile		302
+nim	parseNimbleFile	clue/pkgmanager/nimbleparser.html#parseNimbleFile,string	proc parseNimbleFile(path: string): NimbleFile		316
+nim	findNimbleFile	clue/pkgmanager/nimbleparser.html#findNimbleFile,string	proc findNimbleFile(dir: string): string		320

@@ -1,0 +1,2 @@
+nimTitle	bump	clue/commands/bump.html	module clue/commands/bump		0
+nim	bumpCommand	clue/commands/bump.html#bumpCommand,Values	proc bumpCommand(v: Values)		42

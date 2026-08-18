@@ -28,7 +28,7 @@
     <label for="nav-toggle" id="nav-overlay"></label>
     <div class="container">
       <h1 class="title">Index</h1>
-      Modules: <a href="index.html">clue</a>, <a href="clue/cli/live.html">clue/cli/live</a>, <a href="clue/commands/build.html">clue/commands/build</a>, <a href="clue/commands/deploy.html">clue/commands/deploy</a>, <a href="clue/commands/docs.html">clue/commands/docs</a>, <a href="clue/commands/doctor.html">clue/commands/doctor</a>, <a href="clue/commands/manager.html">clue/commands/manager</a>, <a href="clue/deploy/configs.html">clue/deploy/configs</a>, <a href="clue/deploy/init.html">clue/deploy/init</a>, <a href="clue/deploy/web.html">clue/deploy/web</a>, <a href="clue/docbuilder/builder.html">clue/docbuilder/builder</a>, <a href="clue/docbuilder/configs.html">clue/docbuilder/configs</a>, <a href="clue/docbuilder/httpserver.html">clue/docbuilder/httpserver</a>, <a href="clue/docbuilder/overviewgen.html">clue/docbuilder/overviewgen</a>, <a href="clue/pkgmanager/builder.html">clue/pkgmanager/builder</a>, <a href="clue/pkgmanager/configs.html">clue/pkgmanager/configs</a>, <a href="clue/pkgmanager/nimbleparser.html">clue/pkgmanager/nimbleparser</a>, <a href="clue/pkgmanager/resolver.html">clue/pkgmanager/resolver</a>, <a href="clue/pkgmanager/versions.html">clue/pkgmanager/versions</a>.<br/><p /><h2>API symbols</h2>
+      Modules: <a href="index.html">clue</a>, <a href="clue/cli/live.html">clue/cli/live</a>, <a href="clue/commands/build.html">clue/commands/build</a>, <a href="clue/commands/bump.html">clue/commands/bump</a>, <a href="clue/commands/deploy.html">clue/commands/deploy</a>, <a href="clue/commands/docs.html">clue/commands/docs</a>, <a href="clue/commands/doctor.html">clue/commands/doctor</a>, <a href="clue/commands/manager.html">clue/commands/manager</a>, <a href="clue/commands/nimscript.html">clue/commands/nimscript</a>, <a href="clue/commands/upgrade.html">clue/commands/upgrade</a>, <a href="clue/deploy/configs.html">clue/deploy/configs</a>, <a href="clue/deploy/init.html">clue/deploy/init</a>, <a href="clue/deploy/web.html">clue/deploy/web</a>, <a href="clue/docbuilder/builder.html">clue/docbuilder/builder</a>, <a href="clue/docbuilder/configs.html">clue/docbuilder/configs</a>, <a href="clue/docbuilder/httpserver.html">clue/docbuilder/httpserver</a>, <a href="clue/docbuilder/overviewgen.html">clue/docbuilder/overviewgen</a>, <a href="clue/pkgmanager/builder.html">clue/pkgmanager/builder</a>, <a href="clue/pkgmanager/configs.html">clue/pkgmanager/configs</a>, <a href="clue/pkgmanager/nimbleparser.html">clue/pkgmanager/nimbleparser</a>, <a href="clue/pkgmanager/resolver.html">clue/pkgmanager/resolver</a>, <a href="clue/pkgmanager/versions.html">clue/pkgmanager/versions</a>.<br/><p /><h2>API symbols</h2>
 <dl><dt><a name="%60%24%60" href="#%60%24%60"><span>`$`:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="resolver: proc `$`(rp: ResolvedPackage): string" href="clue/pkgmanager/resolver.html#%24%2CResolvedPackage">resolver: proc `$`(rp: ResolvedPackage): string</a></li>
@@ -61,11 +61,21 @@
           </ul></dd>
 <dt><a name="buildInstalled" href="#buildInstalled"><span>buildInstalled:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="builder: proc buildInstalled(name: string; release = true; debug = false; verbose = false): bool" href="clue/pkgmanager/builder.html#buildInstalled%2Cstring">builder: proc buildInstalled(name: string; release = true; debug = false; verbose = false): bool</a></li>
+          data-doc-search-tag="builder: proc buildInstalled(name: string; release = true; debug = false; verbose = false;
+               preferRef = &quot;&quot;): bool" href="clue/pkgmanager/builder.html#buildInstalled%2Cstring%2Cstring">builder: proc buildInstalled(name: string; release = true; debug = false; verbose = false;
+               preferRef = &quot;&quot;): bool</a></li>
+          </ul></dd>
+<dt><a name="bumpCommand" href="#bumpCommand"><span>bumpCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="bump: proc bumpCommand(v: Values)" href="clue/commands/bump.html#bumpCommand%2CValues">bump: proc bumpCommand(v: Values)</a></li>
           </ul></dd>
 <dt><a name="cachedVersions" href="#cachedVersions"><span>cachedVersions:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="versions: proc cachedVersions(name: string): seq[DiscoveredVersion]" href="clue/pkgmanager/versions.html#cachedVersions%2Cstring">versions: proc cachedVersions(name: string): seq[DiscoveredVersion]</a></li>
+          </ul></dd>
+<dt><a name="checkNimConstraint" href="#checkNimConstraint"><span>checkNimConstraint:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc checkNimConstraint(nimble: NimbleFile)" href="clue/pkgmanager/configs.html#checkNimConstraint%2CNimbleFile">configs: proc checkNimConstraint(nimble: NimbleFile)</a></li>
           </ul></dd>
 <dt><a name="checkoutHead" href="#checkoutHead"><span>checkoutHead:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -188,6 +198,8 @@
 <dt><a name="detectNimVersion" href="#detectNimVersion"><span>detectNimVersion:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="init: proc detectNimVersion(): string" href="clue/deploy/init.html#detectNimVersion">init: proc detectNimVersion(): string</a></li>
+          <li><a class="reference external"
+          data-doc-search-tag="configs: proc detectNimVersion(): string" href="clue/pkgmanager/configs.html#detectNimVersion">configs: proc detectNimVersion(): string</a></li>
           </ul></dd>
 <dt><a name="developCommand" href="#developCommand"><span>developCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -223,9 +235,9 @@
 <li><a class="reference external"
           data-doc-search-tag="docs: proc docsOpenCommand(v: Values)" href="clue/commands/docs.html#docsOpenCommand%2CValues">docs: proc docsOpenCommand(v: Values)</a></li>
           </ul></dd>
-<dt><a name="doctorCheckCommand" href="#doctorCheckCommand"><span>doctorCheckCommand:</span></a></dt><dd><ul class="simple">
+<dt><a name="doctorCommand" href="#doctorCommand"><span>doctorCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="doctor: proc doctorCheckCommand(v: Values)" href="clue/commands/doctor.html#doctorCheckCommand%2CValues">doctor: proc doctorCheckCommand(v: Values)</a></li>
+          data-doc-search-tag="doctor: proc doctorCommand(v: Values)" href="clue/commands/doctor.html#doctorCommand%2CValues">doctor: proc doctorCommand(v: Values)</a></li>
           </ul></dd>
 <dt><a name="dumpCommand" href="#dumpCommand"><span>dumpCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -239,9 +251,27 @@
 <li><a class="reference external"
           data-doc-search-tag="live: proc event(live: Live; text: string)" href="clue/cli/live.html#event%2CLive%2Cstring">live: proc event(live: Live; text: string)</a></li>
           </ul></dd>
+<dt><a name="execNimscript" href="#execNimscript"><span>execNimscript:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="nimscript: proc execNimscript(nimblePath, actionName: string; args: seq[string] = @[];
+              passNim: seq[string] = @[]): int" href="clue/commands/nimscript.html#execNimscript%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cseq%5Bstring%5D">nimscript: proc execNimscript(nimblePath, actionName: string; args: seq[string] = @[];
+              passNim: seq[string] = @[]): int</a></li>
+          </ul></dd>
+<dt><a name="execNimscriptWithOutput" href="#execNimscriptWithOutput"><span>execNimscriptWithOutput:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="nimscript: proc execNimscriptWithOutput(nimblePath, actionName: string;
+                        args: seq[string] = @[]; passNim: seq[string] = @[]): tuple[
+    exitCode: int, output: string]" href="clue/commands/nimscript.html#execNimscriptWithOutput%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cseq%5Bstring%5D">nimscript: proc execNimscriptWithOutput(nimblePath, actionName: string;
+                        args: seq[string] = @[]; passNim: seq[string] = @[]): tuple[
+    exitCode: int, output: string]</a></li>
+          </ul></dd>
 <dt><a name="expandPath" href="#expandPath"><span>expandPath:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: proc expandPath(s: string): string" href="clue/deploy/configs.html#expandPath%2Cstring">configs: proc expandPath(s: string): string</a></li>
+          </ul></dd>
+<dt><a name="fetchCommand" href="#fetchCommand"><span>fetchCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="manager: proc fetchCommand(v: Values)" href="clue/commands/manager.html#fetchCommand%2CValues">manager: proc fetchCommand(v: Values)</a></li>
           </ul></dd>
 <dt><a name="fetchPkgMeta" href="#fetchPkgMeta"><span>fetchPkgMeta:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -337,9 +367,13 @@
 <li><a class="reference external"
           data-doc-search-tag="manager: proc installPackage(pkgName: string; pkgRef: string = &quot;&quot;; refresh = false;
                features: seq[string] = @[]; verbose = true; url = &quot;&quot;;
-               doBuild = false; buildRelease = true; buildDebug = false)" href="clue/commands/manager.html#installPackage%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cstring">manager: proc installPackage(pkgName: string; pkgRef: string = &quot;&quot;; refresh = false;
+               doBuild = false; buildRelease = true; buildDebug = false;
+    constraint: VersionConstraint = VersionConstraint(kind: vcAny,
+    version: newVersion(0, 0, 0, &quot;&quot;, &quot;&quot;)))" href="clue/commands/manager.html#installPackage%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cstring%2CVersionConstraint">manager: proc installPackage(pkgName: string; pkgRef: string = &quot;&quot;; refresh = false;
                features: seq[string] = @[]; verbose = true; url = &quot;&quot;;
-               doBuild = false; buildRelease = true; buildDebug = false)</a></li>
+               doBuild = false; buildRelease = true; buildDebug = false;
+    constraint: VersionConstraint = VersionConstraint(kind: vcAny,
+    version: newVersion(0, 0, 0, &quot;&quot;, &quot;&quot;)))</a></li>
           </ul></dd>
 <dt><a name="isDevInstall" href="#isDevInstall"><span>isDevInstall:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -352,6 +386,10 @@
 <dt><a name="isInsidePkgs" href="#isInsidePkgs"><span>isInsidePkgs:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: proc isInsidePkgs(dir: string): bool" href="clue/pkgmanager/configs.html#isInsidePkgs%2Cstring">configs: proc isInsidePkgs(dir: string): bool</a></li>
+          </ul></dd>
+<dt><a name="listTasks" href="#listTasks"><span>listTasks:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="nimscript: proc listTasks(nimblePath: string): seq[tuple[name, description: string]]" href="clue/commands/nimscript.html#listTasks%2Cstring">nimscript: proc listTasks(nimblePath: string): seq[tuple[name, description: string]]</a></li>
           </ul></dd>
 <dt><a name="Live" href="#Live"><span>Live:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -455,10 +493,6 @@
 <li><a class="reference external"
           data-doc-search-tag="configs: proc refreshRegistry(): bool" href="clue/pkgmanager/configs.html#refreshRegistry">configs: proc refreshRegistry(): bool</a></li>
           </ul></dd>
-<dt><a name="registryUpdateCommand" href="#registryUpdateCommand"><span>registryUpdateCommand:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="manager: proc registryUpdateCommand(v: Values)" href="clue/commands/manager.html#registryUpdateCommand%2CValues">manager: proc registryUpdateCommand(v: Values)</a></li>
-          </ul></dd>
 <dt><a name="ReleaseConfig" href="#ReleaseConfig"><span>ReleaseConfig:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: object ReleaseConfig" href="clue/deploy/configs.html#ReleaseConfig">configs: object ReleaseConfig</a></li>
@@ -559,6 +593,10 @@
 <li><a class="reference external"
           data-doc-search-tag="versions: proc tagForVersion(dest: string; version: string): string" href="clue/pkgmanager/versions.html#tagForVersion%2Cstring%2Cstring">versions: proc tagForVersion(dest: string; version: string): string</a></li>
           </ul></dd>
+<dt><a name="taskCommand" href="#taskCommand"><span>taskCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="nimscript: proc taskCommand(v: Values)" href="clue/commands/nimscript.html#taskCommand%2CValues">nimscript: proc taskCommand(v: Values)</a></li>
+          </ul></dd>
 <dt><a name="testCommand" href="#testCommand"><span>testCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="build: proc testCommand(v: Values)" href="clue/commands/build.html#testCommand%2CValues">build: proc testCommand(v: Values)</a></li>
@@ -582,6 +620,10 @@
 <dt><a name="updateCommand" href="#updateCommand"><span>updateCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="manager: proc updateCommand(v: Values)" href="clue/commands/manager.html#updateCommand%2CValues">manager: proc updateCommand(v: Values)</a></li>
+          </ul></dd>
+<dt><a name="upgradeCommand" href="#upgradeCommand"><span>upgradeCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="upgrade: proc upgradeCommand(v: Values)" href="clue/commands/upgrade.html#upgradeCommand%2CValues">upgrade: proc upgradeCommand(v: Values)</a></li>
           </ul></dd>
 <dt><a name="vcAny" href="#vcAny"><span>vcAny:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -663,7 +705,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-16 16:17:18 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-18 14:12:35 UTC</small>
       </div>
     </div>
   </div>
