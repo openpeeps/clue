@@ -460,7 +460,8 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     # 9. Opt-in build (release by default). Runs after pruning so orphaned
     #    versions never get compiled.
     if doBuild:
-      if not buildInstalled(pkgName, buildRelease, buildDebug, verbose):
+      if not buildInstalled(pkgName, buildRelease, buildDebug, verbose,
+          preferRef = rootMeta.refStr):
         return
 
 proc installCommand*(v: Values) =

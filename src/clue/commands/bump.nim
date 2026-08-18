@@ -29,21 +29,27 @@ proc parseCurrentVersion(content: string): tuple[version, line: string, idx: int
             return (rhs[1 .. endQuote - 1], line, i)
     inc i
 
-proc bumpVersion(current, versionArg: string, major: bool): string =
+proc bumpVersion(current, versionArg, level: string): string =
   ## Compute the new version string using semver.
   if versionArg.len > 0:
     return versionArg
   let v = parseVersion(current)
-  if major:
-    $newVersion(v.major + 1, 0, 0)
-  else:
-    $newVersion(v.major, v.minor, v.patch + 1)
+  case level
+  of "major": $newVersion(v.major + 1, 0, 0)
+  of "minor": $newVersion(v.major, v.minor + 1, 0)
+  else: $newVersion(v.major, v.minor, v.patch + 1)
 
 proc bumpCommand*(v: Values) =
   let versionArg =
     if v.has("version"): v.get("version").getStr
     else: ""
-  let major = v.has("--major")
+  let level =
+    if v.has("--level"): v.get("--level").getStr
+    else: "patch"
+
+  if level notin ["major", "minor", "patch"]:
+    displayError("Invalid level '" & level & "'. Use major, minor, or patch.",
+      quitProcess = true)
 
   let nimblePath = findNimbleFile(getCurrentDir())
   if nimblePath.len == 0:
@@ -62,7 +68,7 @@ proc bumpCommand*(v: Values) =
     displayError("No version field found in " & nimblePath, quitProcess = true)
     return
 
-  let newVersion = bumpVersion(found.version, versionArg, major)
+  let newVersion = bumpVersion(found.version, versionArg, level)
 
   # Replace the version in-place on the matched line.
   var lines = content.splitLines()

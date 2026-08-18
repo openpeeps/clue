@@ -191,7 +191,13 @@ proc checkoutRef*(dest, refStr: string, refresh = false): bool =
   ## Checkout a branch or arbitrary ref in the cached repo.
   if refStr.len > 0 and refStr.toLowerAscii == "head":
     return checkoutHead(dest, refresh)
+  # Ensure the ref is available (fetch from remote in case it's a branch
+  # that hasn't been checked out locally yet).
+  discard gitExec("git -C " & dest & " fetch origin " & refStr & " --quiet",
+    env = gitEnv())
   let (output, code) = gitExec("git -C " & dest & " checkout " & refStr & " --quiet")
+  if code != 0:
+    displayWarning("Branch or ref '" & refStr & "' not found. Check the spelling.")
   code == 0
 
 type

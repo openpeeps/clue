@@ -120,6 +120,8 @@ type
       ## `feature "name":` blocks → conditional dependencies.
     dev*: seq[NimbleDependency]
       ## The `dev:` block → development-only dependencies.
+    tasks*: seq[tuple[name, description: string]]
+      ## Nimscript tasks defined in the .nimble file.
 
 var clueDB*: Store
 var versionsDB*: Store

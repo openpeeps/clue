@@ -7,7 +7,7 @@
 when isMainModule:
   # Build the CLI with Kapsis
   import pkg/kapsis
-  import ./clue/commands/[manager, build, docs, doctor, deploy, upgrade, bump]
+  import ./clue/commands/[manager, build, docs, doctor, deploy, upgrade, bump, nimscript]
 
   initKapsis do:
     commands:
@@ -18,7 +18,7 @@ when isMainModule:
       build ?string(file), ?bool("--release"), ?bool("--debug"),
             ?string("--features"), ?bool("--verbose"), ?string("--out"):
         ## Build the current package or a single module
-      bump ?string(version), ?bool("--major"):
+      bump ?string(version), ?string("--level"):
         ## Bump the version in the current .nimble file
       develop:
         ## Editable install for live library discovery
@@ -70,5 +70,7 @@ when isMainModule:
       -- "Code Quality & Maintenance"
       doctor:
         ## Analyze code quality with nimalyzer
+      task ?string(taskName):
+        ## List or run nimscript tasks from the current .nimble file
       upgrade:
         ## Self-update clue from GitHub releases

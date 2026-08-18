@@ -132,6 +132,21 @@ proc parseNimbleFileFallback(result: var NimbleFile, code: string) =
         except CatchableError:
           discard # malformed constraint — skip the dep, keep parsing
       continue
+    # Extract nimscript task definitions: task <name>, "<description>":
+    if trimmed.startsWith("task ") and trimmed.len > 5:
+      let afterTask = trimmed[5 .. ^1]
+      let commaPos = afterTask.find(',')
+      if commaPos >= 0:
+        let name = afterTask[0 ..< commaPos].strip()
+        let descPart = afterTask[commaPos + 1 .. ^1].strip()
+        let descClean = descPart.strip(chars = {':', ' '})
+        if descClean.len >= 2 and descClean[0] == '"':
+          let endQuote = descClean.rfind('"')
+          if endQuote > 0:
+            result.tasks.add((name, descClean[1 ..< endQuote]))
+        else:
+          result.tasks.add((name, descClean))
+      continue
     let eq = trimmed.find('=')
     if eq <= 0: continue
     let key = trimmed[0..<eq].strip()
@@ -156,10 +171,10 @@ proc parseNimbleFileFallback(result: var NimbleFile, code: string) =
        "skipDirs", "skipFiles", "skipExt":
       var items: seq[string]
       let content = value.replace("@", "").strip()
-      if content.startsWith("["):
+      if content.startsWith("[") and content.len > 2:
         for part in splitDepParts(content[1 .. ^2]):
           items.add(stripQuotes(part.strip()))
-      else:
+      elif content notin ["", "[", "]"]:
         items.add(stripQuotes(content))
       case key
       of "bin": result.bin = items

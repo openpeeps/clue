@@ -29,8 +29,9 @@ proc buildFlags(release, debug: bool): string =
 
 proc buildPackageBinaries(pkgName: string, flags: string,
     seenBins: var HashSet[string], outDir: string,
-    progress: proc (msg: string), fail: proc (msg: string)): bool =
-  let pkgDir = resolveInstalledPath(pkgName, "")
+    progress: proc (msg: string), fail: proc (msg: string),
+    preferRef = ""): bool =
+  let pkgDir = resolveInstalledPath(pkgName, preferRef)
   if pkgDir.len == 0:
     fail("No installed package found for " & pkgName)
     return false
@@ -70,11 +71,11 @@ proc buildPackageBinaries(pkgName: string, flags: string,
   true
 
 proc buildInstalled*(name: string, release = true, debug = false,
-    verbose = false): bool =
+    verbose = false, preferRef = ""): bool =
   ## Build the binaries of `name` and every dependency in its closure that
   ## declares `bin` entries, into ~/.clue/bin. Deps are built before the root
   ## so a cascade of tool binaries is installed in dependency order.
-  let rootDir = resolveInstalledPath(name, "")
+  let rootDir = resolveInstalledPath(name, preferRef)
   if rootDir.len == 0:
     displayError("Not installed: " & name & ". Run `clue install " & name & "` first.", quitProcess = true)
     return false
@@ -106,7 +107,8 @@ proc buildInstalled*(name: string, release = true, debug = false,
 
   var seenBins = initHashSet[string]()
   for pkg in order:
-    if not buildPackageBinaries(pkg, flags, seenBins, clueBinPath, progress, fail):
+    if not buildPackageBinaries(pkg, flags, seenBins, clueBinPath, progress, fail,
+        preferRef = preferRef):
       return false
 
   if useLive:
