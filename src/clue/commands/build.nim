@@ -373,6 +373,19 @@ proc testCommand*(v: Values) =
 
   checkNimConstraint(parseNimbleFile(nimblePath))
 
+  # Resolve dependency paths and feature defines so both custom nimscript
+  # tasks and the built-in default runner compile with the same flags as
+  # `clue build`.  Custom tasks read them via getPathsClause(); the default
+  # runner receives them as a CLI argument.
+  let pathFlags = allInstalledPaths().mapIt("--path:" & it)
+  var featureDefines = ""
+  let featsMap = installedFeatures()
+  for pkg, feats in featsMap:
+    for f in feats:
+      featureDefines.add(" -d:features." & pkg & "." & f)
+  let depFlags = pathFlags.join(" ") & " " & featureDefines.strip()
+  putEnv("__NIMBLE_PATHS", depFlags.replace("--path:", "").strip())
+
   # Check if the .nimble file defines a custom `task test`
   let tasks = listTasks(nimblePath)
   for (name, _) in tasks:
@@ -395,9 +408,10 @@ proc testCommand*(v: Values) =
 
   # Before test hook
   discard runNimscriptHook(nimblePath, "test", before=true)
-
   let testRunnerCode = """import os, strutils, times, terminal
 
+let parts = commandLineParams()
+let extraFlags = if parts.len > 0: parts[0] else: ""
 var failed: seq[string]
 var passed: int
 
@@ -406,7 +420,7 @@ for kind, path in walkDir("tests"):
     let name = path.extractFilename.changeFileExt("")
     styledEcho fgCyan, "Compiling ", name, ".nim (C backend)"
     let outFile = getTempDir() / ("clue_test_" & name)
-    let code = execShellCmd("nim c -r --hints:off --colors:on --out:" & outFile & " " & path)
+    let code = execShellCmd("cd tests && nim c -r --hints:off --colors:on " & extraFlags & " --out:" & outFile & " " & path.extractFilename)
     if code != 0:
       styledEcho fgRed, "FAILED: ", name
       failed.add(name)
@@ -428,7 +442,7 @@ else:
   if buildCode != 0:
     displayError("Failed to compile test runner: " & buildOutput)
     quit(1)
-  let exitCode = execCmd(runnerOut & " 2>&1")
+  let exitCode = execCmd(runnerOut.quoteShell & " " & depFlags.quoteShell)
 
   # After test hook (runs even if tests failed)
   discard runNimscriptHook(nimblePath, "test", before=false)
