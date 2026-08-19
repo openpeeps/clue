@@ -232,6 +232,7 @@ proc buildCommand*(v: Values) =
   devShadowWarningsEnabled = verbose
   let outPath =
     if v.has("--out"): v.get("--out").getStr
+    elif v.has("-o"): v.get("-o").getStr
     else: ""
   let backend = resolveBackend(v)
   let nimFlags = extras.join(" ")
@@ -296,13 +297,17 @@ proc buildCommand*(v: Values) =
     else: "src"
 
   let binDir =
-    if nimble.binDir.len > 0: nimble.binDir
+    if outPath.len > 0: outPath
+    elif nimble.binDir.len > 0: nimble.binDir
     else: "bin"
 
   let (pathFlags, featureDefines) =
     collectResolvedPaths(nimble, activeRootFeatures, pkgName, verbose)
 
-  discard existsOrCreateDir(pkgDir / binDir)
+  if outPath.len > 0:
+    discard existsOrCreateDir(outPath)
+  else:
+    discard existsOrCreateDir(pkgDir / binDir)
 
   # 3. Compile each binary. `--colors:on` keeps nim's ANSI colors in the
   #    captured output; errors are always printed (raw, colored), and with
@@ -310,7 +315,8 @@ proc buildCommand*(v: Values) =
   var buildFailed = false
   for bin in nimble.bin:
     let srcFile = pkgDir / srcDir / bin.addFileExt("nim")
-    let outFile = pkgDir / binDir / bin
+    let outFile = if outPath.len > 0: outPath / bin
+                  else: pkgDir / binDir / bin
     var flags = " " & pathFlags.join(" ") & featureDefines & " --colors:on" & " " & nimFlags
     if isRelease:
       flags.add(" -d:release --opt:size")

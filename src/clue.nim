@@ -17,7 +17,7 @@ when isMainModule:
       -- "Package Management"
       build ?string(file), ?bool("--release"), ?bool("--debug"),
             ?string("--features"), ?bool("--verbose"), ?string("--out"),
-            ?any("-b" = ["c", "cpp", "objc", "js"]):
+            ?string("-o"), ?any("-b" = ["c", "cpp", "objc", "js"]):
         ## Build the current package or a single module
       bump ?string(version), ?string("--level"):
         ## Bump the version in the current .nimble file
