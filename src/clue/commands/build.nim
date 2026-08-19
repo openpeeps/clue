@@ -273,6 +273,9 @@ proc buildCommand*(v: Values) =
     displayError("No .nimble file found in " & pkgDir, quitProcess = true)
     return
 
+  # Before build hook
+  discard runNimscriptHook(nimblePath, "build", before=true)
+
   let nimble = parseNimbleFile(nimblePath)
   let pkgName = nimblePath.extractFilename.changeFileExt("")
 
@@ -298,6 +301,7 @@ proc buildCommand*(v: Values) =
   # 3. Compile each binary. `--colors:on` keeps nim's ANSI colors in the
   #    captured output; errors are always printed (raw, colored), and with
   #    --verbose the warnings/hints are shown too.
+  var buildFailed = false
   for bin in nimble.bin:
     let srcFile = pkgDir / srcDir / bin.addFileExt("nim")
     let outFile = pkgDir / binDir / bin
@@ -313,14 +317,20 @@ proc buildCommand*(v: Values) =
 
     let (output, exitCode) = execCmdEx(cmd)
     if exitCode != 0:
-      # errors always shown, regardless of --verbose, colors preserved
       writeRaw(output)
-      displayError("Build failed for " & bin, quitProcess = true)
+      displayError("Build failed for " & bin)
+      buildFailed = true
     else:
       if verbose:
         writeRaw(output)
       else:
         displaySuccess("Built → " & outFile)
+
+  # After build hook (runs even if build failed, for cleanup)
+  discard runNimscriptHook(nimblePath, "build", before=false)
+
+  if buildFailed:
+    quit(1)
 
 var testOutputLock: Lock
 testOutputLock.initLock()
@@ -382,6 +392,10 @@ proc testCommand*(v: Values) =
 
   # No custom task — run built-in default via nimscript
   displayInfo("Running default test task...")
+
+  # Before test hook
+  discard runNimscriptHook(nimblePath, "test", before=true)
+
   let defaultTaskCode = """
 import os, osproc, strutils, times
 
@@ -410,6 +424,9 @@ else:
   echo "All " & $passed & " test(s) passed!"
 """
   let exitCode = execNimscriptCode(defaultTaskCode, "test")
+
+  # After test hook (runs even if tests failed)
+  discard runNimscriptHook(nimblePath, "test", before=false)
+
   if exitCode != 0:
     displayError("Tests failed (exit " & $exitCode & ")", quitProcess = true)
-    quit(1)

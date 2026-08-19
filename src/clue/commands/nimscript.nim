@@ -436,6 +436,16 @@ proc execNimscriptCode*(code: string, actionName: string): int =
     try: removeFile(outFile)
     except CatchableError: discard
 
+proc runNimscriptHook*(nimblePath, action: string, before: bool): bool =
+  ## Run a before/after hook for the given action.
+  ## Returns true if the hook ran successfully (or no hook defined).
+  let hookName = if before: action & "Before" else: action & "After"
+  let exitCode = execNimscript(nimblePath, hookName)
+  if exitCode != 0:
+    displayWarning("hook '" & hookName & "' failed (exit " & $exitCode & ")")
+    return false
+  true
+
 proc taskCommand*(v: Values) =
   ## List or execute nimscript tasks from the current project's .nimble file.
   let pkgDir = getCurrentDir()

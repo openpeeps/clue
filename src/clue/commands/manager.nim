@@ -16,6 +16,7 @@ import ../pkgmanager/configs
 import ../pkgmanager/versions
 import ../pkgmanager/nimbleparser
 import ../pkgmanager/builder
+import ./nimscript
 
 proc pkgNameFromUrl*(url: string): string =
   ## Derive a package name from a git URL's repository basename.
@@ -486,6 +487,10 @@ proc installCommand*(v: Values) =
     if nimblePath.len == 0:
       displayError("No .nimble file found in " & getCurrentDir(), quitProcess = true)
       return
+
+    # Before install hook
+    discard runNimscriptHook(nimblePath, "install", before=true)
+
     let nimble = parseNimbleFile(nimblePath)
     let pkgName = nimblePath.extractFilename.changeFileExt("")
 
@@ -511,6 +516,9 @@ proc installCommand*(v: Values) =
     if doBuild:
       if not buildInstalled(pkgName, buildRelease, buildDebug, verbose):
         return
+
+    # After install hook
+    discard runNimscriptHook(nimblePath, "install", before=false)
     return
 
   if isGitUrl(raw):
