@@ -7,7 +7,7 @@ jobs:
   release:
     permissions:
       contents: write
-    uses: nimbase/setup-nim-action/.github/workflows/release.yml@main
+    uses: nimbase/setup-nim-action/.github/workflows/release_clue.yml@main
     with:
       nim-version: '2.2.10'
       app-name: clue
