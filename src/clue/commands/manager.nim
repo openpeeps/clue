@@ -522,9 +522,8 @@ proc installCommand*(v: Values) =
     return
 
   if isGitUrl(raw):
-    # `https://host/owner/repo[#ref]` installs straight from git. The URL is
-    # translated to SSH (`git@host:path.git`) so private repos clone with the
-    # user's default SSH keys.
+    # `https://host/owner/repo[#ref]` installs straight from git.
+    # cloneRepo will try SSH first (for private repos) then fall back to HTTPS.
     var url = raw
     var urlRef = ""
     let hashPos = url.find('#')
@@ -535,7 +534,7 @@ proc installCommand*(v: Values) =
     if name.len == 0:
       displayError("Could not derive a package name from: " & raw, quitProcess = true)
       return
-    installPackage(name, urlRef, refresh, features, verbose, url = toGitSshUrl(url),
+    installPackage(name, urlRef, refresh, features, verbose, url = url,
       doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug)
   else:
     let pkgInput = split(raw, "@")
