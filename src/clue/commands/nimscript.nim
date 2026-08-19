@@ -464,13 +464,13 @@ proc taskCommand*(v: Values) =
       if name.toLowerAscii == taskName.toLowerAscii:
         displayInfo("Running task '" & name & "'...")
         # Execute before hooks
-        let beforeCode = execNimscript(nimblePath, name & "Before")
+        let beforeCode = execNimscript(nimblePath, name & "Before", passNim = extras)
         if beforeCode != 0:
           displayWarning("before hook for '" & name & "' failed (exit " & $beforeCode & ")")
         # Execute the task
-        let exitCode = execNimscript(nimblePath, name)
+        let exitCode = execNimscript(nimblePath, name, passNim = extras)
         # Execute after hooks
-        let afterCode = execNimscript(nimblePath, name & "After")
+        let afterCode = execNimscript(nimblePath, name & "After", passNim = extras)
         if afterCode != 0:
           displayWarning("after hook for '" & name & "' failed (exit " & $afterCode & ")")
         if exitCode != 0:

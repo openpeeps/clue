@@ -234,12 +234,13 @@ proc buildCommand*(v: Values) =
     if v.has("--out"): v.get("--out").getStr
     else: ""
   let backend = resolveBackend(v)
+  let nimFlags = extras.join(" ")
 
   # Module mode: `clue build foo.nim` — no nimble file needed; every installed
   # package is put on the import path so any `import xyz` resolves.
   if file.len > 0:
     let pathFlags = allInstalledPaths().mapIt("--path:" & it)
-    var flags = " " & pathFlags.join(" ") & " --colors:on"
+    var flags = " " & pathFlags.join(" ") & " --colors:on" & " " & nimFlags
     if isRelease:
       flags.add(" -d:release --opt:size")
     elif isDebug:
@@ -310,7 +311,7 @@ proc buildCommand*(v: Values) =
   for bin in nimble.bin:
     let srcFile = pkgDir / srcDir / bin.addFileExt("nim")
     let outFile = pkgDir / binDir / bin
-    var flags = " " & pathFlags.join(" ") & featureDefines & " --colors:on"
+    var flags = " " & pathFlags.join(" ") & featureDefines & " --colors:on" & " " & nimFlags
     if isRelease:
       flags.add(" -d:release --opt:size")
     elif isDebug:
@@ -398,11 +399,11 @@ proc testCommand*(v: Values) =
   for (name, _) in tasks:
     if name.toLowerAscii == "test":
       displayInfo("Running task 'test' from " & nimblePath.extractFilename() & "...")
-      let beforeCode = execNimscript(nimblePath, "testBefore")
+      let beforeCode = execNimscript(nimblePath, "testBefore", passNim = nimFlags)
       if beforeCode != 0:
         displayWarning("before hook for 'test' failed (exit " & $beforeCode & ")")
-      let exitCode = execNimscript(nimblePath, "test")
-      let afterCode = execNimscript(nimblePath, "testAfter")
+      let exitCode = execNimscript(nimblePath, "test", passNim = nimFlags)
+      let afterCode = execNimscript(nimblePath, "testAfter", passNim = nimFlags)
       if afterCode != 0:
         displayWarning("after hook for 'test' failed (exit " & $afterCode & ")")
       if exitCode != 0:
