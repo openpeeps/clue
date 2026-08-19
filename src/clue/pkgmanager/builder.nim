@@ -30,7 +30,7 @@ proc buildFlags(release, debug: bool): string =
 proc buildPackageBinaries(pkgName: string, flags: string,
     seenBins: var HashSet[string], outDir: string,
     progress: proc (msg: string), fail: proc (msg: string),
-    preferRef = ""): bool =
+    preferRef = "", backend = "c"): bool =
   let pkgDir = resolveInstalledPath(pkgName, preferRef)
   if pkgDir.len == 0:
     fail("No installed package found for " & pkgName)
@@ -60,7 +60,7 @@ proc buildPackageBinaries(pkgName: string, flags: string,
     if bin in seenBins:
       displayWarning("binary name collision, overwriting: " & bin)
     seenBins.incl(bin)
-    let cmd = "nim c" & flags & " --out:" & outFile & " " & srcFile
+    let cmd = "nim " & backend & flags & " --out:" & outFile & " " & srcFile
     let (output, exitCode) = execCmdEx(cmd)
     if exitCode != 0:
       fail("Build failed for " & bin)
@@ -71,7 +71,8 @@ proc buildPackageBinaries(pkgName: string, flags: string,
   true
 
 proc buildInstalled*(name: string, release = true, debug = false,
-    verbose = false, preferRef = ""): bool =
+    verbose = false, preferRef = "", nimFlags: seq[string] = @[],
+    backend = "c"): bool =
   ## Build the binaries of `name` and every dependency in its closure that
   ## declares `bin` entries, into ~/.clue/bin. Deps are built before the root
   ## so a cascade of tool binaries is installed in dependency order.
@@ -88,7 +89,7 @@ proc buildInstalled*(name: string, release = true, debug = false,
     for f in feats:
       featureDefines.add(" -d:features." & pkg & "." & f)
 
-  let flags = " " & pathFlags.join(" ") & featureDefines & buildFlags(release, debug)
+  let flags = " " & pathFlags.join(" ") & featureDefines & buildFlags(release, debug) & " " & nimFlags.join(" ")
 
   var order = collectInstalledDepNames(@[name]).filterIt(it != name)
   order.add(name)  # deps first, root last
@@ -108,7 +109,7 @@ proc buildInstalled*(name: string, release = true, debug = false,
   var seenBins = initHashSet[string]()
   for pkg in order:
     if not buildPackageBinaries(pkg, flags, seenBins, clueBinPath, progress, fail,
-        preferRef = preferRef):
+        preferRef = preferRef, backend = backend):
       return false
 
   if useLive:

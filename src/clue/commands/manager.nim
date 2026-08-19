@@ -100,7 +100,8 @@ proc installResolvedPkg(job: InstallJob): bool {.gcsafe.} =
 proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     features: seq[string] = @[], verbose = true, url = "",
     doBuild = false, buildRelease = true, buildDebug = false,
-    constraint: VersionConstraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0))) =
+    constraint: VersionConstraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0)),
+    backend = "c") =
   ## Install a package and its dependencies into ~/.clue/packages.
   ## Uses fast, cached version discovery and only installs versions that
   ## satisfy the resolved constraints. Prunes orphans afterwards.
@@ -462,7 +463,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     #    versions never get compiled.
     if doBuild:
       if not buildInstalled(pkgName, buildRelease, buildDebug, verbose,
-          preferRef = rootMeta.refStr):
+          preferRef = rootMeta.refStr, nimFlags = extras, backend = backend):
         return
 
 proc installCommand*(v: Values) =
@@ -473,6 +474,7 @@ proc installCommand*(v: Values) =
   let doBuild = v.has("--build")
   let buildDebug = v.has("--debug")
   let buildRelease = not buildDebug
+  let backend = if v.has("-b"): v.get("-b").getAny else: "c"
   var features: seq[string]
   if v.has("--features"):
     features = parseFeatureFlags(v.get("--features").getStr)
@@ -514,7 +516,8 @@ proc installCommand*(v: Values) =
       let refStr = if d.branch.len > 0: d.branch elif d.tag.len > 0: d.tag else: ""
       installPackage(dep, refStr, false, d.features, verbose, constraint = d.constraint)
     if doBuild:
-      if not buildInstalled(pkgName, buildRelease, buildDebug, verbose):
+      if not buildInstalled(pkgName, buildRelease, buildDebug, verbose,
+          nimFlags = extras, backend = backend):
         return
 
     # After install hook
@@ -535,13 +538,15 @@ proc installCommand*(v: Values) =
       displayError("Could not derive a package name from: " & raw, quitProcess = true)
       return
     installPackage(name, urlRef, refresh, features, verbose, url = url,
-      doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug)
+      doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
+      backend = backend)
   else:
     let pkgInput = split(raw, "@")
     let pkgName = pkgInput[0]
     let pkgRef = if pkgInput.len > 1 and pkgInput[1] != "head": pkgInput[1] else: ""
     installPackage(pkgName, pkgRef, refresh, features, verbose,
-      doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug)
+      doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
+      backend = backend)
 
 proc updateRootSubprocess(exe, name: string): int {.gcsafe.} =
   ## Thread-pool worker for `clue update` (no argument): runs `clue update

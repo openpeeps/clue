@@ -16,7 +16,8 @@ when isMainModule:
       #
       -- "Package Management"
       build ?string(file), ?bool("--release"), ?bool("--debug"),
-            ?string("--features"), ?bool("--verbose"), ?string("--out"):
+            ?string("--features"), ?bool("--verbose"), ?string("--out"),
+            ?any("-b" = ["c", "cpp", "objc", "js"]):
         ## Build the current package or a single module
       bump ?string(version), ?string("--level"):
         ## Bump the version in the current .nimble file
@@ -27,9 +28,10 @@ when isMainModule:
       fetch:
         ## Fetch a fresh packages.json and re-index available packages
       install ?string(pkg), ?bool("--refresh"), ?string("--features"),
-              ?bool("--verbose"), ?bool("--build"), ?bool("--debug"):
+              ?bool("--verbose"), ?bool("--build"), ?bool("--debug"),
+              ?any("-b" = ["c", "cpp", "objc", "js"]):
         ## Install a package from the registry (or local)
-      test:
+      test ?any("-b" = ["c", "cpp", "objc", "js"]):
         ## Compile and run test modules in tests/
       update ?string(pkg), ?bool("--verbose"):
         ## Upgrade a package and its dependencies

@@ -215,10 +215,14 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
         if d notin definedFeats:
           definedFeats.incl(d)
           featureDefines.add(d)
-
   (pathFlags, featureDefines)
 
+proc resolveBackend(v: Values): string =
+  if v.has("-b"): v.get("-b").getAny
+  else: "c"
+
 proc buildCommand*(v: Values) =
+
   let file =
     if v.has("file"): v.get("file").getStr
     else: ""
@@ -229,6 +233,7 @@ proc buildCommand*(v: Values) =
   let outPath =
     if v.has("--out"): v.get("--out").getStr
     else: ""
+  let backend = resolveBackend(v)
 
   # Module mode: `clue build foo.nim` — no nimble file needed; every installed
   # package is put on the import path so any `import xyz` resolves.
@@ -242,7 +247,7 @@ proc buildCommand*(v: Values) =
     let outFile =
       if outPath.len > 0: outPath
       else: file.extractFilename.changeFileExt("")
-    let cmd = "nim c" & flags & " --out:" & outFile & " " & file
+    let cmd = "nim " & backend & flags & " --out:" & outFile & " " & file
     if verbose:
       display("  " & cyan(cmd))
     let (output, exitCode) = execCmdEx(cmd)
@@ -311,7 +316,7 @@ proc buildCommand*(v: Values) =
     elif isDebug:
       flags.add(" --debugger:native")
 
-    let cmd = &"nim c{flags} --out:{outFile} {srcFile}"
+    let cmd = &"nim {backend}{flags} --out:{outFile} {srcFile}"
     if verbose:
       display("  " & cyan(cmd))
 
@@ -364,7 +369,7 @@ proc runTest(job: TestJob): int {.gcsafe.} =
 proc testCommand*(v: Values) =
   ## Compile and run test modules via nimscript. If the .nimble file defines
   ## a `task test`, it is executed directly. Otherwise a built-in default
-  ## discovers `tests/t*.nim` and compiles each with `nim c -r`.
+  ## discovers `tests/t*.nim` and compiles each with `nim <backend> -r`.
   let pkgDir = getCurrentDir()
   let nimblePath = findNimbleFile(pkgDir)
   if nimblePath.len == 0:
@@ -372,6 +377,8 @@ proc testCommand*(v: Values) =
     return
 
   checkNimConstraint(parseNimbleFile(nimblePath))
+  let backend = if v.has("-b"): v.get("-b").getAny else: "c"
+  let nimFlags = extras
 
   # Resolve dependency paths and feature defines so both custom nimscript
   # tasks and the built-in default runner compile with the same flags as
@@ -408,19 +415,42 @@ proc testCommand*(v: Values) =
 
   # Before test hook
   discard runNimscriptHook(nimblePath, "test", before=true)
-  let testRunnerCode = """import os, strutils, times, terminal
+  let testRunnerCode = """import os, osproc, strutils, times, terminal
+
+var currentProcess: Process
+
+proc handleSigint() {.noconv.} =
+  if currentProcess != nil:
+    currentProcess.kill()
+  quit(1)
+
+setControlCHook(handleSigint)
 
 let parts = commandLineParams()
 let extraFlags = if parts.len > 0: parts[0] else: ""
+let nimFlags = if parts.len > 1: parts[1] else: ""
+let backend = if parts.len > 2: parts[2] else: "c"
 var failed: seq[string]
 var passed: int
 
 for kind, path in walkDir("tests"):
   if kind == pcFile and path.endsWith(".nim") and path.extractFilename.startsWith("t"):
     let name = path.extractFilename.changeFileExt("")
-    styledEcho fgCyan, "Compiling ", name, ".nim (C backend)"
+    styledEcho fgCyan, "Compiling ", name, ".nim (" & backend & " backend)"
     let outFile = getTempDir() / ("clue_test_" & name)
-    let code = execShellCmd("cd tests && nim c -r --hints:off --colors:on " & extraFlags & " --out:" & outFile & " " & path.extractFilename)
+    var args = @[backend, "-r", "--colors:on"]
+    if extraFlags.len > 0:
+      for f in extraFlags.split(" "):
+        if f.len > 0: args.add(f)
+    if nimFlags.len > 0:
+      for f in nimFlags.split(" "):
+        if f.len > 0: args.add(f)
+    args.add("--out:" & outFile)
+    args.add(path.extractFilename)
+    currentProcess = startProcess(findExe("nim"), args = args,
+      workingDir = "tests", options = {poParentStreams})
+    let code = currentProcess.waitForExit()
+    currentProcess.close()
     if code != 0:
       styledEcho fgRed, "FAILED: ", name
       failed.add(name)
@@ -437,12 +467,13 @@ else:
   let runnerPath = getTempDir() / "clue_test_runner.nim"
   writeFile(runnerPath, testRunnerCode)
   let runnerOut = getTempDir() / "clue_test_runner"
-  let (buildOutput, buildCode) = execCmdEx("nim c --hints:off --out:" & runnerOut & " " & runnerPath)
+  let (buildOutput, buildCode) = execCmdEx("nim c --out:" & runnerOut & " " & runnerPath)
   removeFile(runnerPath)
   if buildCode != 0:
     displayError("Failed to compile test runner: " & buildOutput)
     quit(1)
-  let exitCode = execCmd(runnerOut.quoteShell & " " & depFlags.quoteShell)
+  let exitCode = execCmd(runnerOut.quoteShell & " " & depFlags.quoteShell &
+    " " & nimFlags.join(" ").quoteShell & " " & backend.quoteShell)
 
   # After test hook (runs even if tests failed)
   discard runNimscriptHook(nimblePath, "test", before=false)
