@@ -390,14 +390,13 @@ proc testCommand*(v: Values) =
         quit(1)
       return
 
-  # No custom task — run built-in default via nimscript
+  # No custom task — run built-in default via a compiled test runner
   displayInfo("Running default test task...")
 
   # Before test hook
   discard runNimscriptHook(nimblePath, "test", before=true)
 
-  let defaultTaskCode = """
-import os, osproc, strutils, times
+  let testRunnerCode = """import os, strutils, times, terminal
 
 var failed: seq[string]
 var passed: int
@@ -405,25 +404,31 @@ var passed: int
 for kind, path in walkDir("tests"):
   if kind == pcFile and path.endsWith(".nim") and path.extractFilename.startsWith("t"):
     let name = path.extractFilename.changeFileExt("")
-    echo "Compiling " & name & ".nim (C backend)"
+    styledEcho fgCyan, "Compiling ", name, ".nim (C backend)"
     let outFile = getTempDir() / ("clue_test_" & name)
-    let (output, code) = execCmdEx("nim c -r --hints:off --colors:on --out:" & outFile & " " & path)
-    if output.len > 0:
-      echo output
+    let code = execShellCmd("nim c -r --hints:off --colors:on --out:" & outFile & " " & path)
     if code != 0:
-      echo "FAILED: " & name
+      styledEcho fgRed, "FAILED: ", name
       failed.add(name)
     else:
-      echo "OK: " & name
+      styledEcho fgGreen, "OK: ", name
       inc passed
 
 if failed.len > 0:
-  echo $failed.len & " test(s) failed: " & failed.join(", ")
+  styledEcho fgRed, $failed.len & " test(s) failed: " & failed.join(", ")
   quit(1)
 else:
-  echo "All " & $passed & " test(s) passed!"
+  styledEcho fgGreen, "All " & $passed & " test(s) passed!"
 """
-  let exitCode = execNimscriptCode(defaultTaskCode, "test")
+  let runnerPath = getTempDir() / "clue_test_runner.nim"
+  writeFile(runnerPath, testRunnerCode)
+  let runnerOut = getTempDir() / "clue_test_runner"
+  let (buildOutput, buildCode) = execCmdEx("nim c --hints:off --out:" & runnerOut & " " & runnerPath)
+  removeFile(runnerPath)
+  if buildCode != 0:
+    displayError("Failed to compile test runner: " & buildOutput)
+    quit(1)
+  let exitCode = execCmd(runnerOut & " 2>&1")
 
   # After test hook (runs even if tests failed)
   discard runNimscriptHook(nimblePath, "test", before=false)
