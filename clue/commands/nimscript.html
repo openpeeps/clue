@@ -67,6 +67,10 @@
               passNim: seq[string] = @[]): int</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">execNimscriptCode
+  <li><a class="reference" href="#execNimscriptCode%2Cstring%2Cstring" title="execNimscriptCode(code: string; actionName: string): int">execNimscriptCode(code: string; actionName: string): int</a></li>
+
+</ul>
 <ul class="simple nested-toc-section">execNimscriptWithOutput
   <li><a class="reference" href="#execNimscriptWithOutput%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cseq%5Bstring%5D" title="execNimscriptWithOutput(nimblePath, actionName: string;
                         args: seq[string] = @[]; passNim: seq[string] = @[]): tuple[
@@ -77,6 +81,10 @@
 </ul>
 <ul class="simple nested-toc-section">listTasks
   <li><a class="reference" href="#listTasks%2Cstring" title="listTasks(nimblePath: string): seq[tuple[name, description: string]]">listTasks(nimblePath: string): seq[tuple[name, description: string]]</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">runNimscriptHook
+  <li><a class="reference" href="#runNimscriptHook%2Cstring%2Cstring%2Cbool" title="runNimscriptHook(nimblePath, action: string; before: bool): bool">runNimscriptHook(nimblePath, action: string; before: bool): bool</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">taskCommand
@@ -126,6 +134,21 @@
 </div>
 
 </div>
+<div id="execNimscriptCode-procs-all">
+  <div id="execNimscriptCode,string,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#execNimscriptCode%2Cstring%2Cstring"><span class="Identifier">execNimscriptCode</span></a><span class="Other">(</span><span class="Identifier">code</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">actionName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">int</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span>
+                                       <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
+                                       <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Execute a raw nimscript string via a temp .nims file. Creates a temporary .nims file with the code, runs <tt class="docutils literal"><span class="pre"><span class="Identifier">nim</span> <span class="Identifier">e</span></span></tt> on it, then cleans up.
+    
+  </dd>
+</div>
+
+</div>
 <div id="execNimscriptWithOutput-procs-all">
   <div id="execNimscriptWithOutput,string,string,seq[string],seq[string]">
   <dt><pre><span class="Keyword">proc</span> <a href="#execNimscriptWithOutput%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cseq%5Bstring%5D"><span class="Identifier">execNimscriptWithOutput</span></a><span class="Other">(</span><span class="Identifier">nimblePath</span><span class="Other">,</span> <span class="Identifier">actionName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
@@ -154,6 +177,20 @@
 </div>
 
 </div>
+<div id="runNimscriptHook-procs-all">
+  <div id="runNimscriptHook,string,string,bool">
+  <dt><pre><span class="Keyword">proc</span> <a href="#runNimscriptHook%2Cstring%2Cstring%2Cbool"><span class="Identifier">runNimscriptHook</span></a><span class="Other">(</span><span class="Identifier">nimblePath</span><span class="Other">,</span> <span class="Identifier">action</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">before</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Run a before/after hook for the given action. Returns true if the hook ran successfully (or no hook defined).
+    
+  </dd>
+</div>
+
+</div>
 <div id="taskCommand-procs-all">
   <div id="taskCommand,Values">
   <dt><pre><span class="Keyword">proc</span> <a href="#taskCommand%2CValues"><span class="Identifier">taskCommand</span></a><span class="Other">(</span><span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">Values</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
@@ -177,7 +214,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-18 14:12:35 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-19 16:06:12 UTC</small>
       </div>
     </div>
   </div>

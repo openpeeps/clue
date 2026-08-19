@@ -2,4 +2,6 @@ nimTitle	nimscript	clue/commands/nimscript.html	module clue/commands/nimscript		
 nim	execNimscript	clue/commands/nimscript.html#execNimscript,string,string,seq[string],seq[string]	proc execNimscript(nimblePath, actionName: string; args: seq[string] = @[];\n              passNim: seq[string] = @[]): int		310
 nim	execNimscriptWithOutput	clue/commands/nimscript.html#execNimscriptWithOutput,string,string,seq[string],seq[string]	proc execNimscriptWithOutput(nimblePath, actionName: string;\n                        args: seq[string] = @[]; passNim: seq[string] = @[]): tuple[\n    exitCode: int, output: string]		344
 nim	listTasks	clue/commands/nimscript.html#listTasks,string	proc listTasks(nimblePath: string): seq[tuple[name, description: string]]		382
-nim	taskCommand	clue/commands/nimscript.html#taskCommand,Values	proc taskCommand(v: Values)		408
+nim	execNimscriptCode	clue/commands/nimscript.html#execNimscriptCode,string,string	proc execNimscriptCode(code: string; actionName: string): int		408
+nim	runNimscriptHook	clue/commands/nimscript.html#runNimscriptHook,string,string,bool	proc runNimscriptHook(nimblePath, action: string; before: bool): bool		439
+nim	taskCommand	clue/commands/nimscript.html#taskCommand,Values	proc taskCommand(v: Values)		449
