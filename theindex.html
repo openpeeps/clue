@@ -62,8 +62,8 @@
 <dt><a name="buildInstalled" href="#buildInstalled"><span>buildInstalled:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="builder: proc buildInstalled(name: string; release = true; debug = false; verbose = false;
-               preferRef = &quot;&quot;): bool" href="clue/pkgmanager/builder.html#buildInstalled%2Cstring%2Cstring">builder: proc buildInstalled(name: string; release = true; debug = false; verbose = false;
-               preferRef = &quot;&quot;): bool</a></li>
+               preferRef = &quot;&quot;; nimFlags: seq[string] = @[]; backend = &quot;c&quot;): bool" href="clue/pkgmanager/builder.html#buildInstalled%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cstring">builder: proc buildInstalled(name: string; release = true; debug = false; verbose = false;
+               preferRef = &quot;&quot;; nimFlags: seq[string] = @[]; backend = &quot;c&quot;): bool</a></li>
           </ul></dd>
 <dt><a name="bumpCommand" href="#bumpCommand"><span>bumpCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -373,11 +373,11 @@
                features: seq[string] = @[]; verbose = true; url = &quot;&quot;;
                doBuild = false; buildRelease = true; buildDebug = false;
     constraint: VersionConstraint = VersionConstraint(kind: vcAny,
-    version: newVersion(0, 0, 0, &quot;&quot;, &quot;&quot;)))" href="clue/commands/manager.html#installPackage%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cstring%2CVersionConstraint">manager: proc installPackage(pkgName: string; pkgRef: string = &quot;&quot;; refresh = false;
+    version: newVersion(0, 0, 0, &quot;&quot;, &quot;&quot;)); backend = &quot;c&quot;)" href="clue/commands/manager.html#installPackage%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cstring%2CVersionConstraint%2Cstring">manager: proc installPackage(pkgName: string; pkgRef: string = &quot;&quot;; refresh = false;
                features: seq[string] = @[]; verbose = true; url = &quot;&quot;;
                doBuild = false; buildRelease = true; buildDebug = false;
     constraint: VersionConstraint = VersionConstraint(kind: vcAny,
-    version: newVersion(0, 0, 0, &quot;&quot;, &quot;&quot;)))</a></li>
+    version: newVersion(0, 0, 0, &quot;&quot;, &quot;&quot;)); backend = &quot;c&quot;)</a></li>
           </ul></dd>
 <dt><a name="isDevInstall" href="#isDevInstall"><span>isDevInstall:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -713,7 +713,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-19 18:35:48 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-19 20:31:08 UTC</small>
       </div>
     </div>
   </div>
