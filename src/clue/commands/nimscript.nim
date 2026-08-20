@@ -298,14 +298,7 @@ proc getOrCreateWrapper(nimblePath: string): string =
 
 proc detectNimBin(): string =
   ## Detect the nim compiler binary.
-  let nimPath = findExe("nim")
-  if nimPath.len > 0:
-    return nimPath
-  # Fallback: check choosenim
-  let choosenimBin = getHomeDir() / ".choosenim" / "current" / "bin" / "nim"
-  if fileExists(choosenimBin):
-    return choosenimBin
-  "nim"
+  resolveNimBin()
 
 proc execNimscript*(nimblePath, actionName: string,
     args: seq[string] = @[], passNim: seq[string] = @[]): int =

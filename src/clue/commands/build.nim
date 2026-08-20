@@ -249,7 +249,7 @@ proc buildCommand*(v: Values) =
     let outFile =
       if outPath.len > 0: outPath
       else: file.extractFilename.changeFileExt("")
-    let cmd = "nim " & backend & flags & " --out:" & outFile & " " & file
+    let cmd = resolveNimBin() & " " & backend & flags & " --out:" & outFile & " " & file
     if verbose:
       display("  " & cyan(cmd))
     let (output, exitCode) = execCmdEx(cmd)
@@ -323,7 +323,7 @@ proc buildCommand*(v: Values) =
     elif isDebug:
       flags.add(" --debugger:native")
 
-    let cmd = &"nim {backend}{flags} --out:{outFile} {srcFile}"
+    let cmd = &"{resolveNimBin()} {backend}{flags} --out:{outFile} {srcFile}"
     if verbose:
       display("  " & cyan(cmd))
 
@@ -422,7 +422,27 @@ proc testCommand*(v: Values) =
 
   # Before test hook
   discard runNimscriptHook(nimblePath, "test", before=true)
-  let testRunnerCode = """import os, osproc, strutils, times, terminal
+  let testRunnerCode = """import os, osproc, strutils, times, terminal, json
+
+proc resolveNimBin(): string =
+  let venvConfig = getCurrentDir() / ".env" / "venv.json"
+  if fileExists(venvConfig):
+    try:
+      let config = parseFile(venvConfig)
+      let nimBin = config["nim_bin"].getStr()
+      if nimBin.len > 0 and dirExists(nimBin):
+        let nimExe = nimBin / "nim"
+        if fileExists(nimExe):
+          return nimExe
+    except CatchableError:
+      discard
+  let nimPath = findExe("nim")
+  if nimPath.len > 0:
+    return nimPath
+  let choosenimBin = getHomeDir() / ".choosenim" / "current" / "bin" / "nim"
+  if fileExists(choosenimBin):
+    return choosenimBin
+  "nim"
 
 var currentProcess: Process
 
@@ -454,7 +474,7 @@ for kind, path in walkDir("tests"):
         if f.len > 0: args.add(f)
     args.add("--out:" & outFile)
     args.add(path.extractFilename)
-    currentProcess = startProcess(findExe("nim"), args = args,
+    currentProcess = startProcess(resolveNimBin(), args = args,
       workingDir = "tests", options = {poParentStreams})
     let code = currentProcess.waitForExit()
     currentProcess.close()
@@ -471,16 +491,33 @@ if failed.len > 0:
 else:
   styledEcho fgGreen, "All " & $passed & " test(s) passed!"
 """
-  let runnerPath = getTempDir() / "clue_test_runner.nim"
-  writeFile(runnerPath, testRunnerCode)
-  let runnerOut = getTempDir() / "clue_test_runner"
-  let (buildOutput, buildCode) = execCmdEx("nim c --out:" & runnerOut & " " & runnerPath)
-  removeFile(runnerPath)
+  let projectName = pkgDir.lastPathPart()
+  let buildTempDir = clueBuildTempPath / projectName
+  discard existsOrCreateDir(clueBuildTempPath)
+  discard existsOrCreateDir(buildTempDir)
+
+  # Copy config.nims and nimble.paths so the Nim compiler resolves imports
+  let srcConfig = pkgDir / "config.nims"
+  let srcPaths = pkgDir / "nimble.paths"
+  if fileExists(srcConfig):
+    copyFile(srcConfig, buildTempDir / "config.nims")
+  if fileExists(srcPaths):
+    copyFile(srcPaths, buildTempDir / "nimble.paths")
+
+  let runnerNim = buildTempDir / "clue_test_runner.nim"
+  let runnerOut = buildTempDir / "clue_test_runner"
+  writeFile(runnerNim, testRunnerCode)
+  let (buildOutput, buildCode) = execCmdEx(
+    resolveNimBin() & " c --out:" & runnerOut & " " & runnerNim)
+  removeFile(runnerNim)
   if buildCode != 0:
+    removeDir(buildTempDir)
     displayError("Failed to compile test runner: " & buildOutput)
     quit(1)
   let exitCode = execCmd(runnerOut.quoteShell & " " & depFlags.quoteShell &
     " " & nimFlags.join(" ").quoteShell & " " & backend.quoteShell)
+  removeFile(runnerOut)
+  removeDir(buildTempDir)
 
   # After test hook (runs even if tests failed)
   discard runNimscriptHook(nimblePath, "test", before=false)

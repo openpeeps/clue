@@ -32,6 +32,7 @@ let
   cluePkgsPath* = cluePath / "packages"
   cluePkgsCachePath* = cluePkgsPath / "_cache"
   clueBinPath* = cluePath / "bin"
+  clueBuildTempPath* = cluePath / "buildtemp"
   clueDevelopPath* = cluePath / "develop"
   nimbleLocalPackages* = getHomeDir() / ".nimble" / "packages_official.json"
   nimblePackagesUrl* = "https://raw.githubusercontent.com/nim-lang/packages/master/packages.json"
@@ -357,9 +358,31 @@ proc fetchPkgMeta*(pkgName: string): Option[PkgRef] =
 
 # parseNimbleFile is defined in nimbleparser.nim
 
+proc resolveNimBin*(): string =
+  ## Resolve the nim compiler binary.
+  ## Priority: .env/venv.json > PATH > ~/.choosenim/current/bin/nim > bare "nim"
+  let venvConfig = getCurrentDir() / ".env" / "venv.json"
+  if fileExists(venvConfig):
+    try:
+      let config = parseFile(venvConfig)
+      let nimBin = config["nim_bin"].getStr()
+      if nimBin.len > 0 and dirExists(nimBin):
+        let nimExe = nimBin / "nim"
+        if fileExists(nimExe):
+          return nimExe
+    except CatchableError:
+      discard
+  let nimPath = findExe("nim")
+  if nimPath.len > 0:
+    return nimPath
+  let choosenimBin = getHomeDir() / ".choosenim" / "current" / "bin" / "nim"
+  if fileExists(choosenimBin):
+    return choosenimBin
+  "nim"
+
 proc detectNimVersion*(): string =
   ## The installed `nim --version` as `major.minor.patch` (fallback "2.2.10").
-  let (outp, code) = execCmdEx("nim --version")
+  let (outp, code) = execCmdEx(resolveNimBin() & " --version")
   if code != 0:
     return "2.2.10"
   for line in outp.splitLines():

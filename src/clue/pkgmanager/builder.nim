@@ -14,6 +14,8 @@ import std/[os, osproc, strutils, sequtils, sets, tables, terminal]
 
 import pkg/kapsis/interactive/prompts
 
+import ./configs
+
 import ../cli/live
 
 import ./configs
@@ -60,7 +62,7 @@ proc buildPackageBinaries(pkgName: string, flags: string,
     if bin in seenBins:
       displayWarning("binary name collision, overwriting: " & bin)
     seenBins.incl(bin)
-    let cmd = "nim " & backend & flags & " --out:" & outFile & " " & srcFile
+    let cmd = resolveNimBin() & " " & backend & flags & " --out:" & outFile & " " & srcFile
     let (output, exitCode) = execCmdEx(cmd)
     if exitCode != 0:
       fail("Build failed for " & bin)
