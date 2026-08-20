@@ -232,7 +232,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
         toDiscover.add(pkgRefs.getOrDefault(name, PkgRef()))
       if toDiscover.len > 0:
         debugLog("Phase A: fetching " & $toDiscover.len & " package(s)")
-        progress("checking " & $toDiscover.len & " package(s)...")
+        progress("checking " & $toDiscover.len & " " & pluralize(toDiscover.len, "package") & "...")
         proc onFetch(name: string, count: int, cached: bool) =
           if showProgress: display("  " & fetchEventText(name, count, cached))
         let discovered = discoverVersionsBatch(toDiscover, refresh, onFetch)
@@ -307,7 +307,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
           if toDiscover.len == 0:
             fail("Could not resolve unknown package(s): " & e.pending.join(", "))
             return
-          progress("checking " & $toDiscover.len & " package(s)...")
+          progress("checking " & $toDiscover.len & " " & pluralize(toDiscover.len, "package") & "...")
           proc onFetch2(name: string, count: int, cached: bool) =
             if showProgress: display("  " & fetchEventText(name, count, cached))
           let discovered = discoverVersionsBatch(toDiscover, refresh, onFetch2)

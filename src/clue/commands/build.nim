@@ -224,7 +224,7 @@ proc resolveBackend(v: Values): string =
 proc buildCommand*(v: Values) =
 
   let file =
-    if v.has("file"): v.get("file").getStr
+    if v.has("file"): v.get("file").getStr.changeFileExt("nim")
     else: ""
   let isRelease = v.has("--release")
   let isDebug = v.has("--debug")
