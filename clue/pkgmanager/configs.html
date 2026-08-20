@@ -122,6 +122,7 @@
     <summary><a class="reference reference-toplevel" href="#9" id="59">Lets</a></summary>
     <ul class="simple simple-toc-section">
       <li><a class="reference" href="#clueBinPath" title="clueBinPath = cluePath / &quot;bin&quot;">clueBinPath</a></li>
+<li><a class="reference" href="#clueBuildTempPath" title="clueBuildTempPath = cluePath / &quot;buildtemp&quot;">clueBuildTempPath</a></li>
 <li><a class="reference" href="#clueDBPath" title="clueDBPath = cluePath / &quot;clue.db&quot;">clueDBPath</a></li>
 <li><a class="reference" href="#clueDevelopPath" title="clueDevelopPath = cluePath / &quot;develop&quot;">clueDevelopPath</a></li>
 <li><a class="reference" href="#cluePath" title="cluePath = getHomeDir() / &quot;.clue&quot;">cluePath</a></li>
@@ -164,6 +165,10 @@
 </ul>
 <ul class="simple nested-toc-section">refreshRegistry
   <li><a class="reference" href="#refreshRegistry" title="refreshRegistry(): bool">refreshRegistry(): bool</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">resolveNimBin
+  <li><a class="reference" href="#resolveNimBin" title="resolveNimBin(): string">resolveNimBin(): string</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">safeRemoveDir
@@ -321,6 +326,14 @@
     
   </dd>
 </div>
+<div id="clueBuildTempPath">
+  <dt><pre><a href="#clueBuildTempPath"><span class="Identifier">clueBuildTempPath</span></a> <span class="Other">=</span> <a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;buildtemp&quot;</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
 <div id="clueDBPath">
   <dt><pre><a href="#clueDBPath"><span class="Identifier">clueDBPath</span></a> <span class="Other">=</span> <a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;clue.db&quot;</span></pre></dt>
   <dd>
@@ -393,8 +406,9 @@
   <dl class="item">
     <div id="checkNimConstraint-procs-all">
   <div id="checkNimConstraint,NimbleFile">
-  <dt><pre><span class="Keyword">proc</span> <a href="#checkNimConstraint%2CNimbleFile"><span class="Identifier">checkNimConstraint</span></a><span class="Other">(</span><span class="Identifier">nimble</span><span class="Other">:</span> <a href="#NimbleFile"><span class="Identifier">NimbleFile</span></a><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dt><pre><span class="Keyword">proc</span> <a href="#checkNimConstraint%2CNimbleFile"><span class="Identifier">checkNimConstraint</span></a><span class="Other">(</span><span class="Identifier">nimble</span><span class="Other">:</span> <a href="#NimbleFile"><span class="Identifier">NimbleFile</span></a><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     Check the nimble <tt class="docutils literal"><span class="pre"><span class="Identifier">requires</span> <span class="StringLit">&quot;nim ...&quot;</span></span></tt> constraint against the installed Nim compiler. Exact (<tt class="docutils literal"><span class="pre"><span class="Operator">=</span></span></tt>) mismatches are fatal — the build will fail. Range mismatches (<tt class="docutils literal"><span class="pre"><span class="Operator">&gt;=</span></span></tt>, <tt class="docutils literal"><span class="pre"><span class="Operator">&lt;</span></span></tt>, etc.) emit a warning since the build may still work.
@@ -418,7 +432,8 @@
 <div id="detectNimVersion-procs-all">
   <div id="detectNimVersion">
   <dt><pre><span class="Keyword">proc</span> <a href="#detectNimVersion"><span class="Identifier">detectNimVersion</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     The installed <tt class="docutils literal"><span class="pre"><span class="Identifier">nim</span> <span class="Operator">--</span><span class="Identifier">version</span></span></tt> as <tt class="docutils literal"><span class="pre"><span class="Identifier">major</span><span class="Operator">.</span><span class="Identifier">minor</span><span class="Operator">.</span><span class="Identifier">patch</span></span></tt> (fallback &quot;2.2.10&quot;).
@@ -480,6 +495,18 @@
 </div>
 
 </div>
+<div id="resolveNimBin-procs-all">
+  <div id="resolveNimBin">
+  <dt><pre><span class="Keyword">proc</span> <a href="#resolveNimBin"><span class="Identifier">resolveNimBin</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Resolve the nim compiler binary. Priority: .env/venv.json &gt; PATH &gt; ~/.choosenim/current/bin/nim &gt; bare &quot;nim&quot;
+    
+  </dd>
+</div>
+
+</div>
 <div id="safeRemoveDir-procs-all">
   <div id="safeRemoveDir,string">
   <dt><pre><span class="Keyword">proc</span> <a href="#safeRemoveDir%2Cstring"><span class="Identifier">safeRemoveDir</span></a><span class="Other">(</span><span class="Identifier">dir</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
@@ -531,7 +558,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-19 21:31:19 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-20 11:11:58 UTC</small>
       </div>
     </div>
   </div>

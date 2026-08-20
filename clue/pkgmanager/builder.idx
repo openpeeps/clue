@@ -1,2 +1,2 @@
 nimTitle	builder	clue/pkgmanager/builder.html	module clue/pkgmanager/builder		0
-nim	buildInstalled	clue/pkgmanager/builder.html#buildInstalled,string,string,seq[string],string	proc buildInstalled(name: string; release = true; debug = false; verbose = false;\n               preferRef = ""; nimFlags: seq[string] = @[]; backend = "c"): bool		73
+nim	buildInstalled	clue/pkgmanager/builder.html#buildInstalled,string,string,seq[string],string	proc buildInstalled(name: string; release = true; debug = false; verbose = false;\n               preferRef = ""; nimFlags: seq[string] = @[]; backend = "c"): bool		75
