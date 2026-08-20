@@ -234,7 +234,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
         debugLog("Phase A: fetching " & $toDiscover.len & " package(s)")
         progress("checking " & $toDiscover.len & " package(s)...")
         proc onFetch(name: string, count: int, cached: bool) =
-          progress(fetchEventText(name, count, cached))
+          if showProgress: display("  " & fetchEventText(name, count, cached))
         let discovered = discoverVersionsBatch(toDiscover, refresh, onFetch)
         for name, versions in discovered:
           registerVersions(name, versions)
@@ -309,7 +309,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
             return
           progress("checking " & $toDiscover.len & " package(s)...")
           proc onFetch2(name: string, count: int, cached: bool) =
-            progress(fetchEventText(name, count, cached))
+            if showProgress: display("  " & fetchEventText(name, count, cached))
           let discovered = discoverVersionsBatch(toDiscover, refresh, onFetch2)
           for name, versions in discovered:
             registerVersions(name, versions)
@@ -324,11 +324,14 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
       fail("Resolution failed: " & e.msg); return
 
     var name2ver: Table[string, string]
+    var verStrs: Table[string, string]
     for rp in resolution.packages:
+      let meta = pkgRefs.getOrDefault(rp.name, PkgRef())
       name2ver[rp.name] = $rp.version
+      verStrs[rp.name] = if meta.refStr.len > 0: meta.refStr else: $rp.version
     debugLog("resolved " & $resolution.packages.len & " package(s)")
     if verbose:
-      displayInfo("Resolved " & $resolution.packages.len & " package(s):")
+      displayInfo("Dependency tree")
       proc renderDepTree(name: string, leading: string, isLast: bool, isRoot: bool,
           path: var HashSet[string]) =
         let refStr = pkgRefs.getOrDefault(name).refStr
@@ -377,13 +380,6 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     #    package); cache-ensuring and the already-installed check stay here.
     var installedCount = 0
     var installedLabels: seq[string]
-    let rootLabel =
-      if rootMeta.refStr.len > 0: "@" & rootMeta.refStr
-      else:
-        let v = name2ver.getOrDefault(pkgName)
-        if v.len > 0: "@" & v else: ""
-    if rootLabel.len > 0:
-      progress("installing " & pkgName & rootLabel)
     var jobs: seq[InstallJob]
     for rp in resolution.packages:
       let meta = pkgRefs.getOrDefault(rp.name, PkgRef())
@@ -408,7 +404,6 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
         if meta.refStr.len > 0: " @" & verStr
         else: " v" & verStr
       if dirExists(verDir):
-        progress(rp.name & label & " (cached)")
         installedCount.inc
         installedLabels.add(rp.name & "@" & verStr)
         continue
@@ -428,7 +423,6 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
         if ok:
           installedCount.inc
           installedLabels.add(jobs[i].name & "@" & jobs[i].verStr)
-          progress("installed " & jobs[i].name & jobs[i].label)
         else:
           warn("Failed to install " & jobs[i].name & " v" & jobs[i].verStr)
 
@@ -444,8 +438,8 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
         let dn = depName(d)
         if d.branch.len > 0:
           deps.add((dn, d.branch))
-        elif name2ver.hasKey(dn):
-          deps.add((dn, name2ver[dn]))
+        elif verStrs.hasKey(dn):
+          deps.add((dn, verStrs[dn]))
       recordInstall(rp.name, verStr, deps, root = rp.name == pkgName,
         features = feats, installPath = cluePkgsPath / rp.name / verStr)
 

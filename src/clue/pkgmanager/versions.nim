@@ -753,7 +753,10 @@ proc resolveInstalledPath*(name, preferRef: string): string =
           bestVer = v
           chosen = row["path"].strVal
       except CatchableError:
-        discard
+        # Non-semver version (e.g. git ref like "head") — use as fallback
+        # when no semver match has been found yet.
+        if chosen.len == 0:
+          chosen = row["path"].strVal
   if chosen.len > 0:
     warnDevShadow(name, chosen)
     return chosen
