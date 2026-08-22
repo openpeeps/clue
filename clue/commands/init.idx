@@ -1,0 +1,2 @@
+nimTitle	init	clue/commands/init.html	module clue/commands/init		0
+nim	initCommand	clue/commands/init.html#initCommand,Values	proc initCommand(v: Values)		173
