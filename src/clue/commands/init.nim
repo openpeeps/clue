@@ -170,6 +170,13 @@ proc gitAuthor(): string =
     return ""
   outp.strip()
 
+proc dirHasItems(d: string): bool =
+  ## True when any file exists anywhere below `d`.
+  for f in walkDir(d):
+    if not f.path.isHidden:
+      return true
+  false
+
 proc initCommand*(v: Values) =
   ## Bootstrap a starter project using the user's input.
   ## `-Y` skips all prompts and initializes a library package with defaults
@@ -180,12 +187,10 @@ proc initCommand*(v: Values) =
     return
 
   let dir = getCurrentDir()
-  if findNimbleFile(dir).len > 0:
-    displayError(dir & " already contains a .nimble file.", quitProcess = true)
-    return
 
   # Package name: positional arg, else the directory name; must be a valid
-  # Nim identifier.
+  # Nim identifier. Validated before touching the filesystem so invalid
+  # names never leave a stray directory behind.
   var pkgName =
     if v.has("name"): v.get("name").getStr
     else: dir.lastPathPart()
@@ -196,6 +201,21 @@ proc initCommand*(v: Values) =
     while not validPkgName(pkgName):
       displayWarning("'" & pkgName & "' is not a valid Nim package name.")
       pkgName = prompt("Package name").strip()
+
+  # Scaffold root: `clue init <name>` always expands into a fresh `<name>/`
+  # subdirectory; plain `clue init` expands into the current directory,
+  # which must contain no files at all.
+  var projectRoot = dir
+  if v.has("name"):
+    projectRoot = dir / pkgName
+    if dirExists(projectRoot) and dirHasItems(projectRoot):
+      displayError("'" & pkgName & "' already exists and is not empty.", quitProcess = true)
+      return
+    createDir(projectRoot)
+  elif dirHasItems(dir):
+    displayError("Current directory is not empty. Provide a package name to scaffold into a subdirectory, e.g. `clue init " &
+      pkgName & "`", quitProcess = true)
+    return
 
   let author =
     if yesMode: gitAuthor()
@@ -221,37 +241,37 @@ proc initCommand*(v: Values) =
   var extras = ""
   case pkgType
   of "library":
-    createDir(dir / "src" / pkgName)
-    writeExampleIfNonExistent(dir / "src" / (pkgName.addFileExt("nim")),
+    createDir(projectRoot / "src" / pkgName)
+    writeExampleIfNonExistent(projectRoot / "src" / (pkgName.addFileExt("nim")),
       LibMainTemplate)
-    writeExampleIfNonExistent(dir / "src" / pkgName / "submodule.nim",
+    writeExampleIfNonExistent(projectRoot / "src" / pkgName / "submodule.nim",
       LibSubmoduleTemplate.replace("@@NAME@@", pkgName))
-    createDir(dir / "tests")
-    writeFile(dir / "tests" / "config.nims", TestsConfigContent)
-    writeExampleIfNonExistent(dir / "tests" / "test1.nim",
+    createDir(projectRoot / "tests")
+    writeFile(projectRoot / "tests" / "config.nims", TestsConfigContent)
+    writeExampleIfNonExistent(projectRoot / "tests" / "test1.nim",
       LibTestTemplate.replace("@@NAME@@", pkgName))
   of "binary":
-    createDir(dir / "src")
-    writeExampleIfNonExistent(dir / "src" / (pkgName.addFileExt("nim")),
+    createDir(projectRoot / "src")
+    writeExampleIfNonExistent(projectRoot / "src" / (pkgName.addFileExt("nim")),
       BinMainTemplate)
     extras = "bin           = @[\"" & pkgName & "\"]\n"
   of "hybrid":
-    createDir(dir / "src" / pkgName)
-    writeExampleIfNonExistent(dir / "src" / (pkgName.addFileExt("nim")),
+    createDir(projectRoot / "src" / pkgName)
+    writeExampleIfNonExistent(projectRoot / "src" / (pkgName.addFileExt("nim")),
       HybridMainTemplate.replace("@@NAME@@", pkgName))
-    writeExampleIfNonExistent(dir / "src" / pkgName / "submodule.nim",
+    writeExampleIfNonExistent(projectRoot / "src" / pkgName / "submodule.nim",
       HybridSubmoduleTemplate.replace("@@NAME@@", pkgName))
-    createDir(dir / "tests")
-    writeFile(dir / "tests" / "config.nims", TestsConfigContent)
-    writeExampleIfNonExistent(dir / "tests" / "test1.nim",
+    createDir(projectRoot / "tests")
+    writeFile(projectRoot / "tests" / "config.nims", TestsConfigContent)
+    writeExampleIfNonExistent(projectRoot / "tests" / "test1.nim",
       HybridTestTemplate.replace("@@NAME@@", pkgName))
     extras = "installExt    = @[\"nim\"]\nbin           = @[\"" & pkgName & "\"]\n"
   else:
     assert false, "unreachable"
 
-  let nimbleFile = dir / pkgName.addFileExt("nimble")
+  let nimbleFile = projectRoot / pkgName.addFileExt("nimble")
   writeFile(nimbleFile, buildNimbleFile(pkgName, version, author, description,
     license, nimDep, extras))
 
   displaySuccess("Initialized " & pkgType & " package '" & pkgName &
-    "' in " & dir)
+    "' in " & projectRoot)
