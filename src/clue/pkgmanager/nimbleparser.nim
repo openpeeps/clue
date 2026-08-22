@@ -97,6 +97,16 @@ proc parseRequiresArg*(arg: string): NimbleDependency =
     namePart = namePart[0..<hashPos].strip()
 
   result = NimbleDependency(name: namePart, branch: refStr, features: result.features)
+  if parts.len == 2 and parts[1].len > 1:
+    # Glued operator form: `pkg ^1.5.2`, `pkg ~>0.9.1`, `pkg >=2.0.0`.
+    for opCand in ["~>", ">=", "<=", "==", "~", "^", ">", "<", "="]:
+      if parts[1].startsWith(opCand):
+        let verPart = parts[1][opCand.len .. ^1].strip()
+        if verPart.len > 0 and verPart[0] in {'0'..'9'}:
+          result.constraint = parseConstraint(opCand & normalizeVersion(verPart))
+          result.isNim = result.name == "nim"
+          return
+        break
   if parts.len >= 3 and parts[1] in ["==", "=", ">=", ">", "<=", "<", "^", "~>"]:
     let op = if parts[1] == "==": "=" else: parts[1]
     result.constraint = parseConstraint(op & normalizeVersion(parts[2]))
@@ -107,7 +117,7 @@ proc parseRequiresArg*(arg: string): NimbleDependency =
     result.constraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0))
   result.isNim = result.name == "nim"
 
-proc parseRequiresLine(deps: var seq[NimbleDependency], line: string) =
+proc parseRequiresLine*(deps: var seq[NimbleDependency], line: string) =
   ## Parse a `requires "a[f], b >= 1.0"` line into dependencies.
   let trimmed = line.strip()
   let quotePos = trimmed.find('"')
@@ -125,12 +135,17 @@ proc parseNimbleFileFallback(result: var NimbleFile, code: string) =
   for line in code.splitLines():
     let trimmed = line.strip()
     if trimmed.len == 0 or trimmed.startsWith("#"): continue
-    if trimmed.startsWith("requires"):
-      if result.requires.len == 0:
-        try:
-          parseRequiresLine(result.requires, trimmed)
-        except CatchableError:
-          discard # malformed constraint — skip the dep, keep parsing
+    let isRootLevel = line.len == line.strip(leading = true).len
+    if isRootLevel and trimmed.startsWith("requires"):
+      # Always parse every root-level requires line: sweetsyntax can crash
+      # mid-file (resetting partial results) or skip lines, so gating on an
+      # empty seq would silently drop everything after the first line.
+      # Indented requires inside feature/dev blocks are handled separately
+      # by parseFeatureBlocks.
+      try:
+        parseRequiresLine(result.requires, trimmed)
+      except CatchableError:
+        discard # malformed constraint — skip the dep, keep parsing
       continue
     # Extract nimscript task definitions: task <name>, "<description>":
     if trimmed.startsWith("task ") and trimmed.len > 5:
@@ -299,6 +314,18 @@ proc parseNimbleFileSweetsyntax(result: var NimbleFile, path: string, code: stri
             result.requires.add(parseRequiresArg(stripQuotes(node.children[i].valStr)))
     else: discard
 
+proc dedupeDeps(deps: var seq[NimbleDependency]) =
+  ## Keep the first occurrence of each distinct dependency spec.
+  var seen = initHashSet[string]()
+  var unique: seq[NimbleDependency]
+  for d in deps:
+    let key = d.name & "|" & d.branch & "|" & d.tag & "|" & d.url & "|" &
+      $d.constraint & "|" & d.features.join(",")
+    if key notin seen:
+      seen.incl(key)
+      unique.add(d)
+  deps = unique
+
 proc parseNimbleString*(code: string): NimbleFile =
   ## Parse nimble file contents directly (no filesystem read) — used for fast
   ## `git show <tag>:<nimble>` dependency parsing.
@@ -309,7 +336,11 @@ proc parseNimbleString*(code: string): NimbleFile =
     result = NimbleFile(path: "")
   # always run the fill-missing pass: sweetsyntax can skip fields like
   # `srcDir` (tokenized as a non-identifier), so capture any that are empty.
+  # The fallback now parses every requires line too, so dedupe overlapping
+  # entries captured by both passes.
   parseNimbleFileFallback(result, code)
+  dedupeDeps(result.requires)
+  dedupeDeps(result.dev)
   # feature blocks are independent of sweetsyntax's AST handling
   parseFeatureBlocks(result, code)
 

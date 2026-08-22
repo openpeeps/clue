@@ -716,6 +716,39 @@ proc uninstallCommand*(v: Values) =
       displayInfo("Uninstallation cancelled.")
   pruneOrphans()
 
+proc renderDepSpec(d: NimbleDependency): string =
+  ## `"name >= 1.2.3"` — or just the name when the constraint is any (`*`).
+  let c = $d.constraint
+  if c == "*": d.name else: d.name & " " & c
+
+proc buildLocalNimbleInfo(nimblePath: string): JsonNode =
+  ## JSON details parsed from a .nimble file (used by both dump modes).
+  let nimble = parseNimbleFile(nimblePath)
+  result = %*{
+    "name": nimblePath.extractFilename.changeFileExt(""),
+    "version": nimble.version,
+    "author": nimble.author,
+    "description": nimble.description,
+    "license": nimble.license,
+    "srcDir": nimble.srcDir,
+    "binDir": nimble.binDir,
+    "bin": %nimble.bin,
+    "installDirs": %nimble.installDirs,
+    "installFiles": %nimble.installFiles,
+    "installExt": %nimble.installExt,
+    "skipDirs": %nimble.skipDirs,
+    "skipFiles": %nimble.skipFiles,
+    "skipExt": %nimble.skipExt,
+  }
+  var reqArr = newJArray()
+  for dep in nimble.requires:
+    reqArr.add(%renderDepSpec(dep))
+  result["requires"] = reqArr
+  var tasksArr = newJArray()
+  for (tname, tdesc) in nimble.tasks:
+    tasksArr.add(%{"name": %tname, "description": %tdesc})
+  result["tasks"] = tasksArr
+
 proc dumpCommand*(v: Values) =
   ## Dump package info from the registry, its available versions and recent
   ## git activity (latest commit hash/date/author) — `--refresh` re-reads
@@ -730,32 +763,7 @@ proc dumpCommand*(v: Values) =
     if nimblePath.len == 0:
       displayError("No .nimble file found in " & getCurrentDir(), quitProcess = true)
       return
-    let nimble = parseNimbleFile(nimblePath)
-    var pkgInfo = %*{
-      "name": nimblePath.extractFilename.changeFileExt(""),
-      "version": nimble.version,
-      "author": nimble.author,
-      "description": nimble.description,
-      "license": nimble.license,
-      "srcDir": nimble.srcDir,
-      "binDir": nimble.binDir,
-      "bin": %nimble.bin,
-      "installDirs": %nimble.installDirs,
-      "installFiles": %nimble.installFiles,
-      "installExt": %nimble.installExt,
-      "skipDirs": %nimble.skipDirs,
-      "skipFiles": %nimble.skipFiles,
-      "skipExt": %nimble.skipExt,
-    }
-    var reqArr = newJArray()
-    for dep in nimble.requires:
-      reqArr.add(%($dep.constraint))
-    pkgInfo["requires"] = reqArr
-    var tasksArr = newJArray()
-    for (tname, tdesc) in nimble.tasks:
-      tasksArr.add(%{"name": %tname, "description": %tdesc})
-    pkgInfo["tasks"] = tasksArr
-    display(pretty(pkgInfo))
+    display(pretty(buildLocalNimbleInfo(nimblePath)))
     return
 
   # Registry dump.
@@ -791,6 +799,13 @@ proc dumpCommand*(v: Values) =
             "author": git.get().author,
             "subject": git.get().subject
           }
+        # Embed the dumped package's own .nimble details (from its installed
+        # registry copy) when available.
+        let pkgDir = resolveInstalledPath(pkgName, "")
+        if pkgDir.len > 0:
+          let pkgNimble = findNimbleFile(pkgDir)
+          if pkgNimble.len > 0:
+            pkgInfo["nimble"] = buildLocalNimbleInfo(pkgNimble)
         display(pretty(pkgInfo))
 
 

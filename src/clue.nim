@@ -19,8 +19,9 @@ when isMainModule:
             ?string("--features"), ?bool("--verbose"), ?string("--out"),
             ?string("-o"), ?any("-b" = ["c", "cpp", "objc", "js"]):
         ## Build the current package or a single module
-      bump ?string(version), ?string("--level"):
-        ## Bump the version in the current .nimble file
+      bump ?string(pkgOrVersion), ?string(version), ?string("--level"):
+        ## Bump the version in the current .nimble file, or a root dependency's
+        ## version constraint (`clue bump nim 2.2.0`)
       develop:
         ## Editable install for live library discovery
       dump ?string(pkg), ?bool("--refresh"):
