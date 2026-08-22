@@ -7,7 +7,7 @@
 when isMainModule:
   # Build the CLI with Kapsis
   import pkg/kapsis
-  import ./clue/commands/[manager, build, docs, doctor, deploy, upgrade, bump, nimscript]
+  import ./clue/commands/[manager, build, docs, doctor, deploy, upgrade, bump, nimscript, init]
 
   initKapsis do:
     commands:
@@ -27,6 +27,8 @@ when isMainModule:
         ## Dump package info and git activity
       fetch:
         ## Fetch a fresh packages.json and re-index available packages
+      init ?string(name), ?bool("-Y"):
+        ## Initialize a new nimble project in the current directory
       install ?string(pkg), ?bool("--refresh"), ?string("--features"),
               ?bool("--verbose"), ?bool("--build"), ?bool("--debug"),
               ?any("-b" = ["c", "cpp", "objc", "js"]):
