@@ -5,7 +5,7 @@ import pkg/kapsis/interactive/prompts
 
 export rdbms
 
-const
+let
   clueBasePath* = getHomeDir() / ".clue"
   clueDocsPath* = clueBasePath / "docs"
   clueDocsDBPath* = clueBasePath / "docs.db"
