@@ -236,12 +236,13 @@ proc buildCommand*(v: Values) =
     else: ""
   let backend = resolveBackend(v)
   let nimFlags = extras.join(" ")
+  let toolchainFlags = defaultToolchainFlags(nimFlags)
 
   # Module mode: `clue build foo.nim` — no nimble file needed; every installed
   # package is put on the import path so any `import xyz` resolves.
   if file.len > 0:
     let pathFlags = allInstalledPaths().mapIt("--path:" & it)
-    var flags = " " & pathFlags.join(" ") & " --colors:on" & " " & nimFlags
+    var flags = " " & pathFlags.join(" ") & defaultColorsFlag(nimFlags) & " " & nimFlags & toolchainFlags
     if isRelease:
       flags.add(" -d:release --opt:size")
     elif isDebug:
@@ -317,7 +318,7 @@ proc buildCommand*(v: Values) =
     let srcFile = pkgDir / srcDir / bin.addFileExt("nim")
     let outFile = if outPath.len > 0: outPath / bin
                   else: pkgDir / binDir / bin
-    var flags = " " & pathFlags.join(" ") & featureDefines & " --colors:on" & " " & nimFlags
+    var flags = " " & pathFlags.join(" ") & featureDefines & defaultColorsFlag(nimFlags) & " " & nimFlags & toolchainFlags
     if isRelease:
       flags.add(" -d:release --opt:size")
     elif isDebug:
@@ -465,7 +466,7 @@ for kind, path in walkDir("tests"):
     let name = path.extractFilename.changeFileExt("")
     styledEcho fgCyan, "Compiling ", name, ".nim (" & backend & " backend)"
     let outFile = getTempDir() / ("clue_test_" & name)
-    var args = @[backend, "-r", "--colors:on"]
+    var args = @[backend, "-r"]
     if extraFlags.len > 0:
       for f in extraFlags.split(" "):
         if f.len > 0: args.add(f)
@@ -514,8 +515,9 @@ else:
     removeDir(buildTempDir)
     displayError("Failed to compile test runner: " & buildOutput)
     quit(1)
+  let runnerNimFlags = nimFlags.join(" ") & defaultColorsFlag(nimFlags.join(" "))
   let exitCode = execCmd(runnerOut.quoteShell & " " & depFlags.quoteShell &
-    " " & nimFlags.join(" ").quoteShell & " " & backend.quoteShell)
+    " " & runnerNimFlags.quoteShell & " " & backend.quoteShell)
   removeFile(runnerOut)
   removeDir(buildTempDir)
 

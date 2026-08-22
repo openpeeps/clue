@@ -380,6 +380,33 @@ proc resolveNimBin*(): string =
     return choosenimBin
   "nim"
 
+proc defaultToolchainFlags*(userFlags = ""): string =
+  ## Default native include/link search paths per operating system, appended
+  ## to every compile so headers/libs from common package managers (MacPorts,
+  ## Homebrew) resolve without manual `--passC` / `--passL`. Skipped entirely
+  ## when `userFlags` already contains an explicit --passC/--passL.
+  if userFlags.contains("--passC") or userFlags.contains("--passL"):
+    return ""
+  var parts: seq[string]
+  proc check(incDir, libDir: string) =
+    if dirExists(incDir):
+      parts.add(" --passC:-I" & incDir)
+    if dirExists(libDir):
+      parts.add(" --passL:-L" & libDir)
+      parts.add(" --passL:-Wl,-rpath," & libDir)
+  when defined(macosx):
+    check("/opt/local/include", "/opt/local/lib")
+    check("/opt/homebrew/include", "/opt/homebrew/lib")
+    check("/usr/local/include", "/usr/local/lib")
+  elif defined(linux):
+    check("/usr/local/include", "/usr/local/lib")
+  result = parts.join("")
+
+proc defaultColorsFlag*(userFlags = ""): string =
+  ## Nim compiler colors default to on so errors stay readable when output is
+  ## captured; suppressed when the user passes their own `--colors:<x>` flag.
+  if userFlags.contains("--colors"): "" else: " --colors:on"
+
 proc detectNimVersion*(): string =
   ## The installed `nim --version` as `major.minor.patch` (fallback "2.2.10").
   let (outp, code) = execCmdEx(resolveNimBin() & " --version")

@@ -22,8 +22,8 @@ import ./configs
 import ./versions
 import ./nimbleparser
 
-proc buildFlags(release, debug: bool): string =
-  result = " --colors:on"
+proc buildFlags(release, debug: bool, userNimFlags = ""): string =
+  result = defaultColorsFlag(userNimFlags)
   if release:
     result.add(" -d:release --opt:size")
   elif debug:
@@ -91,7 +91,7 @@ proc buildInstalled*(name: string, release = true, debug = false,
     for f in feats:
       featureDefines.add(" -d:features." & pkg & "." & f)
 
-  let flags = " " & pathFlags.join(" ") & featureDefines & buildFlags(release, debug) & " " & nimFlags.join(" ")
+  let flags = " " & pathFlags.join(" ") & featureDefines & buildFlags(release, debug, nimFlags.join(" ")) & " " & nimFlags.join(" ")
 
   var order = collectInstalledDepNames(@[name]).filterIt(it != name)
   order.add(name)  # deps first, root last
