@@ -25,5 +25,7 @@ nim	refreshRegistry	clue/pkgmanager/configs.html#refreshRegistry	proc refreshReg
 nim	withClueDB	clue/pkgmanager/configs.html#withClueDB.t	template withClueDB(stmt)		346
 nim	fetchPkgMeta	clue/pkgmanager/configs.html#fetchPkgMeta,string	proc fetchPkgMeta(pkgName: string): Option[PkgRef]		350
 nim	resolveNimBin	clue/pkgmanager/configs.html#resolveNimBin	proc resolveNimBin(): string		361
-nim	detectNimVersion	clue/pkgmanager/configs.html#detectNimVersion	proc detectNimVersion(): string		383
-nim	checkNimConstraint	clue/pkgmanager/configs.html#checkNimConstraint,NimbleFile	proc checkNimConstraint(nimble: NimbleFile)		398
+nim	defaultToolchainFlags	clue/pkgmanager/configs.html#defaultToolchainFlags,string	proc defaultToolchainFlags(userFlags = ""): string		383
+nim	defaultColorsFlag	clue/pkgmanager/configs.html#defaultColorsFlag,string	proc defaultColorsFlag(userFlags = ""): string		405
+nim	detectNimVersion	clue/pkgmanager/configs.html#detectNimVersion	proc detectNimVersion(): string		410
+nim	checkNimConstraint	clue/pkgmanager/configs.html#checkNimConstraint,NimbleFile	proc checkNimConstraint(nimble: NimbleFile)		425

@@ -147,6 +147,14 @@
   <li><a class="reference" href="#debugLog%2Cstring" title="debugLog(msg: string)">debugLog(msg: string)</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">defaultColorsFlag
+  <li><a class="reference" href="#defaultColorsFlag%2Cstring" title="defaultColorsFlag(userFlags = &quot;&quot;): string">defaultColorsFlag(userFlags = &quot;&quot;): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">defaultToolchainFlags
+  <li><a class="reference" href="#defaultToolchainFlags%2Cstring" title="defaultToolchainFlags(userFlags = &quot;&quot;): string">defaultToolchainFlags(userFlags = &quot;&quot;): string</a></li>
+
+</ul>
 <ul class="simple nested-toc-section">detectNimVersion
   <li><a class="reference" href="#detectNimVersion" title="detectNimVersion(): string">detectNimVersion(): string</a></li>
 
@@ -429,6 +437,30 @@
 </div>
 
 </div>
+<div id="defaultColorsFlag-procs-all">
+  <div id="defaultColorsFlag,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#defaultColorsFlag%2Cstring"><span class="Identifier">defaultColorsFlag</span></a><span class="Other">(</span><span class="Identifier">userFlags</span> <span class="Other">=</span> <span class="StringLit">&quot;&quot;</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Nim compiler colors default to on so errors stay readable when output is captured; suppressed when the user passes their own <tt class="docutils literal"><span class="pre"><span class="Operator">--</span><span class="Identifier">colors</span><span class="Punctuation">:</span><span class="Operator">&lt;</span><span class="Identifier">x</span><span class="Operator">&gt;</span></span></tt> flag.
+    
+  </dd>
+</div>
+
+</div>
+<div id="defaultToolchainFlags-procs-all">
+  <div id="defaultToolchainFlags,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#defaultToolchainFlags%2Cstring"><span class="Identifier">defaultToolchainFlags</span></a><span class="Other">(</span><span class="Identifier">userFlags</span> <span class="Other">=</span> <span class="StringLit">&quot;&quot;</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Default native include/link search paths per operating system, appended to every compile so headers/libs from common package managers (MacPorts, Homebrew) resolve without manual <tt class="docutils literal"><span class="pre"><span class="Operator">--</span><span class="Identifier">passC</span></span></tt> / <tt class="docutils literal"><span class="pre"><span class="Operator">--</span><span class="Identifier">passL</span></span></tt>. Skipped entirely when <tt class="docutils literal"><span class="pre"><span class="Identifier">userFlags</span></span></tt> already contains an explicit --passC/--passL.
+    
+  </dd>
+</div>
+
+</div>
 <div id="detectNimVersion-procs-all">
   <div id="detectNimVersion">
   <dt><pre><span class="Keyword">proc</span> <a href="#detectNimVersion"><span class="Identifier">detectNimVersion</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
@@ -558,7 +590,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-22 03:40:46 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-22 10:57:32 UTC</small>
       </div>
     </div>
   </div>

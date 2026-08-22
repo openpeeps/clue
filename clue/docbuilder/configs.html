@@ -65,11 +65,11 @@
 </li>
 <li>
   <details open>
-    <summary><a class="reference reference-toplevel" href="#10" id="60">Consts</a></summary>
+    <summary><a class="reference reference-toplevel" href="#9" id="59">Lets</a></summary>
     <ul class="simple simple-toc-section">
-      <li><a class="reference" href="#clueBasePath" title="clueBasePath = &quot;/home/runner/.clue&quot;">clueBasePath</a></li>
-<li><a class="reference" href="#clueDocsDBPath" title="clueDocsDBPath = &quot;/home/runner/.clue/docs.db&quot;">clueDocsDBPath</a></li>
-<li><a class="reference" href="#clueDocsPath" title="clueDocsPath = &quot;/home/runner/.clue/docs&quot;">clueDocsPath</a></li>
+      <li><a class="reference" href="#clueBasePath" title="clueBasePath = getHomeDir() / &quot;.clue&quot;">clueBasePath</a></li>
+<li><a class="reference" href="#clueDocsDBPath" title="clueDocsDBPath = clueBasePath / &quot;docs.db&quot;">clueDocsDBPath</a></li>
+<li><a class="reference" href="#clueDocsPath" title="clueDocsPath = clueBasePath / &quot;docs&quot;">clueDocsPath</a></li>
 
     </ul>
   </details>
@@ -125,11 +125,11 @@
 
   </dl>
 </div>
-<div class="section" id="10">
-  <h1><a class="toc-backref" href="#10">Consts</a></h1>
+<div class="section" id="9">
+  <h1><a class="toc-backref" href="#9">Lets</a></h1>
   <dl class="item">
     <div id="clueBasePath">
-  <dt><pre><a href="#clueBasePath"><span class="Identifier">clueBasePath</span></a> <span class="Other">=</span> <span class="StringLit">&quot;/home/runner/.clue&quot;</span></pre></dt>
+  <dt><pre><a href="#clueBasePath"><span class="Identifier">clueBasePath</span></a> <span class="Other">=</span> <span class="Identifier">getHomeDir</span><span class="Other">(</span><span class="Other">)</span> <span class="Operator">/</span> <span class="StringLit">&quot;.clue&quot;</span></pre></dt>
   <dd>
     
     
@@ -137,7 +137,7 @@
   </dd>
 </div>
 <div id="clueDocsDBPath">
-  <dt><pre><a href="#clueDocsDBPath"><span class="Identifier">clueDocsDBPath</span></a> <span class="Other">=</span> <span class="StringLit">&quot;/home/runner/.clue/docs.db&quot;</span></pre></dt>
+  <dt><pre><a href="#clueDocsDBPath"><span class="Identifier">clueDocsDBPath</span></a> <span class="Other">=</span> <a href="#clueBasePath"><span class="Identifier">clueBasePath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;docs.db&quot;</span></pre></dt>
   <dd>
     
     
@@ -145,7 +145,7 @@
   </dd>
 </div>
 <div id="clueDocsPath">
-  <dt><pre><a href="#clueDocsPath"><span class="Identifier">clueDocsPath</span></a> <span class="Other">=</span> <span class="StringLit">&quot;/home/runner/.clue/docs&quot;</span></pre></dt>
+  <dt><pre><a href="#clueDocsPath"><span class="Identifier">clueDocsPath</span></a> <span class="Other">=</span> <a href="#clueBasePath"><span class="Identifier">clueBasePath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;docs&quot;</span></pre></dt>
   <dd>
     
     
@@ -209,7 +209,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-22 03:40:46 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-22 10:57:33 UTC</small>
       </div>
     </div>
   </div>
