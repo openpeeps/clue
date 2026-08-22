@@ -720,8 +720,46 @@ proc dumpCommand*(v: Values) =
   ## Dump package info from the registry, its available versions and recent
   ## git activity (latest commit hash/date/author) — `--refresh` re-reads
   ## versions from the remote instead of the local cache.
+  ## With no argument, dumps the current directory's .nimble file.
+  let pkgName =
+    if v.has("pkg"): v.get("pkg").getStr
+    else: ""
+  if pkgName.len == 0:
+    # Local dump: parse the .nimble file in the current directory.
+    let nimblePath = findNimbleFile(getCurrentDir())
+    if nimblePath.len == 0:
+      displayError("No .nimble file found in " & getCurrentDir(), quitProcess = true)
+      return
+    let nimble = parseNimbleFile(nimblePath)
+    var pkgInfo = %*{
+      "name": nimblePath.extractFilename.changeFileExt(""),
+      "version": nimble.version,
+      "author": nimble.author,
+      "description": nimble.description,
+      "license": nimble.license,
+      "srcDir": nimble.srcDir,
+      "binDir": nimble.binDir,
+      "bin": %nimble.bin,
+      "installDirs": %nimble.installDirs,
+      "installFiles": %nimble.installFiles,
+      "installExt": %nimble.installExt,
+      "skipDirs": %nimble.skipDirs,
+      "skipFiles": %nimble.skipFiles,
+      "skipExt": %nimble.skipExt,
+    }
+    var reqArr = newJArray()
+    for dep in nimble.requires:
+      reqArr.add(%($dep.constraint))
+    pkgInfo["requires"] = reqArr
+    var tasksArr = newJArray()
+    for (tname, tdesc) in nimble.tasks:
+      tasksArr.add(%{"name": %tname, "description": %tdesc})
+    pkgInfo["tasks"] = tasksArr
+    display(pretty(pkgInfo))
+    return
+
+  # Registry dump.
   withClueDB do:
-    let pkgName = v.get("pkg").getStr
     whenPackageExists pkgName:
       let res = clueDB.getTable("packages")
                         .get()

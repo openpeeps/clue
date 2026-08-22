@@ -23,7 +23,7 @@ when isMainModule:
         ## Bump the version in the current .nimble file
       develop:
         ## Editable install for live library discovery
-      dump string(pkg), ?bool("--refresh"):
+      dump ?string(pkg), ?bool("--refresh"):
         ## Dump package info and git activity
       fetch:
         ## Fetch a fresh packages.json and re-index available packages
