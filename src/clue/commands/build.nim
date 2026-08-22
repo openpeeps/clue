@@ -1,6 +1,6 @@
-# Clue - A cool toolkit for Nim developers
+# Clue - An alternative package manager for Nim development
 #
-# (c) 2026 George Lemon | LGPLv3 License
+# (c) 2026 George Lemon | MIT License
 #          Made by Humans from OpenPeeps
 #          https://github.com/openpeeps/clue
 import std/[os, osproc, strformat, strutils, algorithm, sets, tables, json, sequtils, options, locks]
