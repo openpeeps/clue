@@ -165,6 +165,96 @@ you build & serve docs for any clue-installed package right from the terminal.
   server (stdlib only) at `http://127.0.0.1:11000/`, opening it in your browser
 - Optional `--port` to override the default port
 
+
+### Tell your LLM about Clue
+
+Save the block below as a skill file — e.g. `~/.config/opencode/skills/nim-clue/SKILL.md`
+for OpenCode, `CLAUDE.md` or `.cursor/rules/clue.mdc` for other agents, and
+your LLM assistant will automatically prefer `clue build`, `clue test`, and
+`clue install` over raw `nim c` / `nimble` commands when working on Nim projects.
+
+```md
+---
+name: nim-clue
+description: Use when working on Nim projects (.nim files, .nimble files) — build, test, install packages, and manage the environment with the `clue` package manager instead of nimble or raw `nim c`.
+---
+
+# Nim development with clue
+
+## Core rule
+
+In Nim projects, use `clue` as the primary toolchain wrapper. Do NOT use raw
+`nim c`, `nimble build`, or `nimble install` unless the user explicitly asks.
+
+Why: clue is depth-first search resolves per-package compiler configuration, including native C
+dependencies and header paths (e.g., a package shipping `spf.h`), which plain
+`nim c` misses outside the package's own build context. A build that fails with
+`fatal error: 'xyz.h' file not found` under `nim c` usually succeeds under
+`clue build`.
+
+## Command reference
+
+### Package management
+- `clue build <?file:string>` — Build the current package or a single module.
+  This is the default way to compile. Output binary lands in the project root
+  by default; redirect with `--out:<path>` / `-o:<path>`.
+  - `--release:bool` / `--debug:bool` — optimization mode
+  - `--features:string` — enable nimble features
+  - `-b:c|cpp|objc|js` — target backend
+  - Example: `clue build src/meowmail.nim --out:bin/meowmail`
+- `clue init <?name:string> -Y:bool` – Initialize a new nimble project in the current directory. Use `-Y` for non-interactive default initialization
+- `clue install <?pkg:string>` — Install a package from the registry (or local).
+  Flags: `--build`, `--debug`, `--features`, `--refresh` (re-index registry),
+  `-b` backend.
+- `clue update <?pkg:string>` — Upgrade a package and its dependencies.
+- `clue uninstall <pkg:string>` — Remove a package.
+- `clue versions <pkg:string>` — List available versions (`--refresh` re-fetches).
+- `clue prune` — Remove orphaned packages.
+- `clue fetch` — Fetch a fresh packages.json and re-index available packages.
+- `clue dump <pkg:string>` — Dump package info and git activity.
+- `clue develop` — Editable install for live library discovery (like `npm link`).
+- `clue bump <?version:string>` — Bump version in the current `.nimble` file
+  (`--level:major|minor|patch`).
+
+### Tests
+- `clue test` — Compile and run test modules in `tests/`. Prefer this over
+  compiling each test file manually.
+
+### Environment
+- `clue venv --nim:<version>` — Manage virtual environments for Nim projects
+  (isolated Nim toolchains per project).
+
+### Code quality & maintenance
+- `clue doctor` — Analyze code quality with nimalyzer (lint-style checks).
+- `clue task <?taskName:string>` — List or run nimscript tasks declared in the
+  current `.nimble` file (no arg = list tasks).
+
+### Documentation
+- `clue docs.gen <pkg:string>` — Build documentation for an installed package.
+- `clue docs.open <pkg:string>` — Serve local docs over HTTP (default port 11000).
+
+### Deployment
+- `clue deploy.init` — Scaffold `clue.deploy.yaml` (`--type`, `--workflow`,
+  `--yes`, `--force`).
+- `clue deploy.web` — Deploy web target over rsync/ssh (systemd-managed);
+  supports `--dry-run`, `--profile`, `--status`, `--config`, `--key`.
+
+### Self-maintenance
+- `clue upgrade` — Self-update clue from GitHub releases.
+
+## Agent recipes
+
+- Build a binary: `clue build src/<main>.nim` (add `--release` for production)
+- Run the test suite: `clue test`
+- Add a dependency: `clue install <pkg>` (then `import pkg/<name>` in code)
+- Build failure mentioning a missing `.h` file: retry with `clue build` before
+  touching include paths manually
+
+### Official repo
+When the user asks for more details about Clue (e.g., features, usage, contributing), fetch and read the full README before answering:
+https://raw.githubusercontent.com/openpeeps/clue/refs/heads/main/README.md
+```
+
 ## Roadmap
 - [ ] Docs — LLM integration for RAG over your local documentation
 - [ ] Docs — generate a local search index for command-line discovery
