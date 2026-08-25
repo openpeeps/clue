@@ -1,5 +1,5 @@
 <p align="center">
-  A cool toolkit for Nim developers!
+  An alternative package manager for Nim development
 </p>
 
 <p align="center">
