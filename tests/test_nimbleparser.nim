@@ -214,4 +214,6 @@ suite "nimbleparser — findNimbleFile":
     createDir(dir)
     defer: removeDir(dir)
     writeFile(dir / "nim.nimble", "version = \"1.0.0\"\n")
-    check findNimbleFile(dir) == ""
+    # walk-up may legitimately find an unrelated .nimble in an ancestor,
+    # but it must never return the skipped nim.nimble itself
+    check findNimbleFile(dir).extractFilename != "nim.nimble"

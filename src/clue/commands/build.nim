@@ -383,6 +383,9 @@ proc testCommand*(v: Values) =
   if nimblePath.len == 0:
     displayError("No .nimble file found in " & pkgDir, quitProcess = true)
     return
+  # Package root — tests are compiled and executed from here (nimble-style),
+  # even when `clue test` runs from a subdirectory.
+  let projectRoot = nimblePath.parentDir()
 
   checkNimConstraint(parseNimbleFile(nimblePath))
   let backend = if v.has("-b"): v.get("-b").getAny else: "c"
@@ -423,10 +426,14 @@ proc testCommand*(v: Values) =
 
   # Before test hook
   discard runNimscriptHook(nimblePath, "test", before=true)
-  let testRunnerCode = """import os, osproc, strutils, times, terminal, json
+  let testRunnerCode = """import os, osproc, strutils, terminal, algorithm, json
 
-proc resolveNimBin(): string =
-  let venvConfig = getCurrentDir() / ".env" / "venv.json"
+# Mirrors nimble's tester contract: compile and run every test binary with
+# the package root as working directory, so tests can open fixtures via
+# relative paths like "tests"/"data". $projectDir stays the test file's own
+# directory, letting nim pick up tests/config.nims plus the root config.nims.
+proc resolveNimBin(root: string): string =
+  let venvConfig = root / ".env" / "venv.json"
   if fileExists(venvConfig):
     try:
       let config = parseFile(venvConfig)
@@ -458,33 +465,40 @@ let parts = commandLineParams()
 let extraFlags = if parts.len > 0: parts[0] else: ""
 let nimFlags = if parts.len > 1: parts[1] else: ""
 let backend = if parts.len > 2: parts[2] else: "c"
+let projectRoot = if parts.len > 3: parts[3] else: getCurrentDir()
+let testsDir = projectRoot / "tests"
 var failed: seq[string]
 var passed: int
 
-for kind, path in walkDir("tests"):
+var testFiles: seq[string]
+for kind, path in walkDir(testsDir):
   if kind == pcFile and path.endsWith(".nim") and path.extractFilename.startsWith("t"):
-    let name = path.extractFilename.changeFileExt("")
-    styledEcho fgCyan, "Compiling ", name, ".nim (" & backend & " backend)"
-    let outFile = getTempDir() / ("clue_test_" & name)
-    var args = @[backend, "-r"]
-    if extraFlags.len > 0:
-      for f in extraFlags.split(" "):
-        if f.len > 0: args.add(f)
-    if nimFlags.len > 0:
-      for f in nimFlags.split(" "):
-        if f.len > 0: args.add(f)
-    args.add("--out:" & outFile)
-    args.add(path.extractFilename)
-    currentProcess = startProcess(resolveNimBin(), args = args,
-      workingDir = "tests", options = {poParentStreams})
-    let code = currentProcess.waitForExit()
-    currentProcess.close()
-    if code != 0:
-      styledEcho fgRed, "FAILED: ", name
-      failed.add(name)
-    else:
-      styledEcho fgGreen, "OK: ", name
-      inc passed
+    testFiles.add(path)
+testFiles.sort()
+
+for testPath in testFiles:
+  let name = testPath.extractFilename.changeFileExt("")
+  styledEcho fgCyan, "Compiling ", name, ".nim (" & backend & " backend)"
+  let outFile = getTempDir() / ("clue_test_" & name)
+  var args = @[backend, "-r", "--path:" & projectRoot]
+  if extraFlags.len > 0:
+    for f in extraFlags.split(" "):
+      if f.len > 0: args.add(f)
+  if nimFlags.len > 0:
+    for f in nimFlags.split(" "):
+      if f.len > 0: args.add(f)
+  args.add("--out:" & outFile)
+  args.add(testPath)
+  currentProcess = startProcess(resolveNimBin(projectRoot), args = args,
+    workingDir = projectRoot, options = {poParentStreams})
+  let code = currentProcess.waitForExit()
+  currentProcess.close()
+  if code != 0:
+    styledEcho fgRed, "FAILED: ", name
+    failed.add(name)
+  else:
+    styledEcho fgGreen, "OK: ", name
+    inc passed
 
 if failed.len > 0:
   styledEcho fgRed, $failed.len & " test(s) failed: " & failed.join(", ")
@@ -517,7 +531,8 @@ else:
     quit(1)
   let runnerNimFlags = nimFlags.join(" ") & defaultColorsFlag(nimFlags.join(" "))
   let exitCode = execCmd(runnerOut.quoteShell & " " & depFlags.quoteShell &
-    " " & runnerNimFlags.quoteShell & " " & backend.quoteShell)
+    " " & runnerNimFlags.quoteShell & " " & backend.quoteShell &
+    " " & projectRoot.quoteShell)
   removeFile(runnerOut)
   removeDir(buildTempDir)
 
@@ -526,3 +541,60 @@ else:
 
   if exitCode != 0:
     displayError("Tests failed (exit " & $exitCode & ")", quitProcess = true)
+
+proc checkCommand*(v: Values) =
+  ## Checks the project for syntax and semantics
+  let pkgDir = getCurrentDir()
+  let nimblePath = findNimbleFile(pkgDir)
+  if nimblePath.len == 0:
+    displayError("No .nimble file found in " & pkgDir, quitProcess = true)
+    return
+
+  let nimFlags = extras.join(" ")
+  let nimble = parseNimbleFile(nimblePath)
+  let pkgName = nimblePath.extractFilename.changeFileExt("")
+  checkNimConstraint(nimble)
+
+  var activeRootFeatures: seq[string]
+  if v.has("--features"):
+    activeRootFeatures = parseFeatureFlags(v.get("--features").getStr)
+  if "dev" notin activeRootFeatures:
+    activeRootFeatures.add("dev")
+
+  let srcDir =
+    if nimble.srcDir.len > 0: nimble.srcDir
+    else: "src"
+
+  # Target files: explicit argument, otherwise every declared binary.
+  var targets: seq[string]
+  if v.has("file"):
+    targets.add(v.get("file").getStr)
+  else:
+    for bin in nimble.bin:
+      targets.add(pkgDir / srcDir / bin.addFileExt("nim"))
+
+  if targets.len == 0:
+    displayInfo("Nothing to check")
+    return
+
+  let (pathFlags, featureDefines) =
+    collectResolvedPaths(nimble, activeRootFeatures, pkgName, false)
+  let toolchainFlags = defaultToolchainFlags(nimFlags)
+
+  var checkFailed = false
+  for target in targets:
+    let flags = " " & pathFlags.join(" ") & featureDefines &
+      defaultColorsFlag(nimFlags) & " " & nimFlags & toolchainFlags
+    let cmd = &"{resolveNimBin()} check{flags} {target}"
+    let (output, exitCode) = execCmdEx(cmd)
+    if exitCode != 0:
+      writeRaw(output)
+      displayError("Check failed for " & target)
+      checkFailed = true
+    elif v.has("--verbose") and v.get("--verbose").getBool:
+      writeRaw(output)
+    else:
+      displaySuccess("Checked " & target)
+
+  if checkFailed:
+    quit(1)

@@ -22,6 +22,8 @@ when isMainModule:
       bump ?string(pkgOrVersion), ?string(version), ?string("--level"):
         ## Bump the version in the current .nimble file, or a root dependency's
         ## version constraint (`clue bump nim 2.2.0`)
+      check ?string(file), ?string("--features"):
+        ## Checks the project for syntax and semantics
       develop:
         ## Editable install for live library discovery
       dump ?string(pkg), ?bool("--refresh"):
