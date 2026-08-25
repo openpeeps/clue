@@ -163,15 +163,15 @@
 </div>
 <div id="dumpCommand-procs-all">
   <div id="dumpCommand,Values">
-  <dt><pre><span class="Keyword">proc</span> <a href="#dumpCommand%2CValues"><span class="Identifier">dumpCommand</span></a><span class="Other">(</span><span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">Values</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span>
-                                       <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span>
+  <dt><pre><span class="Keyword">proc</span> <a href="#dumpCommand%2CValues"><span class="Identifier">dumpCommand</span></a><span class="Other">(</span><span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">Values</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span>
+                                       <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span>
                                        <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">OpenParserJsonError</span><span class="Other">,</span>
                                        <span class="Identifier">InvalidVersionError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
+    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span>
     <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Dump package info from the registry, its available versions and recent git activity (latest commit hash/date/author) — <tt class="docutils literal"><span class="pre"><span class="Operator">--</span><span class="Identifier">refresh</span></span></tt> re-reads versions from the remote instead of the local cache.
+    Dump package info from the registry, its available versions and recent git activity (latest commit hash/date/author) — <tt class="docutils literal"><span class="pre"><span class="Operator">--</span><span class="Identifier">refresh</span></span></tt> re-reads versions from the remote instead of the local cache. With no argument, dumps the current directory's .nimble file.
     
   </dd>
 </div>
@@ -355,7 +355,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-22 10:57:33 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-25 20:15:19 UTC</small>
       </div>
     </div>
   </div>

@@ -2,3 +2,4 @@ nimTitle	build	clue/commands/build.html	module clue/commands/build		0
 nim	collectResolvedPaths	clue/commands/build.html#collectResolvedPaths,NimbleFile,seq[string],string,bool	proc collectResolvedPaths(nimble: NimbleFile; activeRootFeatures: seq[string];\n                     pkgName: string; verbose: bool): tuple[\n    pathFlags: seq[string], featureDefines: string]		110
 nim	buildCommand	clue/commands/build.html#buildCommand,Values	proc buildCommand(v: Values)		224
 nim	testCommand	clue/commands/build.html#testCommand,Values	proc testCommand(v: Values)		377
+nim	checkCommand	clue/commands/build.html#checkCommand,Values	proc checkCommand(v: Values)		545

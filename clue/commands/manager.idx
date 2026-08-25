@@ -11,5 +11,5 @@ nim	versionsCommand	clue/commands/manager.html#versionsCommand,Values	proc versi
 nim	pruneCommand	clue/commands/manager.html#pruneCommand,Values	proc pruneCommand(v: Values)		631
 nim	fetchCommand	clue/commands/manager.html#fetchCommand,Values	proc fetchCommand(v: Values)		635
 nim	uninstallCommand	clue/commands/manager.html#uninstallCommand,Values	proc uninstallCommand(v: Values)		662
-nim	dumpCommand	clue/commands/manager.html#dumpCommand,Values	proc dumpCommand(v: Values)		719
-nim	venvCommand	clue/commands/manager.html#venvCommand,Values	proc venvCommand(v: Values)		817
+nim	dumpCommand	clue/commands/manager.html#dumpCommand,Values	proc dumpCommand(v: Values)		752
+nim	venvCommand	clue/commands/manager.html#venvCommand,Values	proc venvCommand(v: Values)		870

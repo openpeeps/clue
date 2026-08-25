@@ -77,6 +77,10 @@
   <li><a class="reference" href="#parseRequiresArg%2Cstring" title="parseRequiresArg(arg: string): NimbleDependency">parseRequiresArg(arg: string): NimbleDependency</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">parseRequiresLine
+  <li><a class="reference" href="#parseRequiresLine%2Cseq%5BNimbleDependency%5D%2Cstring" title="parseRequiresLine(deps: var seq[NimbleDependency]; line: string)">parseRequiresLine(deps: var seq[NimbleDependency]; line: string)</a></li>
+
+</ul>
 
     </ul>
   </details>
@@ -105,7 +109,7 @@
     <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Locate a .nimble file in the given directory.
+    Locate a .nimble file in the given directory, walking up parent directories (nimble-style) up to a bounded depth so a missing package never scans towards the filesystem root.
     
   </dd>
 </div>
@@ -147,6 +151,18 @@
 </div>
 
 </div>
+<div id="parseRequiresLine-procs-all">
+  <div id="parseRequiresLine,seq[NimbleDependency],string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#parseRequiresLine%2Cseq%5BNimbleDependency%5D%2Cstring"><span class="Identifier">parseRequiresLine</span></a><span class="Other">(</span><span class="Identifier">deps</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="configs.html#NimbleDependency"><span class="Identifier">NimbleDependency</span></a><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">line</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">ResolverError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Parse a <tt class="docutils literal"><span class="pre"><span class="Identifier">requires</span> <span class="StringLit">&quot;a[f], b &gt;= 1.0&quot;</span></span></tt> line into dependencies.
+    
+  </dd>
+</div>
+
+</div>
 
   </dl>
 </div>
@@ -157,7 +173,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-22 10:57:33 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-25 20:15:19 UTC</small>
       </div>
     </div>
   </div>
