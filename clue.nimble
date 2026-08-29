@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.2.4"
+version       = "0.2.5"
 author        = "OpenPeeps"
 description   = "Package manager for Nim development"
 license       = "MIT"
@@ -29,3 +29,7 @@ requires "sweetsyntax >= 0.1.0"
 #       "test_versions", "test_configs", "test_manager",
 #       "test_deploy_configs", "test_deploy_init", "test_deploy_web"]:
 #     exec "nim c -r --hints:off --out:/tmp/clue_" & f & " tests/" & f & ".nim"
+
+
+task hello, "say hello world x 20 times":
+  echo "hello world"

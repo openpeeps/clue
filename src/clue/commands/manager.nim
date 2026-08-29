@@ -125,30 +125,76 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
       quit(1)
 
     var rootMeta: PkgRef
+    var curName = pkgName
     if url.len > 0:
-      rootMeta = PkgRef(name: pkgName, url: url, refStr: "")
+      rootMeta = PkgRef(name: curName, url: url, refStr: "")
     else:
       # default source is nim-lang if caller didn't specify one
       let effectiveSource = if sourceFilter.len > 0: sourceFilter else: defaultSourceName
-      let rootMetaOpt = fetchPkgMeta(pkgName, effectiveSource)
+      let rootMetaOpt = fetchPkgMeta(curName, effectiveSource)
       if rootMetaOpt.isNone:
-        fail("Package not found in registry: " & pkgName &
+        fail("Package not found in registry: " & curName &
           (if sourceFilter.len > 0: " (source: " & sourceFilter & ")" else: ""))
         return
       rootMeta = rootMetaOpt.get()
 
     # 1. Ensure the root clone exists in _cache (full clone kept for install).
     #    Cloning happens only the first time; `--refresh` re-fetches the tags.
-    let rootDest = cluePkgsCachePath / pkgName
+    var rootDest = cluePkgsCachePath / curName
     if not dirExists(rootDest):
-      progress("fetching " & pkgName & "...")
+      progress("fetching " & curName & "...")
       if not clonePackage(rootMeta.url, rootDest):
-        fail("Failed to fetch " & pkgName)
+        fail("Failed to fetch " & curName)
         return
     else:
-      progress("using cached " & pkgName)
+      progress("using cached " & curName)
       if refresh:
         discard clonePackage(rootMeta.url, rootDest, refresh = true)
+
+    # Canonicalize to nimble package name (repo dir vs .nimble name)
+    if url.len > 0:
+      let nf = findNimbleFile(rootDest)
+      if nf.len > 0:
+        let canonical = nf.extractFilename.changeFileExt("")
+        if canonical.len > 0 and canonical != curName:
+          let canonicalDest = cluePkgsCachePath / canonical
+          if canonicalDest != rootDest:
+            if dirExists(canonicalDest):
+              # already have canonical cache — discard derived duplicate
+              try: removeDir(rootDest) except: discard
+            else:
+              try: moveDir(rootDest, canonicalDest) except: discard
+            rootDest = canonicalDest
+          # migrate installed dir if it exists under derived name
+          let derivedInstBase = cluePkgsPath / pkgName
+          let canonicalInstBase = cluePkgsPath / canonical
+          if dirExists(derivedInstBase) and not dirExists(canonicalInstBase):
+            try: moveDir(derivedInstBase, canonicalInstBase) except: discard
+          curName = canonical
+          rootMeta.name = canonical
+          # ensure direct package is stored in registry DB for dump/fetch
+          let tbl = clueDB.getTable("packages").get()
+          let exists = tbl.where("name", newTextValue(curName)).toSeq().len > 0
+          if not exists:
+            var nimbleDesc = ""
+            var nimbleLic = ""
+            var nimbleWeb = ""
+            try:
+              let nimble = parseNimbleFile(nf)
+              nimbleDesc = nimble.description
+              nimbleLic = nimble.license
+            except: discard
+            discard clueDB.insertRow("packages", row({
+              "name": newTextValue(curName),
+              "url": newTextValue(rootMeta.url),
+              "method": newTextValue("git"),
+              "tags": newJsonValue(newJArray()),
+              "description": newTextValue(nimbleDesc),
+              "license": newTextValue(nimbleLic),
+              "web": newTextValue(nimbleWeb),
+              "source": newTextValue("direct")
+            }))
+            clueDB.checkpoint()
 
     # 2. Root constraint: explicit semver ref, else latest (vcAny).
     #    Non-semver refs (git branches/tags via `pkg@ref` / `#ref`) install
@@ -161,13 +207,13 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
         rootConstraint = VersionConstraint(kind: vcExact, version: parseVersion(pkgRef))
       except CatchableError:
         rootMeta.refStr = pkgRef
-        progress(pkgName & "@" & pkgRef)
+        progress(curName & "@" & pkgRef)
 
     # 3. Registry + version index
     var registry: PackageRegistry
     var registered = initHashSet[string]()
     var pkgRefs = initTable[string, PkgRef]()
-    pkgRefs[pkgName] = rootMeta
+    pkgRefs[curName] = rootMeta
 
     proc registerVersions(name: string, versions: seq[DiscoveredVersion]) =
       ## Register all discovered versions (or a head placeholder when the repo
@@ -183,17 +229,17 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
 
     # register the root's versions — from the DB index (offline) or, on a first
     # install / `--refresh`, from the freshly-cloned local tags
-    registerVersions(pkgName, discoverVersions(pkgName, rootMeta.url, refresh))
-    debugLog("root: " & pkgName & " (" & rootMeta.url & "), " &
-      pluralize(registry[pkgName].len, "version") & " indexed")
+    registerVersions(curName, discoverVersions(curName, rootMeta.url, refresh))
+    debugLog("root: " & curName & " (" & rootMeta.url & "), " &
+      pluralize(registry[curName].len, "version") & " indexed")
 
     # 4. Phase A — clone & index every reachable package. Version discovery is
     #    clone-first and runs in parallel per level (thread pool); once a repo
     #    is in `_cache` its versions live in the DB, so no further network is
     #    needed afterwards. Expansion reads each package's *newest* version.
     var seen = initHashSet[string]()
-    seen.incl(pkgName)
-    var expandQueue = @[pkgName]
+    seen.incl(curName)
+    var expandQueue = @[curName]
     while expandQueue.len > 0:
       var nextNames = initHashSet[string]()
       for name in expandQueue:
@@ -254,7 +300,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     # 5. Phase B — resolve. Deps are read per selected version from the local
     #    clones; a fallback lazily indexes any name the clone-first BFS missed
     #    (reachable only via an older version or a git-ref dep).
-    debugLog("Phase B: resolving " & pkgName)
+    debugLog("Phase B: resolving " & curName)
     var activeFeatOf = initTable[string, seq[string]]()
     proc provider(name: string, version: Version, feats: seq[string]): seq[Dependency] =
       activeFeatOf[name] = feats
@@ -292,7 +338,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
         else:
           result.add(Dependency(name: dn, constraint: d.constraint, features: d.features))
 
-    let roots = @[Dependency(name: pkgName, constraint: rootConstraint, features: features)]
+    let roots = @[Dependency(name: curName, constraint: rootConstraint, features: features)]
 
     var resolution: Resolution
     try:
@@ -368,7 +414,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
               cyan(dep.name) & " " & $dep.constraint)
         path.excl(name)
       var path = initHashSet[string]()
-      renderDepTree(pkgName, "", false, true, path)
+      renderDepTree(curName, "", false, true, path)
 
     # soft violations: deeper constraints the chosen version could not honour
     for sv in resolution.softViolations:
@@ -413,9 +459,12 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
       jobs.add(InstallJob(name: rp.name, cacheDir: cacheDir, verDir: verDir,
         refStr: meta.refStr, verStr: verStr, refresh: refresh, label: label,
         nimble: block:
-          let nimblePath = cacheDir / rp.name.changeFileExt("nimble")
-          if fileExists(nimblePath): parseNimbleFile(nimblePath)
-          else: NimbleFile(srcDir: "")))
+          let nf = findNimbleFile(cacheDir)
+          if nf.len > 0: parseNimbleFile(nf)
+          else:
+            let nimblePath = cacheDir / rp.name.changeFileExt("nimble")
+            if fileExists(nimblePath): parseNimbleFile(nimblePath)
+            else: NimbleFile(srcDir: "")))
     if jobs.len > 0:
       var results = newSeq[bool](jobs.len)
       var m = createMaster()
@@ -443,7 +492,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
           deps.add((dn, d.branch))
         elif verStrs.hasKey(dn):
           deps.add((dn, verStrs[dn]))
-      recordInstall(rp.name, verStr, deps, root = rp.name == pkgName,
+      recordInstall(rp.name, verStr, deps, root = rp.name == curName,
         features = feats, installPath = cluePkgsPath / rp.name / verStr)
 
     # Success summary: `Installed N package(s)` (the install location is
@@ -459,7 +508,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     # 9. Opt-in build (release by default). Runs after pruning so orphaned
     #    versions never get compiled.
     if doBuild:
-      if not buildInstalled(pkgName, buildRelease, buildDebug, verbose,
+      if not buildInstalled(curName, buildRelease, buildDebug, verbose,
           preferRef = rootMeta.refStr, nimFlags = extras, backend = backend):
         return
 
@@ -644,20 +693,20 @@ proc fetchCommand*(v: Values) =
 
 template whenPackageExists(pkgName: string, body: untyped): untyped =
   let pkgBase = cluePkgsPath / pkgName
-  var found = false
+  var hasInstalled = false
   if dirExists(pkgBase):
     for entry in walkDir(pkgBase):
       if entry.kind == pcDir:
-        found = true
+        hasInstalled = true
         break
-  if found:
-    let res = clueDB.getTable("packages")
-                      .get()
-                      .where("name", newTextValue(pkgName))
-                      .toSeq()
-    if res.len == 0:
-      displayError("Package not found: " & pkgName, quitProcess = true)
-      return
+  if not hasInstalled:
+    hasInstalled = resolveInstalledPath(pkgName, "").len > 0
+  let hasRegistry = clueDB.getTable("packages")
+                        .get()
+                        .where("name", newTextValue(pkgName))
+                        .toSeq()
+                        .len > 0
+  if hasInstalled or hasRegistry:
     block:
       `body`
   else:
@@ -811,6 +860,28 @@ proc dumpCommand*(v: Values) =
           if pkgNimble.len > 0:
             pkgInfo["nimble"] = buildLocalNimbleInfo(pkgNimble)
         display(pretty(pkgInfo))
+      else:
+        # installed-only (e.g. direct URL before packages row existed) — dump from installed
+        let pkgDir = resolveInstalledPath(pkgName, "")
+        if pkgDir.len > 0:
+          let pkgNimble = findNimbleFile(pkgDir)
+          var pkgInfo: JsonNode
+          if pkgNimble.len > 0:
+            pkgInfo = buildLocalNimbleInfo(pkgNimble)
+            pkgInfo["installedAt"] = %pkgDir
+          else:
+            pkgInfo = %*{"name": pkgName, "installedAt": pkgDir}
+          let git = gitHeadInfo(pkgName, "")
+          if git.isSome:
+            pkgInfo["git"] = %*{
+              "head": git.get().hash,
+              "date": git.get().date,
+              "author": git.get().author,
+              "subject": git.get().subject
+            }
+          display(pretty(pkgInfo))
+        else:
+          displayError("Package not found: " & cyan(pkgName), quitProcess = true)
 
 
 type
