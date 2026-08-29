@@ -4,5 +4,6 @@ jobs:
   test:
     uses: nimbase/setup-nim-action/.github/workflows/test_clue.yml@main
     with:
+      os: '[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-13"},{"os":"macos-14"},{"os":"macos-15"}]'
       pre-test-command: |
         clue build -d:release
