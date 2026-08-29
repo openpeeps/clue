@@ -11,6 +11,7 @@ proc clueBin*(): string =
   ## The freshly built binary, falling back to PATH.
   let local = repoRoot() / "bin" / "clue"
   if fileExists(local): return local
+  echo "using ~/.clue/bin/clue"
   findExe("clue")
 
 proc stripAnsi*(s: string): string =
