@@ -4,15 +4,27 @@
 import std/[os, osproc, strutils]
 
 proc repoRoot*(): string =
-  ## The clue project root (tests run with CWD == tests/).
+  var cur = getCurrentDir()
+  for _ in 0..7:
+    if fileExists(cur / "clue.nimble"):
+      return cur
+    let p = cur.parentDir()
+    if p == cur: break
+    cur = p
   getCurrentDir().parentDir()
 
 proc clueBin*(): string =
   ## The freshly built binary, falling back to PATH.
   let local = repoRoot() / "bin" / "clue"
   if fileExists(local): return local
-  echo "using ~/.clue/bin/clue"
-  findExe("clue")
+  for cand in [getCurrentDir() / "bin" / "clue",
+               getCurrentDir() / "bin" / "clue.exe"]:
+    if fileExists(cand): return cand
+  let fallback = findExe("clue")
+  if fallback.len > 0:
+    echo "using fallback " & fallback & " (no local bin/clue found)"
+    return fallback
+  ""
 
 proc stripAnsi*(s: string): string =
   ## Remove ANSI escape sequences so JSON output can be parsed.
