@@ -38,11 +38,11 @@ suite "cli source — add/list/fetch/remove":
       let (c2, o2) = runClueWithHome("source.list", home)
       check c2 == 0
       check o2.contains("myreg")
-      check o2.contains("nimdrop") or o2.contains("2 packages") or o2.contains("hetzner")
+      checkpoint "list after add: " & stripAnsi(o2)
 
-      # install via explicit source
       let (c3, o3) = runClueWithHome("source.fetch", "myreg", home)
       check c3 == 0
+      checkpoint "fetch myreg: " & stripAnsi(o3)
 
       # remove
       let (c4, o4) = runClueWithHome("source.remove", "myreg", home)

@@ -28,8 +28,6 @@ when isMainModule:
         ## Editable install for live library discovery
       dump ?string(pkg), ?bool("--refresh"):
         ## Dump package info and git activity
-      fetch:
-        ## Fetch a fresh packages.json and re-index available packages
       init ?string(name), ?bool("-Y"):
         ## Initialize a new nimble project in the current directory
       install ?string(pkg), ?bool("--refresh"), ?string("--features"),
