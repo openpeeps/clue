@@ -7,7 +7,7 @@
 when isMainModule:
   # Build the CLI with Kapsis
   import pkg/kapsis
-  import ./clue/commands/[manager, build, docs, doctor, deploy, upgrade, bump, nimscript, init]
+  import ./clue/commands/[manager, build, docs, doctor, deploy, upgrade, bump, nimscript, init, sources]
 
   initKapsis do:
     commands:
@@ -34,7 +34,7 @@ when isMainModule:
         ## Initialize a new nimble project in the current directory
       install ?string(pkg), ?bool("--refresh"), ?string("--features"),
               ?bool("--verbose"), ?bool("--build"), ?bool("--debug"),
-              ?any("-b" = ["c", "cpp", "objc", "js"]):
+              ?string("--source"), ?any("-b" = ["c", "cpp", "objc", "js"]):
         ## Install a package from the registry (or local)
       test ?any("-b" = ["c", "cpp", "objc", "js"]):
         ## Compile and run test modules in tests/
@@ -46,6 +46,18 @@ when isMainModule:
         ## List available versions
       prune:
         ## Remove orphaned packages
+      
+      -- "Directories"
+      source:
+        ## Manage package registry sources
+        add string(name), string(url):
+          ## Add a registry source
+        fetch ?string(name):
+          ## Fetch packages.json for a source (or all)
+        list:
+          ## List configured sources
+        remove string(name):
+          ## Remove a registry source
 
       -- "Environment Management"
       venv string("--nim"):

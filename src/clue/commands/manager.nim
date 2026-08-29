@@ -101,7 +101,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     features: seq[string] = @[], verbose = true, url = "",
     doBuild = false, buildRelease = true, buildDebug = false,
     constraint: VersionConstraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0)),
-    backend = "c") =
+    backend = "c", sourceFilter: string = "") =
   ## Install a package and its dependencies into ~/.clue/packages.
   ## Uses fast, cached version discovery and only installs versions that
   ## satisfy the resolved constraints. Prunes orphans afterwards.
@@ -128,9 +128,12 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     if url.len > 0:
       rootMeta = PkgRef(name: pkgName, url: url, refStr: "")
     else:
-      let rootMetaOpt = fetchPkgMeta(pkgName)
+      # default source is nim-lang if caller didn't specify one
+      let effectiveSource = if sourceFilter.len > 0: sourceFilter else: defaultSourceName
+      let rootMetaOpt = fetchPkgMeta(pkgName, effectiveSource)
       if rootMetaOpt.isNone:
-        fail("Package not found in registry: " & pkgName)
+        fail("Package not found in registry: " & pkgName &
+          (if sourceFilter.len > 0: " (source: " & sourceFilter & ")" else: ""))
         return
       rootMeta = rootMetaOpt.get()
 
@@ -469,6 +472,7 @@ proc installCommand*(v: Values) =
   let buildDebug = v.has("--debug")
   let buildRelease = not buildDebug
   let backend = if v.has("-b"): v.get("-b").getAny else: "c"
+  let sourceFilter = if v.has("--source"): v.get("--source").getStr else: ""
   var features: seq[string]
   if v.has("--features"):
     features = parseFeatureFlags(v.get("--features").getStr)
@@ -533,14 +537,14 @@ proc installCommand*(v: Values) =
       return
     installPackage(name, urlRef, refresh, features, verbose, url = url,
       doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
-      backend = backend)
+      backend = backend, sourceFilter = sourceFilter)
   else:
     let pkgInput = split(raw, "@")
     let pkgName = pkgInput[0]
     let pkgRef = if pkgInput.len > 1 and pkgInput[1] != "head": pkgInput[1] else: ""
     installPackage(pkgName, pkgRef, refresh, features, verbose,
       doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
-      backend = backend)
+      backend = backend, sourceFilter = sourceFilter)
 
 proc updateRootSubprocess(exe, name: string): int {.gcsafe.} =
   ## Thread-pool worker for `clue update` (no argument): runs `clue update

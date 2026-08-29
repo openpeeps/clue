@@ -34,8 +34,11 @@ let
   clueBinPath* = cluePath / "bin"
   clueBuildTempPath* = cluePath / "buildtemp"
   clueDevelopPath* = cluePath / "develop"
+  clueSourcesPath* = cluePath / "sources.json"
+  clueRegistriesDir* = cluePath / "registries"
   nimbleLocalPackages* = getHomeDir() / ".nimble" / "packages_official.json"
   nimblePackagesUrl* = "https://raw.githubusercontent.com/nim-lang/packages/master/packages.json"
+  defaultSourceName* = "nim-lang"
 
 proc isInsidePkgs*(dir: string): bool =
   ## True when `dir` lives inside the clue package registry (~/.clue/packages).
@@ -64,6 +67,10 @@ proc safeRemoveSymlink*(p: string) =
     removeFile(p)
 
 type
+  Source* = object
+    name*: string
+    url*: string
+
   Package* = object
     name*: string
       ## The name of the package
@@ -124,13 +131,61 @@ type
     tasks*: seq[tuple[name, description: string]]
       ## Nimscript tasks defined in the .nimble file.
 
+proc isValidSourceName*(s: string): bool =
+  if s.len == 0: return false
+  for c in s:
+    if c notin {'a'..'z', '0'..'9', '-', '_'}: return false
+  true
+
+proc sourceCachePath*(name: string): string =
+  clueRegistriesDir / name & ".json"
+
+proc ensureSourcesFile*() =
+  discard existsOrCreateDir(cluePath)
+  discard existsOrCreateDir(clueRegistriesDir)
+  if not fileExists(clueSourcesPath):
+    let defaultSources = %*{"sources": [%*{"name": defaultSourceName, "url": nimblePackagesUrl}]}
+    writeFile(clueSourcesPath, pretty(defaultSources))
+
+proc loadSources*(): seq[Source] =
+  ensureSourcesFile()
+  try:
+    let j = parseFile(clueSourcesPath)
+    let arr = if j.hasKey("sources"): j["sources"] else: j
+    if arr.kind != JArray:
+      displayWarning("Invalid sources.json: expected array, using default")
+      return @[Source(name: defaultSourceName, url: nimblePackagesUrl)]
+    for item in arr:
+      if item.hasKey("name") and item.hasKey("url"):
+        let n = item["name"].getStr
+        let u = item["url"].getStr
+        if isValidSourceName(n) and u.len > 0:
+          result.add(Source(name: n, url: u))
+    if result.len == 0:
+      result.add(Source(name: defaultSourceName, url: nimblePackagesUrl))
+  except CatchableError as e:
+    displayWarning("Failed to read sources.json: " & e.msg & " — using default")
+    result = @[Source(name: defaultSourceName, url: nimblePackagesUrl)]
+
+proc saveSources*(sources: seq[Source]) =
+  ensureSourcesFile()
+  var arr = newJArray()
+  for s in sources:
+    arr.add(%*{"name": s.name, "url": s.url})
+  writeFile(clueSourcesPath, pretty(%*{"sources": arr}))
+
 var clueDB*: Store
 var versionsDB*: Store
   ## The version index + deps cache live in their own store, separate from the
   ## registry/install-state DB (clue.db).
 var clueInitialized = false
 
-proc seedPackagesTable(nimblePackages: JsonNode): int
+proc resetClueForTests*() =
+  ## Reset init flag so next withClueDB reopens stores at current HOME.
+  ## Only for tests — leaks old Store handles but test process is short-lived.
+  clueInitialized = false
+
+proc seedPackagesTable*(nimblePackages: JsonNode, source: string = defaultSourceName): int
   ## Defined below, after `initClue`.
 
 proc initClue*() =
@@ -163,9 +218,51 @@ proc initClue*() =
       newColumn("tags", dtJson, false),
       newColumn("description", dtText, false),
       newColumn("license", dtText, false),
-      newColumn("web", dtText, false)
+      newColumn("web", dtText, false),
+      newColumn("source", dtText, false)
     ]
   ))
+
+  # migrate: packages table predating `source` column — add it
+  block:
+    let tblOpt = clueDB.getTable("packages")
+    if tblOpt.isSome:
+      let tbl = tblOpt.get()
+      var hasSource = false
+      for c in tbl.columns:
+        if c.name == "source":
+          hasSource = true
+          break
+      if not hasSource:
+        # Boogie has no ALTER ADD COLUMN — recreate
+        var rows: seq[RowData]
+        for (pk, row) in tbl.allRows():
+          rows.add(row)
+        clueDB.dropTable("packages")
+        clueDB.createTable(newTable(
+          name = "packages",
+          primaryKey = "id",
+          columns = [
+            newColumn("id", dtInt, false),
+            newColumn("name", dtText, false),
+            newColumn("url", dtText, false),
+            newColumn("method", dtText, false),
+            newColumn("tags", dtJson, false),
+            newColumn("description", dtText, false),
+            newColumn("license", dtText, false),
+            newColumn("web", dtText, false),
+            newColumn("source", dtText, false)
+          ]
+        ))
+        for row in rows:
+          var r = row
+          r["source"] = newTextValue(defaultSourceName)
+          discard clueDB.insertRow("packages", r)
+        clueDB.checkpoint()
+
+  # ensure sources.json and registries dir exist
+  ensureSourcesFile()
+  discard existsOrCreateDir(clueRegistriesDir)
 
   # migrate: the installed table predating the `features`/`path` columns is
   # rebuilt (its data is only the install graph, reconstructed on next install).
@@ -261,33 +358,53 @@ proc initClue*() =
 
   if not hasDatabase:
     displayInfo("Initializing Clue database...")
-    var nimblePackages: JsonNode
-    if fileExists(nimbleLocalPackages):
-      try:
-        nimblePackages = fromJsonFile(nimbleLocalPackages)
-      except CatchableError:
-        displayWarning("Failed to read " & nimbleLocalPackages & ": " & getCurrentExceptionMsg())
-        nimblePackages = newJArray()
+    let sources = loadSources()
+    # keep legacy cache for default source on first run
+    var seededAny = false
+    for src in sources:
+      let cacheFile = sourceCachePath(src.name)
+      var nimblePackages: JsonNode
+      var gotData = false
+      if fileExists(cacheFile):
+        try:
+          nimblePackages = fromJsonFile(cacheFile)
+          gotData = true
+        except CatchableError:
+          displayWarning("Failed to read " & cacheFile & ": " & getCurrentExceptionMsg())
+      elif src.name == defaultSourceName and fileExists(nimbleLocalPackages):
+        try:
+          nimblePackages = fromJsonFile(nimbleLocalPackages)
+          gotData = true
+          # migrate legacy cache
+          discard existsOrCreateDir(clueRegistriesDir)
+          writeFile(cacheFile, $nimblePackages)
+        except CatchableError:
+          displayWarning("Failed to read " & nimbleLocalPackages & ": " & getCurrentExceptionMsg())
+      if not gotData:
+        displayInfo("Downloading registry for source: " & src.name & "...")
+        try:
+          discard existsOrCreateDir(clueRegistriesDir)
+          let tmpFile = cacheFile & ".tmp"
+          let (output, exitCode) = execCmdEx("curl -fsSL --connect-timeout 10 -o " &
+            quoteShell(tmpFile) & " " & quoteShell(src.url))
+          if exitCode != 0:
+            raise newException(IOError, "curl failed: " & output)
+          nimblePackages = fromJsonFile(tmpFile)
+          moveFile(tmpFile, cacheFile)
+          displaySuccess("Downloaded registry for " & src.name)
+          gotData = true
+        except CatchableError as e:
+          displayWarning("Could not download registry for " & src.name & ": " & e.msg)
+          continue
+      if gotData:
+        discard seedPackagesTable(nimblePackages, src.name)
+        seededAny = true
+    if seededAny:
+      clueDB.checkpoint()
     else:
-      displayInfo("Package registry not found, downloading...")
-      try:
-        let nimbleDir = nimbleLocalPackages.parentDir()
-        discard existsOrCreateDir(nimbleDir)
-        let tmpFile = nimbleLocalPackages & ".tmp"
-        let (output, exitCode) = execCmdEx("curl -fsSL --connect-timeout 10 -o " & tmpFile & " " & nimblePackagesUrl)
-        if exitCode != 0:
-          raise newException(IOError, "curl failed: " & output)
-        nimblePackages = fromJsonFile(tmpFile)
-        moveFile(tmpFile, nimbleLocalPackages)
-        displaySuccess("Downloaded package registry from nim-lang/packages")
-      except CatchableError as e:
-        displayWarning("Could not download package registry: " & e.msg)
-        nimblePackages = newJArray()
+      displayWarning("No registry data seeded — run `clue source.fetch`")
 
-    discard seedPackagesTable(nimblePackages)
-    clueDB.checkpoint()
-
-proc seedPackagesTable(nimblePackages: JsonNode): int =
+proc seedPackagesTable*(nimblePackages: JsonNode, source: string = defaultSourceName): int =
   ## Insert every non-alias package from the registry index into the `packages`
   ## table. The caller must hold the `withClueDB` context. Returns the number of
   ## packages inserted.
@@ -303,58 +420,121 @@ proc seedPackagesTable(nimblePackages: JsonNode): int =
         "tags": newJsonValue(localPkg["tags"]),
         "description": newTextValue(localPkg["description"].getStr),
         "license": newTextValue(localPkg["license"].getStr),
-        "web": newTextValue(localPkg["web"].getStr)
+        "web": newTextValue(localPkg["web"].getStr),
+        "source": newTextValue(source)
       }))
       inc result
     except CatchableError:
       discard
 
-proc refreshRegistry*(): bool =
-  ## Fetch a fresh packages.json from the nim registry and re-seed the
-  ## `packages` table in clue.db. Non-destructive: on any failure the previous
-  ## index is kept.
+proc refreshSource*(sourceName: string): bool =
+  ## Fetch a single source's packages.json and re-seed its rows.
+  var srcOpt: Option[Source]
+  for s in loadSources():
+    if s.name == sourceName:
+      srcOpt = some(s)
+      break
+  if srcOpt.isNone:
+    displayError("Unknown source: " & sourceName, quitProcess = true)
+    return false
+  let src = srcOpt.get()
+  let cacheFile = sourceCachePath(src.name)
+  let tmpFile = cacheFile & ".tmp"
   try:
-    let nimbleDir = nimbleLocalPackages.parentDir()
-    discard existsOrCreateDir(nimbleDir)
-    let tmpFile = nimbleLocalPackages & ".tmp"
+    discard existsOrCreateDir(clueRegistriesDir)
     let (output, exitCode) = execCmdEx("curl -fsSL --connect-timeout 10 -o " &
-      tmpFile & " " & nimblePackagesUrl)
+      quoteShell(tmpFile) & " " & quoteShell(src.url))
     if exitCode != 0:
-      displayError("Failed to download package registry: " & output, quitProcess = true)
+      displayError("Failed to download registry for " & src.name & ": " & output, quitProcess = true)
       return false
     var nimblePackages: JsonNode
     try:
       nimblePackages = fromJsonFile(tmpFile)
     except CatchableError:
       removeFile(tmpFile)
-      displayError("Failed to parse downloaded registry: " & getCurrentExceptionMsg(), quitProcess = true)
+      displayError("Failed to parse registry for " & src.name & ": " & getCurrentExceptionMsg(), quitProcess = true)
       return false
-    moveFile(tmpFile, nimbleLocalPackages)
-    var count = 0
+    moveFile(tmpFile, cacheFile)
+    # also keep legacy file for nim-lang compat
+    if src.name == defaultSourceName:
+      try:
+        discard existsOrCreateDir(nimbleLocalPackages.parentDir())
+        copyFile(cacheFile, nimbleLocalPackages)
+      except CatchableError: discard
     initClue()
     let tbl = clueDB.getTable("packages").get()
     for (pk, row) in tbl.allRows():
-      discard clueDB.deleteRow("packages", pk)
-    count = seedPackagesTable(nimblePackages)
+      if row["source"].strVal == src.name:
+        discard clueDB.deleteRow("packages", pk)
+    let count = seedPackagesTable(nimblePackages, src.name)
     clueDB.checkpoint()
-    displaySuccess("Updated package registry (" & $count & " packages)")
+    displaySuccess("Updated " & src.name & " (" & $count & " packages)")
     return true
   except CatchableError as e:
-    displayError("Failed to update package registry: " & e.msg, quitProcess = true)
+    displayError("Failed to update source " & sourceName & ": " & e.msg, quitProcess = true)
     false
+
+proc refreshAllSources*(): bool =
+  var ok = true
+  var anyOk = false
+  for src in loadSources():
+    if not refreshSource(src.name):
+      ok = false
+    else:
+      anyOk = true
+  result = anyOk
+
+proc refreshRegistry*(): bool =
+  ## Backward-compat alias: refresh all sources.
+  refreshAllSources()
 
 template withClueDB*(stmt) =
   initClue()
   stmt
 
-proc fetchPkgMeta*(pkgName: string): Option[PkgRef] =
+proc fetchPkgMeta*(pkgName: string, sourceFilter: string = ""): Option[PkgRef] =
   ## Look up a package URL from the registry DB.
+  ## If sourceFilter is set, only that source is searched; otherwise
+  ## priority follows sources.json order, and helper hint is provided.
   withClueDB do:
-    let res = clueDB.getTable("packages").get().where("name", newTextValue(pkgName)).toSeq()
-    if res.len == 0:
+    let tbl = clueDB.getTable("packages").get()
+    if sourceFilter.len > 0:
+      let res = tbl.where("name", newTextValue(pkgName)).toSeq()
+      for (_, row) in res:
+        if row["source"].strVal == sourceFilter:
+          return some(PkgRef(name: pkgName, url: row["url"].strVal, refStr: ""))
+      # not found in requested source — provide hint
+      if res.len > 0:
+        var foundSources: seq[string]
+        for (_, row) in res:
+          foundSources.add(row["source"].strVal)
+        displayWarning("Package '" & pkgName & "' not found in source '" &
+          sourceFilter & "' but found in: " & foundSources.join(", ") &
+          " — use --source=" & foundSources[0])
       return none(PkgRef)
-    return some(PkgRef(name: pkgName, url: res[0][1]["url"].strVal, refStr: ""))
+    else:
+      # priority-ordered lookup: iterate sources.json order
+      let sources = loadSources()
+      var bySource = initTable[string, string]()
+      for (_, row) in tbl.where("name", newTextValue(pkgName)).toSeq():
+        let src = row["source"].strVal
+        if src notin bySource:
+          bySource[src] = row["url"].strVal
+      for src in sources:
+        if src.name in bySource:
+          return some(PkgRef(name: pkgName, url: bySource[src.name], refStr: ""))
+      # fallback: any source (for DBs predating migration)
+      let res = tbl.where("name", newTextValue(pkgName)).toSeq()
+      if res.len == 0:
+        return none(PkgRef)
+      return some(PkgRef(name: pkgName, url: res[0][1]["url"].strVal, refStr: ""))
   none(PkgRef)
+
+proc fetchAllPkgMetas*(pkgName: string): seq[PkgRef] =
+  withClueDB do:
+    for (_, row) in clueDB.getTable("packages").get().where("name", newTextValue(pkgName)).toSeq():
+      result.add(PkgRef(name: pkgName, url: row["url"].strVal, refStr: ""))
+  # dedupe by url not needed
 
 # parseNimbleFile is defined in nimbleparser.nim
 
