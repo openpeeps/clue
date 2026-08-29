@@ -264,6 +264,132 @@ proc initClue*() =
   ensureSourcesFile()
   discard existsOrCreateDir(clueRegistriesDir)
 
+  # migrate: direct URL installs where repo dir != nimble name (e.g. hetzner-api -> hetzner)
+  block:
+    # _cache dirs
+    if dirExists(cluePkgsCachePath):
+      for kind, path in walkDir(cluePkgsCachePath):
+        if kind != pcDir: continue
+        let dirName = path.extractFilename
+        var nf = ""
+        for f in walkFiles(path / "*.nimble"):
+          if f.extractFilename != "nim.nimble":
+            nf = f
+            break
+        if nf.len == 0: continue
+        let canonical = nf.extractFilename.changeFileExt("")
+        if canonical.len == 0 or canonical == dirName: continue
+        let canonicalPath = cluePkgsCachePath / canonical
+        if not dirExists(canonicalPath):
+          try: moveDir(path, canonicalPath) except: discard
+        # ensure packages row for canonical exists (direct installs never had one)
+        try:
+          let tbl = clueDB.getTable("packages").get()
+          if tbl.where("name", newTextValue(canonical)).toSeq().len == 0:
+            # try to copy from old dirName row if exists
+            var copied = false
+            for (_, row) in tbl.where("name", newTextValue(dirName)).toSeq():
+              var r = row
+              r["name"] = newTextValue(canonical)
+              if r["source"].strVal.len == 0:
+                r["source"] = newTextValue("direct")
+              discard clueDB.insertRow("packages", r)
+              copied = true
+              break
+            if not copied:
+              var url = ""
+              try:
+                let (outp, code) = execCmdEx("git -C " & quoteShell(canonicalPath) & " config --get remote.origin.url")
+                if code == 0: url = outp.strip()
+              except: discard
+              discard clueDB.insertRow("packages", row({
+                "name": newTextValue(canonical),
+                "url": newTextValue(url),
+                "method": newTextValue("git"),
+                "tags": newJsonValue(newJArray()),
+                "description": newTextValue(""),
+                "license": newTextValue(""),
+                "web": newTextValue(""),
+                "source": newTextValue("direct")
+              }))
+            clueDB.checkpoint()
+        except: discard
+    # installed dirs and DB rows
+    if clueDB.hasTable("installed"):
+      try:
+        let tblOpt = clueDB.getTable("installed")
+        if tblOpt.isSome:
+          let tbl = tblOpt.get()
+          var toMigrate: seq[tuple[pk: string, row: RowData, canonical: string, oldPath: string, newPath: string]] = @[]
+          for (pk, row) in tbl.allRows():
+            let oldName = row["name"].strVal
+            let oldPath = row["path"].strVal
+            if oldPath.len == 0 or not dirExists(oldPath): continue
+            var nf = ""
+            for f in walkFiles(oldPath / "*.nimble"):
+              if f.extractFilename != "nim.nimble":
+                nf = f
+                break
+            if nf.len == 0:
+              # try parent base dir's nimble
+              let base = oldPath.parentDir()
+              for f in walkFiles(base / "*.nimble"):
+                if f.extractFilename != "nim.nimble":
+                  nf = f
+                  break
+              if nf.len == 0: continue
+            let canonical = nf.extractFilename.changeFileExt("")
+            if canonical.len == 0 or canonical == oldName: continue
+            let newPath = oldPath.replace(oldName, canonical)
+            toMigrate.add((pk, row, canonical, oldPath, newPath))
+          for item in toMigrate:
+            let baseOld = cluePkgsPath / item.row["name"].strVal
+            let baseNew = cluePkgsPath / item.canonical
+            if dirExists(baseOld) and not dirExists(baseNew):
+              try: moveDir(baseOld, baseNew) except: discard
+            # also fix _cache alias already handled
+            discard clueDB.deleteRow("installed", item.pk)
+            var r = item.row
+            r["name"] = newTextValue(item.canonical)
+            r["path"] = newTextValue(item.newPath)
+            discard clueDB.insertRow("installed", r)
+          if toMigrate.len > 0:
+            clueDB.checkpoint()
+      except: discard
+    # ensure every _cache dir has a packages row (covers already-migrated direct installs missing registry entry)
+    if dirExists(cluePkgsCachePath):
+      for kind, path in walkDir(cluePkgsCachePath):
+        if kind != pcDir: continue
+        var nf = ""
+        for f in walkFiles(path / "*.nimble"):
+          if f.extractFilename != "nim.nimble":
+            nf = f
+            break
+        if nf.len == 0: continue
+        let canonical = nf.extractFilename.changeFileExt("")
+        if canonical.len == 0: continue
+        try:
+          let tbl = clueDB.getTable("packages").get()
+          if tbl.where("name", newTextValue(canonical)).toSeq().len == 0:
+            var url = ""
+            try:
+              let (outp, code) = execCmdEx("git -C " & quoteShell(path) & " config --get remote.origin.url")
+              if code == 0: url = outp.strip()
+            except: discard
+            if url.len == 0: continue
+            discard clueDB.insertRow("packages", row({
+              "name": newTextValue(canonical),
+              "url": newTextValue(url),
+              "method": newTextValue("git"),
+              "tags": newJsonValue(newJArray()),
+              "description": newTextValue(""),
+              "license": newTextValue(""),
+              "web": newTextValue(""),
+              "source": newTextValue("direct")
+            }))
+            clueDB.checkpoint()
+        except: discard
+
   # migrate: the installed table predating the `features`/`path` columns is
   # rebuilt (its data is only the install graph, reconstructed on next install).
   if clueDB.hasTable("installed"):
