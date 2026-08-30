@@ -145,9 +145,11 @@ proc installCommand*(v: Values) =
     for d in nimble.requires:
       if d.isNim: continue
       let dep = depName(d)
-      if dep.len == 0: continue
+      if dep.len == 0:
+        displayWarning("cannot derive package name from URL: " & d.url & " - skipping")
+        continue
       let refStr = if d.branch.len > 0: d.branch elif d.tag.len > 0: d.tag else: ""
-      installPackage(dep, refStr, false, d.features, verbose, constraint = d.constraint)
+      installPackage(dep, refStr, false, d.features, verbose, constraint = d.constraint, url = d.url)
     if doBuild:
       if not buildInstalled(pkgName, buildRelease, buildDebug, verbose,
           nimFlags = extras, backend = backend):
@@ -180,6 +182,10 @@ proc installCommand*(v: Values) =
     installPackage(pkgName, pkgRef, refresh, features, verbose,
       doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
       backend = backend, sourceFilter = sourceFilter)
+  # except CatchableError as e:
+  #   echo "EXCEPTION in installCommand: ", e.msg
+  #   echo getStackTrace(e)
+  #   quit(1)
 
 proc updateCommand*(v: Values) =
   ## Wrapper around datpkgr/operations.updateAllPackages / updatePackage.

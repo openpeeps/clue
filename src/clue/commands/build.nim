@@ -22,8 +22,25 @@ proc writeRaw(s: string) =
   if s[^1] != '\n':
     write(stdout, "\n")
 
+proc pkgNameFromUrlLocal(url: string): string =
+  var u = url.strip()
+  for sep in ['#', '?']:
+    let pos = u.find(sep)
+    if pos >= 0:
+      u = u[0 ..< pos]
+  if u.startsWith("git+"):
+    u = u[4 .. ^1]
+  u = u.replace("://", "/")
+  u = u.replace("git@", "")
+  u = u.replace(":", "/")
+  for part in u.split('/'):
+    if part.len > 0:
+      result = part
+  if result.endsWith(".git"):
+    result = result[0 ..< ^4]
+
 proc depNameOf(d: NimbleDependency): string =
-  if d.name.len > 0: d.name else: d.url
+  if d.name.len > 0: d.name elif d.url.len > 0: pkgNameFromUrlLocal(d.url) else: ""
 
 proc installedVersionSatisfies(depPath: string, constraint: VersionConstraint): bool =
   ## True when the installed version extracted from `depPath` satisfies the
@@ -132,6 +149,10 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
   for dep in directDeps:
     if dep.isNim: continue
     let name = depNameOf(dep)
+    if name.len == 0:
+      if dep.url.len > 0:
+        displayWarning("cannot derive package name from URL: " & dep.url & " - skipping")
+      continue
     let refStr = if dep.branch.len > 0: dep.branch elif dep.tag.len > 0: dep.tag else: ""
     var depPath = resolveDepPath(name, refStr)
     if depPath.len > 0 and isInsidePkgs(depPath):
@@ -143,11 +164,11 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
         if verbose: displayInfo("Reinstalling " & name & " (constraint " & $dep.constraint & " not satisfied by " & depPath.lastPathPart & ")")
         needsReinstall = true
       if needsReinstall:
-        installPackage(name, refStr, false, dep.features, verbose, constraint = dep.constraint)
+        installPackage(name, refStr, false, dep.features, verbose, constraint = dep.constraint, url = dep.url)
         depPath = resolveDepPath(name, refStr)
     if depPath.len == 0:
       if verbose: displayInfo("Dependency not installed, fetching: " & name)
-      installPackage(name, refStr, false, dep.features, verbose, constraint = dep.constraint)
+      installPackage(name, refStr, false, dep.features, verbose, constraint = dep.constraint, url = dep.url)
       depPath = resolveDepPath(name, refStr)
     if depPath.len > 0:
       processed.incl(name)
