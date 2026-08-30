@@ -7,22 +7,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/">API reference</a><br>
+  <a href="https://openpeeps.github.io/clue/">API reference</a><br>
   <img src="https://github.com/openpeeps/clue/workflows/test/badge.svg" alt="Github Actions">  <img src="https://github.com/openpeeps/clue/workflows/docs/badge.svg" alt="Github Actions">
 </p>
 
 ### Why Clue?
-Clue is an alternative to `nimble` — a friendly toolkit for installing, building
+Clue is an alternative to `nimble` — a friendly development tool for installing, building
 and documenting Nim packages, resolving tricky dependencies, and managing
 per-version toolchains with virtual environments when `nimble` just doesn't cut it.
-
-> [!NOTE]
-> **Version resolution** — Clue resolves dependencies with a lazy, depth-first
-> search (no SAT solver): constraints declared closest to the root are *hard*,
-> deeper ones are *soft* tie-breakers ("nearest wins"), dependencies are only
-> expanded for versions actually explored, and failed choices backtrack
-> chronologically (bounded by a probe limit) until a satisfiable set is found —
-> or a clear conflict error is raised.
 
 ## 😍 Key Features
 - Package management: cached version discovery, transitive dependency resolution, feature flags, SSH installs and orphan pruning
@@ -182,6 +174,14 @@ clue docs.open spry --port:8080
 | `<` | strictly less | `requires "pkg < 2.0.0"` |
 | `^` | caret (compatible) | `requires "pkg ^ 1.2.0"` → `>=1.2.0 <2.0.0` |
 | `~` or `~>` | tilde (approx) | `requires "pkg ~> 1.2.0"` → `>=1.2.0 <1.3.0` |
+
+> [!NOTE]
+> **Version resolution** — Clue resolves dependencies with a lazy, depth-first
+> search (no SAT solver): constraints declared closest to the root are *hard*,
+> deeper ones are *soft* tie-breakers ("nearest wins"), dependencies are only
+> expanded for versions actually explored, and failed choices backtrack
+> chronologically (bounded by a probe limit) until a satisfiable set is found,
+> or a clear conflict error is raised.
 
 ## Documentation Builder
 Clue offers a local documentation generator built on top of the built-in Nim
