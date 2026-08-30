@@ -7,7 +7,8 @@
 when isMainModule:
   # Build the CLI with Kapsis
   import pkg/kapsis
-  import ./clue/commands/[manager, build, docs, doctor, deploy, upgrade, bump, nimscript, init, sources]
+  import ./clue/commands/[manager, build, docs, doctor,
+        deploy, upgrade, bump, nimscript, init, sources]
 
   initKapsis do:
     commands:
