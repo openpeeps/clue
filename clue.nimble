@@ -21,4 +21,3 @@ requires "boogie >= 0.1.2"
 requires "openparser >= 0.2.0"
 requires "sweetsyntax >= 0.1.0"
 requires "datpkgr >= 0.1.0"
-requires "https://github.com/openpeeps/datpkgr" # temp

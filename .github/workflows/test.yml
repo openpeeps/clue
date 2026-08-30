@@ -6,6 +6,7 @@ jobs:
     with:
       os: '[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-14"},{"os":"macos-15-intel"}]'
       pre-install-command: |
-        clue install https://github.com/openpeeps/datpkgr
+        git clone --depth 1 https://github.com/openpeeps/datpkgr datpkgr
+        cd datpkgr && clue develop && cd ..
       pre-test-command: |
         clue build -d:release
