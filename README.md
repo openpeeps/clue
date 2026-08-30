@@ -24,19 +24,6 @@ per-version toolchains with virtual environments when `nimble` just doesn't cut 
 > chronologically (bounded by a probe limit) until a satisfiable set is found —
 > or a clear conflict error is raised.
 
-### Supported Constraint Operators
-
-| Operator | Meaning | Example |
-|----------|---------|---------|
-| `*` | any version | `requires "pkg *"` |
-| `=` or `==` | exact match | `requires "pkg = 1.2.3"` |
-| `>=` | greater or equal | `requires "pkg >= 1.2.0"` |
-| `>` | strictly greater | `requires "pkg > 1.2.0"` |
-| `<=` | less or equal | `requires "pkg <= 2.0.0"` |
-| `<` | strictly less | `requires "pkg < 2.0.0"` |
-| `^` | caret (compatible) | `requires "pkg ^ 1.2.0"` → `>=1.2.0 <2.0.0` |
-| `~` or `~>` | tilde (approx) | `requires "pkg ~> 1.2.0"` → `>=1.2.0 <1.3.0` |
-
 ## 😍 Key Features
 - Package management: cached version discovery, transitive dependency resolution, feature flags, SSH installs and orphan pruning
 - Build: the current package from its nimble file (`--release`, `--debug`, `--features`), or a bare module (`clue build foo.nim`) with every installed package on the import path
@@ -45,6 +32,7 @@ per-version toolchains with virtual environments when `nimble` just doesn't cut 
 - Local installs: `clue install` inside a package directory copies it into the local registry
 - Install / uninstall / dump / versions / prune with a local package registry; `clue dump` also shows available versions and recent git activity
 - Virtual environments (`venv`) for per-version Nim toolchains via choosenim
+- Supports flags forwarding (`-d:xxx`, `--features`, `--mm:arc`, `--passL`, etc.) to Nim compiler
 - Local documentation: build and browse versioned `nim doc` output right from the command line
 
 > [!NOTE]
@@ -55,7 +43,85 @@ per-version toolchains with virtual environments when `nimble` just doesn't cut 
 
 ## Usage
 
+Installed binaries land in `~/.clue/bin` (add it to your `PATH` once). Develop-mode
+packages live as symlinks under `~/.clue/develop`; clue will never delete anything
+outside `~/.clue/packages`.
+
+Command reference (`clue -h`):
+```text
+A DFS package manager for Nim development
+  (c) OpenPeeps | MIT License  
+  Build Version: 0.2.5
+
+Package Management
+  build <?file:string>                        Build the current package or a single module
+                 --release:bool
+                   --debug:bool
+              --features:string
+                 --verbose:bool
+                   --out:string
+                      -o:string
+          -b:any[c,cpp,objc,js]
+  bump <?pkgOrVersion:string> <?version:string> Bump the version in the current .nimble file, or a root
+                                                dependency's version constraint (`clue bump nim 2.2.0`)
+          --level:string
+  check <?file:string>                        Checks the project for syntax and semantics
+          --features:string
+  develop                                     Editable install for live library discovery
+  dump <?pkg:string>                          Dump package info and git activity
+          --refresh:bool
+  init <?name:string>                         Initialize a new nimble project in the current directory
+          -Y:bool
+  install <?pkg:string>                       Install a package from the registry (or local)
+                 --refresh:bool
+              --features:string
+                 --verbose:bool
+                   --build:bool
+                   --debug:bool
+                --source:string
+          -b:any[c,cpp,objc,js]
+  test                                        Compile and run test modules in tests/
+          -b:any[c,cpp,objc,js]
+  update <?pkg:string>                        Upgrade a package and its dependencies
+          --verbose:bool
+  uninstall <pkg:string>                      Uninstall a package
+  versions <pkg:string>                       List available versions
+          --refresh:bool
+  prune                                       Remove orphaned packages
+Directories
+  source.add <name:string> <url:string>       Add a registry source
+  source.fetch <?name:string>                 Fetch packages.json for a source (or all)
+  source.list                                 List configured sources
+  source.remove <name:string>                 Remove a registry source
+Environment Management
+  venv                                        Manage virtual environments for Nim projects
+          --nim:string
+Deployment
+  deploy.init                                 Scaffold clue.deploy.yaml
+            --type:string
+          --workflow:bool
+               --yes:bool
+             --force:bool
+  deploy.web                                  Deploy the web target over rsync/ssh (systemd-managed)
+            --dry-run:bool
+                --yes:bool
+            --verbose:bool
+           --config:string
+              --key:string
+          --profile:string
+             --status:bool
+Documentation
+  docs.gen <pkg:string>                       Build documentation for an installed package
+  docs.open <pkg:string>                      Serve local docs over HTTP (default port 11000)
+          --port:port
+Code Quality & Maintenance
+  doctor                                      Analyze code quality with nimalyzer
+  task <?taskName:string>                     List or run nimscript tasks from the current .nimble file
+  upgrade                                     Self-update clue from GitHub releases
+```
+
 ### Package Management
+
 ```sh
 # Build the current package from its nimble file
 clue build
@@ -85,55 +151,6 @@ clue versions spry --refresh
 clue prune
 ```
 
-Installed binaries land in `~/.clue/bin` (add it to your `PATH` once). Develop-mode
-packages live as symlinks under `~/.clue/develop`; clue will never delete anything
-outside `~/.clue/packages`.
-
-Command reference (`clue -h`):
-```text
-A cool toolkit for Nim developers
-  (c) OpenPeeps | MIT License  
-  Build Version: 0.1.5
-
-Package Management
-  build <?file:string>                Build the current Nim package from its nimble file, or a
-                                      single module (`clue build foo.nim`) with installed packages
-                                      on the path
-             --release:bool
-               --debug:bool
-          --features:string
-             --verbose:bool
-               --out:string
-  install <?pkg:string>               Install a package from remote source into the clue registry
-                                      (or the current nimble package). `--build` also compiles its
-                                      binaries (release by default) to ~/.clue/bin — opt-in, since
-                                      building executes the package's {.compile.}/staticExec code
-             --refresh:bool
-          --features:string
-             --verbose:bool
-               --build:bool
-               --debug:bool
-  develop                             Develop-mode (editable) install of the current nimble
-                                      package — no compilation, just makes the package importable
-                                      by other packages via library discovery (its files are never
-                                      copied nor deleted)
-  uninstall <pkg:string>              Uninstall a package from the system
-  dump <pkg:string>                   Dump package info from registry, available versions and git
-                                      activity
-          --refresh:bool
-  versions <pkg:string>               List available versions for a package
-          --refresh:bool
-  prune                               Remove orphaned or out-of-range installed packages
-Environment Management
-  venv                                Manage virtual environments for Nim projects
-          --nim:string
-Documentation
-  docs.gen <pkgname:string>           Build documentation for an installed package (`pkg` or
-                                      `pkg@version`)
-  docs.open <pkgname:string>          Serve local docs over HTTP (default port 11000)
-          --port:port
-```
-
 ### Environment Management
 ```sh
 # Create a virtual environment pinned to a specific Nim version
@@ -152,6 +169,19 @@ clue docs.gen spry@1.2.0
 clue docs.open spry
 clue docs.open spry --port:8080
 ```
+
+### Supported Constraint Operators
+
+| Operator | Meaning | Example |
+|----------|---------|---------|
+| `*` | any version | `requires "pkg *"` |
+| `=` or `==` | exact match | `requires "pkg = 1.2.3"` |
+| `>=` | greater or equal | `requires "pkg >= 1.2.0"` |
+| `>` | strictly greater | `requires "pkg > 1.2.0"` |
+| `<=` | less or equal | `requires "pkg <= 2.0.0"` |
+| `<` | strictly less | `requires "pkg < 2.0.0"` |
+| `^` | caret (compatible) | `requires "pkg ^ 1.2.0"` → `>=1.2.0 <2.0.0` |
+| `~` or `~>` | tilde (approx) | `requires "pkg ~> 1.2.0"` → `>=1.2.0 <1.3.0` |
 
 ## Documentation Builder
 Clue offers a local documentation generator built on top of the built-in Nim
@@ -186,67 +216,83 @@ description: Use when working on Nim projects (.nim files, .nimble files) — bu
 In Nim projects, use `clue` as the primary toolchain wrapper. Do NOT use raw
 `nim c`, `nimble build`, or `nimble install` unless the user explicitly asks.
 
-Why: clue is depth-first search resolves per-package compiler configuration, including native C
-dependencies and header paths (e.g., a package shipping `spf.h`), which plain
-`nim c` misses outside the package's own build context. A build that fails with
-`fatal error: 'xyz.h' file not found` under `nim c` usually succeeds under
-`clue build`.
+Why: clue's depth-first search resolves per-package compiler configuration,
+including native C dependencies and header paths (e.g., a package shipping
+`spf.h`), which plain `nim c` misses outside the package's own build context.
+A build that fails with `fatal error: 'xyz.h' file not found` under `nim c`
+usually succeeds under `clue build`.
 
 ## Command reference
 
+Full reference (`clue -h`): build 0.2.5. Every flag below mirrors that output.
+
 ### Package management
 - `clue build <?file:string>` — Build the current package or a single module.
-  This is the default way to compile. Output binary lands in the project root
-  by default; redirect with `--out:<path>` / `-o:<path>`.
+  Default way to compile. Binary lands in project root; redirect with
+  `--out:<path>` / `-o:<path>`.
   - `--release:bool` / `--debug:bool` — optimization mode
   - `--features:string` — enable nimble features
+  - `--verbose:bool` — verbose output
   - `-b:c|cpp|objc|js` — target backend
   - Example: `clue build src/meowmail.nim --out:bin/meowmail`
-- `clue init <?name:string> -Y:bool` – Initialize a new nimble project in the current directory. Use `-Y` for non-interactive default initialization
-- `clue install <?pkg:string>` — Install a package from the registry (or local).
-  Flags: `--build`, `--debug`, `--features`, `--refresh` (re-index registry),
-  `-b` backend.
-- `clue update <?pkg:string>` — Upgrade a package and its dependencies.
+- `clue bump <?pkgOrVersion:string> <?version:string>` — Bump version in the
+  current `.nimble` file, or a root dependency's constraint
+  (`clue bump 1.3.0`, `clue bump nim 2.2.0` with `--level:major|minor|patch`).
+- `clue check <?file:string>` — Check project for syntax and semantics
+  (`--features:string`).
+- `clue develop` — Editable install for live library discovery (symlink under
+  `~/.clue/develop`, never copied).
+- `clue dump <?pkg:string>` — Dump package info and git activity
+  (`--refresh:bool` re-reads versions and git log).
+- `clue init <?name:string> -Y:bool` — Initialize a new nimble project in the
+  current directory (`-Y` non-interactive defaults).
+- `clue install <?pkg:string>` — Install from registry or local path/URL
+  (`pkg@version`, `pkg#branch`, `https://...`). Flags: `--refresh:bool`,
+  `--features:string`, `--verbose:bool`, `--build:bool`, `--debug:bool`,
+  `--source:string`, `-b:c|cpp|objc|js`.
+- `clue test` — Compile and run test modules in `tests/` (`-b:c|cpp|objc|js`).
+- `clue update <?pkg:string>` — Upgrade a package and its dependencies
+  (`--verbose:bool`).
 - `clue uninstall <pkg:string>` — Remove a package.
-- `clue versions <pkg:string>` — List available versions (`--refresh` re-fetches).
+- `clue versions <pkg:string>` — List available versions (`--refresh:bool`).
 - `clue prune` — Remove orphaned packages.
-- `clue fetch` — Fetch a fresh packages.json and re-index available packages.
-- `clue dump <pkg:string>` — Dump package info and git activity.
-- `clue develop` — Editable install for live library discovery (like `npm link`).
-- `clue bump <?version:string>` — Bump version in the current `.nimble` file
-  (`--level:major|minor|patch`).
 
-### Tests
-- `clue test` — Compile and run test modules in `tests/`. Prefer this over
-  compiling each test file manually.
+### Directories (registry sources)
+- `clue source.add <name:string> <url:string>` — Add a registry source.
+- `clue source.fetch <?name:string>` — Fetch `packages.json` for a source (or all).
+- `clue source.list` — List configured sources.
+- `clue source.remove <name:string>` — Remove a registry source.
 
 ### Environment
 - `clue venv --nim:<version>` — Manage virtual environments for Nim projects
-  (isolated Nim toolchains per project).
+  (isolated Nim toolchains per project via choosenim).
 
 ### Code quality & maintenance
 - `clue doctor` — Analyze code quality with nimalyzer (lint-style checks).
 - `clue task <?taskName:string>` — List or run nimscript tasks declared in the
   current `.nimble` file (no arg = list tasks).
+- `clue upgrade` — Self-update clue from GitHub releases.
 
 ### Documentation
 - `clue docs.gen <pkg:string>` — Build documentation for an installed package.
-- `clue docs.open <pkg:string>` — Serve local docs over HTTP (default port 11000).
+- `clue docs.open <pkg:string>` — Serve local docs over HTTP (default port
+  11000, override with `--port:port`).
 
 ### Deployment
-- `clue deploy.init` — Scaffold `clue.deploy.yaml` (`--type`, `--workflow`,
-  `--yes`, `--force`).
+- `clue deploy.init` — Scaffold `clue.deploy.yaml` (`--type:string`,
+  `--workflow:bool`, `--yes:bool`, `--force:bool`).
 - `clue deploy.web` — Deploy web target over rsync/ssh (systemd-managed);
-  supports `--dry-run`, `--profile`, `--status`, `--config`, `--key`.
-
-### Self-maintenance
-- `clue upgrade` — Self-update clue from GitHub releases.
+  supports `--dry-run:bool`, `--yes:bool`, `--verbose:bool`, `--config:string`,
+  `--key:string`, `--profile:string`, `--status:bool`.
 
 ## Agent recipes
 
 - Build a binary: `clue build src/<main>.nim` (add `--release` for production)
 - Run the test suite: `clue test`
 - Add a dependency: `clue install <pkg>` (then `import pkg/<name>` in code)
+- Editable dev: `clue develop` then `import pkg/<name>` resolves to working tree
+- Registry source: `clue source.add myfork https://.../packages.json` then
+  `clue install pkg --source:myfork` or `clue source.fetch`
 - Build failure mentioning a missing `.h` file: retry with `clue build` before
   touching include paths manually
 
