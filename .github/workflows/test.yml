@@ -5,5 +5,7 @@ jobs:
     uses: nimbase/setup-nim-action/.github/workflows/test_clue.yml@main
     with:
       os: '[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-14"},{"os":"macos-15-intel"}]'
+      pre-install-command: |
+        clue install https://github.com/openpeeps/datpkgr
       pre-test-command: |
         clue build -d:release
