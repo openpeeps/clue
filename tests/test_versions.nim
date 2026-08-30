@@ -5,6 +5,7 @@
 import std/[os, strutils, unittest]
 import clue/pkgmanager/configs
 import clue/pkgmanager/versions
+import clue/pkgmanager/nimbleparser
 
 suite "versions — toGitSshUrl":
   test "https URL becomes scp-like ssh url with .git suffix":

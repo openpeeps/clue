@@ -4,14 +4,45 @@
 #          Made by Humans from OpenPeeps
 #          https://github.com/openpeeps/clue
 
-import std/[tables, strutils, os]
+import std/[tables, strutils, os, json, sets, sequtils]
 import pkg/semver
 import pkg/sweetsyntax
 import pkg/sweetsyntax/tokenizer
 import pkg/sweetsyntax/engine/[ast, parser]
 import pkg/sweetsyntax/languages/nim as nimHandlersMod
-import ./configs
+import datpkgr/types as dt
+import datpkgr/config as dc
 import ./resolver
+
+type
+  NimbleDependency* = object
+    name*: string
+    url*: string
+    constraint*: VersionConstraint
+    branch*: string
+    tag*: string
+    features*: seq[string]
+    isNim*: bool
+
+  NimbleFile* = object
+    path*: string
+    version*: string
+    author*: string
+    description*: string
+    license*: string
+    srcDir*: string
+    binDir*: string
+    bin*: seq[string]
+    installDirs*: seq[string]
+    installFiles*: seq[string]
+    installExt*: seq[string]
+    skipDirs*: seq[string]
+    skipFiles*: seq[string]
+    skipExt*: seq[string]
+    requires*: seq[NimbleDependency]
+    features*: Table[string, seq[NimbleDependency]]
+    dev*: seq[NimbleDependency]
+    tasks*: seq[tuple[name, description: string]]
 
 proc stripQuotes(s: string): string =
   if s.len >= 2 and s[0] == '"' and s[^1] == '"': s[1..^2]
@@ -364,3 +395,99 @@ proc findNimbleFile*(dir: string): string =
     cur = parent
     inc depth
   ""
+
+proc nimbleManifestParser*(content: string, path: string): dt.Manifest =
+  ## Pluggable parser for datpkgr - converts NimbleFile to generic Manifest
+  try:
+    let nf = parseNimbleString(content)
+    result.path = if path.len > 0: path else: nf.path
+    if nf.path.len > 0:
+      result.name = nf.path.splitFile.name
+    elif path.len > 0:
+      result.name = path.splitFile.name
+    result.version = nf.version
+    result.description = nf.description
+    result.license = nf.license
+    result.dependencies = nf.requires.mapIt(dt.PkgDependency(name: it.name, url: it.url, constraint: it.constraint, branch: it.branch, tag: it.tag, features: it.features, isToolchain: it.isNim))
+    result.features = initTable[string, seq[dt.PkgDependency]]()
+    for k, v in nf.features:
+      result.features[k] = v.mapIt(dt.PkgDependency(name: it.name, url: it.url, constraint: it.constraint, branch: it.branch, tag: it.tag, features: it.features, isToolchain: it.isNim))
+    result.devDependencies = nf.dev.mapIt(dt.PkgDependency(name: it.name, url: it.url, constraint: it.constraint, branch: it.branch, tag: it.tag, features: it.features, isToolchain: it.isNim))
+    result.extra = %*{"srcDir": nf.srcDir, "binDir": nf.binDir, "bin": nf.bin, "installDirs": nf.installDirs, "installFiles": nf.installFiles}
+  except CatchableError:
+    result = dt.Manifest(path: path, extra: newJObject())
+
+proc nimbleManifestFinder*(dir: string): string =
+  findNimbleFile(dir)
+
+proc nimbleManifestFileName*(pkgName: string): string =
+  pkgName & ".nimble"
+
+proc withNimbleSupport*(cfg: dc.DatpkgrConfig, parser: dt.ManifestParser) =
+  ## App-specific Nimble wiring for Clue. Keeps datpkgr language-agnostic
+  ## by configuring the pluggable manifest hooks and Nim defaults here.
+  cfg.defaultRegistryUrl = "https://raw.githubusercontent.com/nim-lang/packages/master/packages.json"
+  cfg.defaultSourceName = "nim-lang"
+  cfg.toolchainName = "nim"
+  cfg.legacyRegistryPath = getHomeDir() / ".nimble" / "packages_official.json"
+  cfg.manifestParser = parser
+  cfg.manifestFileName = proc(pkgName: string): string = pkgName & ".nimble"
+  cfg.manifestFinder = proc(dir: string): string =
+    var cur = dir
+    var depth = 0
+    while depth < 15:
+      for f in walkFiles(cur / "*.nimble"):
+        if f.extractFilename != "nim.nimble": return f
+      let parent = cur.parentDir()
+      if parent == cur: break
+      cur = parent
+      inc depth
+    ""
+
+# Nim-specific install layout — owned by Clue, not datpkgr.
+# Uses NimbleFile fields (srcDir, installDirs, skipDirs) so datpkgr stays generic (Manifest).
+proc isCruftName*(name: string, nimble: NimbleFile): bool =
+  let lower = name.toLowerAscii
+  result = lower in [".git", ".github", ".gitignore", ".gitattributes",
+                     "tests", "examples", "example", "docs", "nimcache"] or
+    lower in nimble.skipDirs or lower in nimble.skipFiles
+
+proc installCleanCopy*(cacheDir, verDir: string, nimble: NimbleFile) =
+  ## Copy a package into `verDir` with a clean, flat layout matching nimble's
+  ## pkgs2: the `srcDir` contents are placed at the package root, plus the nimble file
+  ## and any installDirs/installFiles/installExt. VCS/test cruft is skipped.
+  createDir(verDir)
+  proc copyEntry(e: string) =
+    let name = e.extractFilename
+    if isCruftName(name, nimble): return
+    if dirExists(e):
+      copyDir(e, verDir / name)
+    else:
+      copyFile(e, verDir / name)
+  if nimble.srcDir.len > 0 and dirExists(cacheDir / nimble.srcDir):
+    for e in walkDir(cacheDir / nimble.srcDir):
+      copyEntry(e.path)
+  else:
+    for e in walkDir(cacheDir):
+      copyEntry(e.path)
+  let nimbleFile = cacheDir / nimble.path.extractFilename
+  if fileExists(nimbleFile):
+    copyFile(nimbleFile, verDir / nimble.path.extractFilename)
+  for d in nimble.installDirs:
+    if dirExists(cacheDir / d):
+      copyDir(cacheDir / d, verDir / d)
+  for f in nimble.installFiles:
+    if fileExists(cacheDir / f):
+      copyFile(cacheDir / f, verDir / f)
+  if nimble.installExt.len > 0:
+    let srcDir = if nimble.srcDir.len > 0: cacheDir / nimble.srcDir else: cacheDir
+    var found: seq[string]
+    for f in walkDirRec(srcDir):
+      if f.extractFilename.splitFile.ext in nimble.installExt and f notin found:
+        found.add(f)
+    for f in found:
+      let rel = relativePath(f, srcDir)
+      let target = verDir / rel
+      if not dirExists(target.parentDir()):
+        createDir(target.parentDir())
+      copyFile(f, target)

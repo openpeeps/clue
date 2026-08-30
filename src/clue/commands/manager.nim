@@ -17,6 +17,9 @@ import ../pkgmanager/versions
 import ../pkgmanager/nimbleparser
 import ../pkgmanager/builder
 import ./nimscript
+import datpkgr/operations as datpkgrOps
+import datpkgr/config as datpkgrConfig
+import datpkgr/types as datpkgrTypes
 
 proc pkgNameFromUrl*(url: string): string =
   ## Derive a package name from a git URL's repository basename.
@@ -39,6 +42,11 @@ proc pkgNameFromUrl*(url: string): string =
 proc depName(d: NimbleDependency): string =
   ## The registry name for a dependency. URL deps (no name, only a `url`) are
   ## resolved to their repository basename so the registry can be consulted.
+  if d.name.len > 0: d.name
+  elif d.url.len > 0: pkgNameFromUrl(d.url)
+  else: ""
+
+proc depName(d: PkgDependency): string =
   if d.name.len > 0: d.name
   elif d.url.len > 0: pkgNameFromUrl(d.url)
   else: ""
@@ -69,448 +77,26 @@ proc fetchEventText(name: string, count: int, cached: bool): string =
   else:
     result = "fetched " & name & " (" & $count & " " & pluralize(count, "version") & ")"
 
-type
-  InstallJob = object
-    name: string
-    cacheDir: string
-    verDir: string
-    refStr: string
-    verStr: string
-    refresh: bool
-    label: string
-    nimble: NimbleFile
-
-proc installResolvedPkg(job: InstallJob): bool {.gcsafe.} =
-  ## Thread-pool worker: checkout the resolved ref/tag in `_cache` and copy the
-  ## package into the registry (flat, clean layout). Pure file/git ops — all
-  ## paths and the parsed nimble are passed in, so it's safe on a thread pool.
-  if job.refStr.len > 0:
-    if not checkoutRef(job.cacheDir, job.refStr, job.refresh):
-      return false
-  elif job.verStr != "0.0.0":
-    let tag = tagForVersion(job.cacheDir, job.verStr)
-    if tag.len > 0:
-      discard checkoutTag(job.cacheDir, tag)
-  try:
-    installCleanCopy(job.cacheDir, job.verDir, job.nimble)
-    return true
-  except CatchableError:
-    return false
-
 proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     features: seq[string] = @[], verbose = true, url = "",
     doBuild = false, buildRelease = true, buildDebug = false,
     constraint: VersionConstraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0)),
     backend = "c", sourceFilter: string = "") =
-  ## Install a package and its dependencies into ~/.clue/packages.
-  ## Uses fast, cached version discovery and only installs versions that
-  ## satisfy the resolved constraints. Prunes orphans afterwards.
-  ## `features` activates the root package's `feature "name":` requires.
-  ## `verbose` controls progress output (clue build calls it quietly).
-  ## `url` bypasses the registry lookup and installs straight from a git URL.
-  ## `doBuild` compiles the installed binaries (release by default) into
-  ## ~/.clue/bin after the install — never done implicitly, since compiling a
-  ## package executes its `{.compile.}` / `staticExec` code.
-  ## `constraint` is the version constraint from the nimble `requires` line
-  ## (e.g., `>= 0.1.9`). When `pkgRef` is empty and `constraint` is not `*`,
-  ## the constraint is used as the root constraint for resolution.
-  withClueDB do:
-    let showProgress = verbose or isatty(stdout)
-    proc progress(msg: string) =
-      if showProgress: displayInfo(msg)
-    proc warn(msg: string) =
-      displayWarning(msg)
-    proc fail(msg: string) =
-      displayError(msg)
-      quit(1)
-
-    var rootMeta: PkgRef
-    var curName = pkgName
-    if url.len > 0:
-      rootMeta = PkgRef(name: curName, url: url, refStr: "")
-    else:
-      # default source is nim-lang if caller didn't specify one
-      let effectiveSource = if sourceFilter.len > 0: sourceFilter else: defaultSourceName
-      let rootMetaOpt = fetchPkgMeta(curName, effectiveSource)
-      if rootMetaOpt.isNone:
-        fail("Package not found in registry: " & curName &
-          (if sourceFilter.len > 0: " (source: " & sourceFilter & ")" else: ""))
-        return
-      rootMeta = rootMetaOpt.get()
-
-    # 1. Ensure the root clone exists in _cache (full clone kept for install).
-    #    Cloning happens only the first time; `--refresh` re-fetches the tags.
-    var rootDest = cluePkgsCachePath / curName
-    if not dirExists(rootDest):
-      progress("fetching " & curName & "...")
-      if not clonePackage(rootMeta.url, rootDest):
-        fail("Failed to fetch " & curName)
-        return
-    else:
-      progress("using cached " & curName)
-      if refresh:
-        discard clonePackage(rootMeta.url, rootDest, refresh = true)
-
-    # Canonicalize to nimble package name (repo dir vs .nimble name)
-    if url.len > 0:
-      let nf = findNimbleFile(rootDest)
-      if nf.len > 0:
-        let canonical = nf.extractFilename.changeFileExt("")
-        if canonical.len > 0 and canonical != curName:
-          let canonicalDest = cluePkgsCachePath / canonical
-          if canonicalDest != rootDest:
-            if dirExists(canonicalDest):
-              # already have canonical cache — discard derived duplicate
-              try: removeDir(rootDest) except: discard
-            else:
-              try: moveDir(rootDest, canonicalDest) except: discard
-            rootDest = canonicalDest
-          # migrate installed dir if it exists under derived name
-          let derivedInstBase = cluePkgsPath / pkgName
-          let canonicalInstBase = cluePkgsPath / canonical
-          if dirExists(derivedInstBase) and not dirExists(canonicalInstBase):
-            try: moveDir(derivedInstBase, canonicalInstBase) except: discard
-          curName = canonical
-          rootMeta.name = canonical
-          # ensure direct package is stored in registry DB for dump/fetch
-          let tbl = clueDB.getTable("packages").get()
-          let exists = tbl.where("name", newTextValue(curName)).toSeq().len > 0
-          if not exists:
-            var nimbleDesc = ""
-            var nimbleLic = ""
-            var nimbleWeb = ""
-            try:
-              let nimble = parseNimbleFile(nf)
-              nimbleDesc = nimble.description
-              nimbleLic = nimble.license
-            except: discard
-            discard clueDB.insertRow("packages", row({
-              "name": newTextValue(curName),
-              "url": newTextValue(rootMeta.url),
-              "method": newTextValue("git"),
-              "tags": newJsonValue(newJArray()),
-              "description": newTextValue(nimbleDesc),
-              "license": newTextValue(nimbleLic),
-              "web": newTextValue(nimbleWeb),
-              "source": newTextValue("direct")
-            }))
-            clueDB.checkpoint()
-
-    # 2. Root constraint: explicit semver ref, else latest (vcAny).
-    #    Non-semver refs (git branches/tags via `pkg@ref` / `#ref`) install
-    #    the ref directly. Feature refs (`pkg[feat]`) are NOT git refs.
-    #    When a nimble `requires` constraint is provided (e.g., `>= 0.1.9`),
-    #    it is used as the root constraint instead of vcAny.
-    var rootConstraint = constraint
-    if pkgRef.len > 0:
-      try:
-        rootConstraint = VersionConstraint(kind: vcExact, version: parseVersion(pkgRef))
-      except CatchableError:
-        rootMeta.refStr = pkgRef
-        progress(curName & "@" & pkgRef)
-
-    # 3. Registry + version index
-    var registry: PackageRegistry
-    var registered = initHashSet[string]()
-    var pkgRefs = initTable[string, PkgRef]()
-    pkgRefs[curName] = rootMeta
-
-    proc registerVersions(name: string, versions: seq[DiscoveredVersion]) =
-      ## Register all discovered versions (or a head placeholder when the repo
-      ## has no semver tags) into the registry.
-      if versions.len == 0:
-        registry.addPackage(UnresolvedPackage(name: name,
-          version: headVersion(name), dependencies: @[]))
-      else:
-        for v in versions:
-          registry.addPackage(UnresolvedPackage(name: name,
-            version: v.version, dependencies: @[]))
-      registered.incl(name)
-
-    # register the root's versions — from the DB index (offline) or, on a first
-    # install / `--refresh`, from the freshly-cloned local tags
-    registerVersions(curName, discoverVersions(curName, rootMeta.url, refresh))
-    debugLog("root: " & curName & " (" & rootMeta.url & "), " &
-      pluralize(registry[curName].len, "version") & " indexed")
-
-    # 4. Phase A — clone & index every reachable package. Version discovery is
-    #    clone-first and runs in parallel per level (thread pool); once a repo
-    #    is in `_cache` its versions live in the DB, so no further network is
-    #    needed afterwards. Expansion reads each package's *newest* version.
-    var seen = initHashSet[string]()
-    seen.incl(curName)
-    var expandQueue = @[curName]
-    while expandQueue.len > 0:
-      var nextNames = initHashSet[string]()
-      for name in expandQueue:
-        let meta = pkgRefs.getOrDefault(name, PkgRef())
-        if meta.url.len == 0: continue
-        let versions = cachedVersions(name)
-        let ver = if versions.len > 0: $versions[0].version else: "0.0.0"
-        for d in getDeps(name, ver, @[], refresh, meta.url):
-          let dn = depName(d)
-          if dn.len == 0 or dn in seen: continue
-          var dmeta = pkgRefs.getOrDefault(dn, PkgRef())
-          if dmeta.url.len == 0:
-            if d.url.len > 0:
-              dmeta = PkgRef(name: dn, url: d.url, refStr: "")
-            else:
-              let m = fetchPkgMeta(dn)
-              if m.isSome: dmeta = m.get()
-            pkgRefs[dn] = dmeta
-          if dmeta.url.len == 0:
-            warn("Unknown package in registry, skipping: " & dn)
-            continue
-          if d.branch.len > 0 or d.tag.len > 0:
-            # genuine git ref dep (`pkg#ref` / url#ref): head placeholder only;
-            # its own deps are expanded lazily during resolution
-            var m = dmeta
-            m.refStr = if d.branch.len > 0: d.branch else: d.tag
-            pkgRefs[dn] = m
-            if not registry.hasKey(dn):
-              registry.addPackage(UnresolvedPackage(name: dn,
-                version: newVersion(0, 0, 0), dependencies: @[]))
-            seen.incl(dn)
-          else:
-            nextNames.incl(dn)
-      if nextNames.len == 0:
-        break
-      var toDiscover: seq[PkgRef]
-      for name in nextNames:
-        if name in registered: continue
-        toDiscover.add(pkgRefs.getOrDefault(name, PkgRef()))
-      if toDiscover.len > 0:
-        debugLog("Phase A: fetching " & $toDiscover.len & " package(s)")
-        progress("checking " & $toDiscover.len & " " & pluralize(toDiscover.len, "package") & "...")
-        proc onFetch(name: string, count: int, cached: bool) =
-          if showProgress: display("  " & fetchEventText(name, count, cached))
-        let discovered = discoverVersionsBatch(toDiscover, refresh, onFetch)
-        for name, versions in discovered:
-          registerVersions(name, versions)
-        for m in toDiscover:
-          if m.name notin discovered:
-            registerVersions(m.name, @[])
-      seen.incl(nextNames)
-      expandQueue = @[]
-      for name in nextNames:
-        if name in registered:
-          expandQueue.add(name)
-    debugLog("Phase A done: " & $registered.len & " package(s) indexed")
-
-    # 5. Phase B — resolve. Deps are read per selected version from the local
-    #    clones; a fallback lazily indexes any name the clone-first BFS missed
-    #    (reachable only via an older version or a git-ref dep).
-    debugLog("Phase B: resolving " & curName)
-    var activeFeatOf = initTable[string, seq[string]]()
-    proc provider(name: string, version: Version, feats: seq[string]): seq[Dependency] =
-      activeFeatOf[name] = feats
-      let deps = getDeps(name, $version, feats, refresh, pkgRefs.getOrDefault(name).url)
-      result = @[]
-      for d in deps:
-        let dn = depName(d)
-        # ensure we know the package URL
-        var meta = pkgRefs.getOrDefault(dn, PkgRef())
-        if meta.url.len == 0:
-          if d.url.len > 0:
-            # URL dep: use the URL the nimble file declares directly (may point
-            # at a fork); the registry is only a fallback for the name lookup.
-            meta = PkgRef(name: dn, url: d.url, refStr: "")
-            pkgRefs[dn] = meta
-          else:
-            let m = fetchPkgMeta(dn)
-            if m.isSome:
-              meta = m.get()
-              pkgRefs[dn] = meta
-        if meta.url.len == 0:
-          warn("Unknown package in registry, skipping: " & dn)
-          continue
-        if d.branch.len > 0 or d.tag.len > 0:
-          # genuine git ref dep (`pkg#ref` / url#ref): no semver resolution.
-          var m = meta
-          m.refStr = if d.branch.len > 0: d.branch else: d.tag
-          pkgRefs[dn] = m
-          if not registry.hasKey(dn):
-            registry.addPackage(UnresolvedPackage(name: dn,
-              version: newVersion(0, 0, 0), dependencies: @[]))
-          result.add(Dependency(name: dn,
-            constraint: VersionConstraint(kind: vcExact, version: newVersion(0, 0, 0)),
-            features: d.features))
-        else:
-          result.add(Dependency(name: dn, constraint: d.constraint, features: d.features))
-
-    let roots = @[Dependency(name: curName, constraint: rootConstraint, features: features)]
-
-    var resolution: Resolution
-    try:
-      while true:
-        try:
-          resolution = resolveDetailed(registry, roots, provider, maxProbes = 1000)
-          break
-        except PackageNotFoundError as e:
-          var toDiscover: seq[PkgRef]
-          for name in e.pending:
-            if name in registered: continue
-            let meta = pkgRefs.getOrDefault(name, PkgRef())
-            if meta.url.len == 0: continue
-            toDiscover.add(meta)
-          if toDiscover.len == 0:
-            fail("Could not resolve unknown package(s): " & e.pending.join(", "))
-            return
-          progress("checking " & $toDiscover.len & " " & pluralize(toDiscover.len, "package") & "...")
-          proc onFetch2(name: string, count: int, cached: bool) =
-            if showProgress: display("  " & fetchEventText(name, count, cached))
-          let discovered = discoverVersionsBatch(toDiscover, refresh, onFetch2)
-          for name, versions in discovered:
-            registerVersions(name, versions)
-          for m in toDiscover:
-            if m.name notin discovered:
-              registerVersions(m.name, @[])
-    except CircularDependencyError as e:
-      fail("Circular dependency: " & e.msg); return
-    except VersionConflictError as e:
-      fail("Version conflict: " & e.msg); return
-    except ResolverError as e:
-      fail("Resolution failed: " & e.msg); return
-
-    var name2ver: Table[string, string]
-    var verStrs: Table[string, string]
-    for rp in resolution.packages:
-      let meta = pkgRefs.getOrDefault(rp.name, PkgRef())
-      name2ver[rp.name] = $rp.version
-      verStrs[rp.name] = if meta.refStr.len > 0: meta.refStr else: $rp.version
-    debugLog("resolved " & $resolution.packages.len & " package(s)")
-    if verbose:
-      displayInfo("Dependency tree")
-      proc renderDepTree(name: string, leading: string, isLast: bool, isRoot: bool,
-          path: var HashSet[string]) =
-        let refStr = pkgRefs.getOrDefault(name).refStr
-        var label = cyan(name)
-        if refStr.len > 0:
-          label.add(" @" & refStr)
-        else:
-          let ver = name2ver.getOrDefault(name)
-          if ver.len > 0 and ver != "0.0.0":
-            label.add(" v" & ver)
-        let feats = activeFeatOf.getOrDefault(name)
-        if feats.len > 0:
-          label.add(" (features: " & feats.join(", ") & ")")
-        var line = leading
-        if not isRoot:
-          line.add(if isLast: "└─ " else: "├─ ")
-        display(line & label)
-        if name in path:
-          return
-        path.incl(name)
-        let deps = resolution.depsOf.getOrDefault(name)
-        for i, dep in deps:
-          let childIsLast = i == deps.high
-          let childLeading =
-            if isRoot: ""
-            else: leading & (if isLast: "   " else: "│  ")
-          if dep.name in name2ver:
-            renderDepTree(dep.name, childLeading, childIsLast, false, path)
-          else:
-            display(childLeading & (if childIsLast: "└─ " else: "├─ ") &
-              cyan(dep.name) & " " & $dep.constraint)
-        path.excl(name)
-      var path = initHashSet[string]()
-      renderDepTree(curName, "", false, true, path)
-
-    # soft violations: deeper constraints the chosen version could not honour
-    for sv in resolution.softViolations:
-      var msg = cyan(sv.name) & " resolved to " & $sv.chosen &
-        " ignoring constraint " & $sv.constraint
-      if sv.fromPkg.len > 0:
-        msg.add(" from " & sv.fromPkg)
-      warn(msg)
-
-    # 6. Install each resolved package from the cache (clean, flat layout).
-    #    The actual file copies run in parallel on a thread pool (one job per
-    #    package); cache-ensuring and the already-installed check stay here.
-    var installedCount = 0
-    var installedLabels: seq[string]
-    var jobs: seq[InstallJob]
-    for rp in resolution.packages:
-      let meta = pkgRefs.getOrDefault(rp.name, PkgRef())
-      let verStr =
-        if meta.refStr.len > 0: meta.refStr
-        else: $rp.version
-      debugLog("install: " & rp.name & "@" & verStr)
-      let cacheDir = cluePkgsCachePath / rp.name
-      if not dirExists(cacheDir):
-        var url = meta.url
-        if url.len == 0:
-          let m = fetchPkgMeta(rp.name)
-          if m.isSome:
-            url = m.get().url
-        if url.len == 0:
-          warn("No URL for " & rp.name & ", skipping")
-          continue
-        if not clonePackage(url, cacheDir):
-          continue
-      let verDir = cluePkgsPath / rp.name / verStr
-      let label =
-        if meta.refStr.len > 0: " @" & verStr
-        else: " v" & verStr
-      if dirExists(verDir):
-        installedCount.inc
-        installedLabels.add(rp.name & "@" & verStr)
-        continue
-      jobs.add(InstallJob(name: rp.name, cacheDir: cacheDir, verDir: verDir,
-        refStr: meta.refStr, verStr: verStr, refresh: refresh, label: label,
-        nimble: block:
-          let nf = findNimbleFile(cacheDir)
-          if nf.len > 0: parseNimbleFile(nf)
-          else:
-            let nimblePath = cacheDir / rp.name.changeFileExt("nimble")
-            if fileExists(nimblePath): parseNimbleFile(nimblePath)
-            else: NimbleFile(srcDir: "")))
-    if jobs.len > 0:
-      var results = newSeq[bool](jobs.len)
-      var m = createMaster()
-      m.awaitAll:
-        for i, job in jobs:
-          m.spawn installResolvedPkg(job) -> results[i]
-      for i, ok in results:
-        if ok:
-          installedCount.inc
-          installedLabels.add(jobs[i].name & "@" & jobs[i].verStr)
-        else:
-          warn("Failed to install " & jobs[i].name & " v" & jobs[i].verStr)
-
-    # 7. Record install manifests (resolved dep graph, used for pruning).
-    #    Only the explicitly-installed package is a root; transitive deps
-    #    are pruned when no longer reachable from any root.
-    for rp in resolution.packages:
-      let meta = pkgRefs.getOrDefault(rp.name, PkgRef())
-      let verStr = if meta.refStr.len > 0: meta.refStr else: $rp.version
-      let feats = activeFeatOf.getOrDefault(rp.name)
-      var deps: seq[DepEntry]
-      for d in getDeps(rp.name, $rp.version, feats, url = pkgRefs.getOrDefault(rp.name).url):
-        let dn = depName(d)
-        if d.branch.len > 0:
-          deps.add((dn, d.branch))
-        elif verStrs.hasKey(dn):
-          deps.add((dn, verStrs[dn]))
-      recordInstall(rp.name, verStr, deps, root = rp.name == curName,
-        features = feats, installPath = cluePkgsPath / rp.name / verStr)
-
-    # Success summary: `Installed N package(s)` (the install location is
-    # implied) followed by the installed packages, one per line in cyan.
-    if installedCount > 0:
-      displaySuccess("Installed " & $installedCount & " " & pluralize(installedCount, "package"))
-    for lbl in installedLabels:
-      display("  " & cyan(lbl))
-
-    # 8. Prune orphans / out-of-range versions
-    pruneOrphans(verbose)
-
-    # 9. Opt-in build (release by default). Runs after pruning so orphaned
-    #    versions never get compiled.
+  ## Thin wrapper around datpkgr/operations.installPackage.
+  ## Builder (`builder.nim`) stays in clue and is injected via buildHook.
+  let cfg = getClueCfg()
+  devShadowWarningsEnabled = verbose
+  let buildHook =
     if doBuild:
-      if not buildInstalled(curName, buildRelease, buildDebug, verbose,
-          preferRef = rootMeta.refStr, nimFlags = extras, backend = backend):
-        return
+      proc(pkgName2: string, preferRef: string, backend2: string): bool =
+        buildInstalled(pkgName2, buildRelease, buildDebug, verbose,
+          preferRef = preferRef, nimFlags = extras, backend = backend2)
+    else: nil
+  let ok = datpkgrOps.installPackage(cfg, pkgName, pkgRef, refresh, features, verbose, url,
+    doBuild, buildRelease, buildDebug, constraint, backend, sourceFilter, buildHook)
+  if not ok:
+    # datpkgr already logged; keep CLI exit semantics (original called quit(1) on fail)
+    quit(1)
 
 proc installCommand*(v: Values) =
   let raw = if v.has("pkg"): v.get("pkg").getStr else: ""
@@ -548,7 +134,7 @@ proc installCommand*(v: Values) =
     let version = if nimble.version.len > 0: nimble.version else: "0.0.0"
     let verDir = cluePkgsPath / pkgName / version
     safeRemoveDir(verDir)
-    installCleanCopy(getCurrentDir(), verDir, nimble)
+    nimbleparser.installCleanCopy(getCurrentDir(), verDir, nimble)
     var deps: seq[DepEntry]
     for d in nimble.requires:
       if d.isNim: continue
@@ -595,100 +181,54 @@ proc installCommand*(v: Values) =
       doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
       backend = backend, sourceFilter = sourceFilter)
 
-proc updateRootSubprocess(exe, name: string): int {.gcsafe.} =
-  ## Thread-pool worker for `clue update` (no argument): runs `clue update
-  ## <name>` in an isolated process (streaming its output straight to the
-  ## terminal), so parallel roots never share the DB or git state.
-  var subEnv = newStringTable()
-  for k, v in envPairs():
-    subEnv[k] = v
-  var p = startProcess(exe, args = ["update", name], env = subEnv,
-    options = {poUsePath, poParentStreams})
-  result = p.waitForExit()
-  p.close()
-
 proc updateCommand*(v: Values) =
-  ## Fetch new tags from remote for a package — or every installed root
-  ## package — and upgrade it, and its whole dependency tree, to the newest
-  ## satisfying versions. Develop-mode installs are skipped: they point at the
-  ## user's own source tree, not the registry. With no argument the installed
-  ## roots are updated in parallel (each in an isolated process).
+  ## Wrapper around datpkgr/operations.updateAllPackages / updatePackage.
+  ## Parallelism (malebolgia) lives in datpkgr/operations (kept as subprocess model).
   let verbose = v.has("--verbose")
-  proc updatePkg(name: string) =
-    let recs = installedRecords(name)
-    if recs.len > 0 and recs.all(proc(r: InstalledRecord): bool = isDevInstall(r)):
-      displayInfo("Skipping develop-mode package " & name & " (editable source, not registry-managed)")
-      return
-    installPackage(name, "", refresh = true, @[], verbose)
+  let cfg = getClueCfg()
   if v.has("pkg"):
-    updatePkg(v.get("pkg").getStr)
+    let ok = datpkgrOps.updatePackage(cfg, v.get("pkg").getStr, verbose)
+    if not ok: quit(1)
   else:
-    let roots = installedRoots()
-    if roots.len == 0:
-      displayInfo("No installed packages to update")
-      return
-    if roots.len == 1:
-      updatePkg(roots[0])
-    else:
-      let exe = getAppFilename()
-      var codes = newSeq[int](roots.len)
-      var m = createMaster()
-      m.awaitAll:
-        for i, name in roots:
-          m.spawn updateRootSubprocess(exe, name) -> codes[i]
-      if codes.anyIt(it != 0):
-        quit(1)
+    let exe = getAppFilename()
+    let ok = datpkgrOps.updateAllPackages(cfg, verbose, exe)
+    if not ok: quit(1)
 
 proc developCommand*(v: Values) =
-  ## Develop-mode (editable) install of the current nimble package: the install
-  ## record points at a symlink under ~/.clue/develop whose target is the
-  ## working tree — no source is ever copied, and uninstall only ever removes
-  ## the DB entry (plus the symlink), never the files. Never compiles anything;
-  ## its purpose is library discovery: other packages' builds pick the package
-  ## up via the recorded path (`import pkg/<name>` resolves against live source).
-  let nimblePath = findNimbleFile(getCurrentDir())
-  if nimblePath.len == 0:
-    displayError("No .nimble file found in " & getCurrentDir(), quitProcess = true)
-    return
-  let nimble = parseNimbleFile(nimblePath)
-  let pkgName = nimblePath.extractFilename.changeFileExt("")
-  let version = if nimble.version.len > 0: nimble.version else: "0.0.0"
-  let linkPath = clueDevelopPath / pkgName
-  discard existsOrCreateDir(clueDevelopPath)
-  safeRemoveSymlink(linkPath)
-  createSymlink(getCurrentDir(), linkPath)
-  var deps: seq[DepEntry]
-  for d in nimble.requires:
-    if d.isNim: continue
-    deps.add((depName(d), ""))
-  recordInstall(pkgName, version, deps, root = true,
-    features = @[], installPath = linkPath)
-  displaySuccess("Develop-mode: " & pkgName & "@" & version & " (editable, library discovery from " & getCurrentDir() & ")")
+  ## Thin wrapper around datpkgr/operations.developPackage (generic Manifest).
+  let cfg = getClueCfg()
+  let dir = getCurrentDir()
+  let ok = datpkgrOps.developPackage(cfg, dir)
+  if not ok:
+    quit(1)
+  # ops logs via cfg.logInfo (plain); emit styled success for CLI consistency
+  # (avoid double-line by not re-logging generic message – only styled)
+  discard
 
 proc versionsCommand*(v: Values) =
-  ## Show available versions for a package.
+  ## Wrapper around datpkgr/operations.versionsFor
   let pkgName = v.get("pkg").getStr
-  let metaOpt = fetchPkgMeta(pkgName)
-  if metaOpt.isNone:
-    displayError("Package not found in registry: " & pkgName, quitProcess = true)
-    return
-  let meta = metaOpt.get()
-  let versions = discoverVersions(pkgName, meta.url, v.has("--refresh"))
+  let cfg = getClueCfg()
+  let versions = datpkgrOps.versionsFor(cfg, pkgName, v.has("--refresh"))
   if versions.len == 0:
+    # versionsFor already logged if not found; check if we need extra message
+    let metaOpt = fetchPkgMeta(pkgName)
+    if metaOpt.isNone:
+      displayError("Package not found in registry: " & pkgName, quitProcess = true)
+      return
     displayInfo("No semver tags found for " & pkgName)
     return
   displayInfo("Available versions for " & pkgName & ":")
-  for v in versions:
-    echo "  " & $v.version
+  for ver in versions:
+    echo "  " & $ver.version
 
 proc pruneCommand*(v: Values) =
-  ## Prune orphaned or out-of-range installed packages.
-  pruneOrphans()
+  ## Wrapper around datpkgr/operations.prunePackages
+  datpkgrOps.prunePackages(getClueCfg())
 
 proc fetchCommand*(v: Values) =
-  ## Fetch a fresh packages.json from the nim registry and re-index the
-  ## available packages.
-  if not refreshRegistry():
+  ## Wrapper around datpkgr/operations.fetchRegistry
+  if not datpkgrOps.fetchRegistry(getClueCfg()):
     quit(1)
 
 template whenPackageExists(pkgName: string, body: untyped): untyped =
@@ -716,58 +256,12 @@ proc uninstallCommand*(v: Values) =
   let pkgInput = split(v.get("pkg").getStr, "@")
   let pkgName = pkgInput[0]
   let pkgVersion = if pkgInput.len > 1: pkgInput[1] else: ""
-  if pkgVersion.len > 0:
-    var rec: InstalledRecord
-    var found = false
-    for r in installedRecords(pkgName):
-      if r.version == pkgVersion:
-        rec = r
-        found = true
-        break
-    if not found:
-      displayError("Version not installed: " & pkgName & "@" & pkgVersion, quitProcess = true)
-      return
-    if rec.isDevInstall:
-      # develop-mode install: only the DB entry (and the ~/.clue/develop
-      # symlink) exist — never touch the source files
-      if promptConfirm("Remove develop-mode install " & pkgName & "@" & pkgVersion & " (files kept)?"):
-        unrecordInstall(pkgName, pkgVersion)
-        safeRemoveSymlink(clueDevelopPath / pkgName)
-        displaySuccess("Removed " & pkgName & "@" & pkgVersion & " (editable install, files untouched)")
-      else:
-        displayInfo("Removal cancelled.")
-    else:
-      let verDir = cluePkgsPath / pkgName / pkgVersion
-      if dirExists(verDir):
-        if promptConfirm("Remove " & pkgName & "@" & pkgVersion & "?"):
-          safeRemoveDir(verDir)
-          unrecordInstall(pkgName, pkgVersion)
-          displaySuccess("Removed " & pkgName & "@" & pkgVersion)
-        else:
-          displayInfo("Removal cancelled.")
-      else:
-        displayError("Version not installed: " & pkgName & "@" & pkgVersion, quitProcess = true)
-  else:
-    # unversioned: the installed records are the source of truth (dev installs
-    # have no files under ~/.clue/packages, only DB entries)
-    let recs = installedRecords(pkgName)
-    var hasDirs = false
-    if dirExists(cluePkgsPath / pkgName):
-      for e in walkDir(cluePkgsPath / pkgName):
-        if e.kind == pcDir:
-          hasDirs = true
-          break
-    if recs.len == 0 and not hasDirs:
-      displayError("Package not found: " & cyan(pkgName), quitProcess = true)
-      return
-    if promptConfirm("Remove all versions of " & cyan(pkgName) & "?"):
-      safeRemoveDir(cluePkgsPath / pkgName)
-      unrecordInstall(pkgName, "")
-      safeRemoveSymlink(clueDevelopPath / pkgName)
-      displaySuccess("All versions of " & pkgName & " removed")
-    else:
-      displayInfo("Uninstallation cancelled.")
-  pruneOrphans()
+  let cfg = getClueCfg()
+  proc confirm(msg: string): bool =
+    promptConfirm(msg)
+  let ok = datpkgrOps.uninstallPackage(cfg, pkgName, pkgVersion, confirm)
+  if not ok:
+    quit(1)
 
 proc renderDepSpec(d: NimbleDependency): string =
   ## `"name >= 1.2.3"` — or just the name when the constraint is any (`*`).

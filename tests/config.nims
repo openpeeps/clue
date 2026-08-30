@@ -1,1 +1,5 @@
 switch("path", "$projectDir/../src")
+switch("path", "$projectDir/../../datpkgr/src")
+switch("path", "$projectDir/../../../packages/supranim-packages/flysystem/src")
+switch("path", "/Users/georgelemon/.nimble/pkgs2/mimedb-0.1.1-bde7d02c2431f0335cf1b7f1e225da31b2aeaacb")
+switch("path", "/Users/georgelemon/.nimble/pkgs2/checksums-0.2.2-6357ab195ec23e0e0a54d4d8b5e0212456bf899e")
