@@ -39,7 +39,7 @@ suite "cli dump — local (no argument)":
     let (code, outp) = runClue("dump", dir = d)
     checkpoint outp
     check code == 0
-    let j = parseJson(stripAnsi(outp))
+    let j = parseJson(outp)
     check j["name"].getStr == "demo"
     check j["version"].getStr == "0.3.0"
     check j["author"].getStr == "Test"

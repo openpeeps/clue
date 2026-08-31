@@ -316,7 +316,7 @@ proc dumpCommand*(v: Values) =
     if nimblePath.len == 0:
       displayError("No .nimble file found in " & getCurrentDir(), quitProcess = true)
       return
-    display(pretty(buildLocalNimbleInfo(nimblePath)))
+    echo pretty(buildLocalNimbleInfo(nimblePath))
     return
 
   # Registry dump.
@@ -359,7 +359,7 @@ proc dumpCommand*(v: Values) =
           let pkgNimble = findNimbleFile(pkgDir)
           if pkgNimble.len > 0:
             pkgInfo["nimble"] = buildLocalNimbleInfo(pkgNimble)
-        display(pretty(pkgInfo))
+        echo pretty(pkgInfo)
       else:
         # installed-only (e.g. direct URL before packages row existed) — dump from installed
         let pkgDir = resolveInstalledPath(pkgName, "")
@@ -379,7 +379,7 @@ proc dumpCommand*(v: Values) =
               "author": git.get().author,
               "subject": git.get().subject
             }
-          display(pretty(pkgInfo))
+          echo pretty(pkgInfo)
         else:
           displayError("Package not found: " & cyan(pkgName), quitProcess = true)
 
