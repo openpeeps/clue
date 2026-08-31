@@ -59,10 +59,65 @@
 </li>
 <li>
   <details open>
+    <summary><a class="reference reference-toplevel" href="#7" id="57">Types</a></summary>
+    <ul class="simple simple-toc-section">
+      <li><a class="reference" href="#NimbleDependency" title="NimbleDependency = object
+  name*: string
+  url*: string
+  constraint*: VersionConstraint
+  branch*: string
+  tag*: string
+  features*: seq[string]
+  isNim*: bool">NimbleDependency</a></li>
+<li><a class="reference" href="#NimbleFile" title="NimbleFile = object
+  path*: string
+  version*: string
+  author*: string
+  description*: string
+  license*: string
+  srcDir*: string
+  binDir*: string
+  bin*: seq[string]
+  installDirs*: seq[string]
+  installFiles*: seq[string]
+  installExt*: seq[string]
+  skipDirs*: seq[string]
+  skipFiles*: seq[string]
+  skipExt*: seq[string]
+  requires*: seq[NimbleDependency]
+  features*: Table[string, seq[NimbleDependency]]
+  dev*: seq[NimbleDependency]
+  tasks*: seq[tuple[name, description: string]]">NimbleFile</a></li>
+
+    </ul>
+  </details>
+</li>
+<li>
+  <details open>
     <summary><a class="reference reference-toplevel" href="#12" id="62">Procs</a></summary>
     <ul class="simple simple-toc-section">
       <ul class="simple nested-toc-section">findNimbleFile
   <li><a class="reference" href="#findNimbleFile%2Cstring" title="findNimbleFile(dir: string): string">findNimbleFile(dir: string): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">installCleanCopy
+  <li><a class="reference" href="#installCleanCopy%2Cstring%2Cstring%2CNimbleFile" title="installCleanCopy(cacheDir, verDir: string; nimble: NimbleFile)">installCleanCopy(cacheDir, verDir: string; nimble: NimbleFile)</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">isCruftName
+  <li><a class="reference" href="#isCruftName%2Cstring%2CNimbleFile" title="isCruftName(name: string; nimble: NimbleFile): bool">isCruftName(name: string; nimble: NimbleFile): bool</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">nimbleManifestFileName
+  <li><a class="reference" href="#nimbleManifestFileName%2Cstring" title="nimbleManifestFileName(pkgName: string): string">nimbleManifestFileName(pkgName: string): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">nimbleManifestFinder
+  <li><a class="reference" href="#nimbleManifestFinder%2Cstring" title="nimbleManifestFinder(dir: string): string">nimbleManifestFinder(dir: string): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">nimbleManifestParser
+  <li><a class="reference" href="#nimbleManifestParser%2Cstring%2Cstring" title="nimbleManifestParser(content: string; path: string): dt.Manifest">nimbleManifestParser(content: string; path: string): dt.Manifest</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">parseNimbleFile
@@ -81,6 +136,10 @@
   <li><a class="reference" href="#parseRequiresLine%2Cseq%5BNimbleDependency%5D%2Cstring" title="parseRequiresLine(deps: var seq[NimbleDependency]; line: string)">parseRequiresLine(deps: var seq[NimbleDependency]; line: string)</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">withNimbleSupport
+  <li><a class="reference" href="#withNimbleSupport%2C%2C" title="withNimbleSupport(cfg: dc.DatpkgrConfig; parser: dt.ManifestParser)">withNimbleSupport(cfg: dc.DatpkgrConfig; parser: dt.ManifestParser)</a></li>
+
+</ul>
 
     </ul>
   </details>
@@ -97,7 +156,54 @@
     <div class="section" id="6">
   <h1><a class="toc-backref" href="#6">Imports</a></h1>
   <dl class="item">
-    <a class="reference external" href="configs.html">configs</a>, <a class="reference external" href="resolver.html">resolver</a>
+    <a class="reference external" href="resolver.html">resolver</a>
+  </dl>
+</div>
+<div class="section" id="7">
+  <h1><a class="toc-backref" href="#7">Types</a></h1>
+  <dl class="item">
+    <div id="NimbleDependency">
+  <dt><pre><a href="#NimbleDependency"><span class="Identifier">NimbleDependency</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
+  <span class="Identifier">name</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">url</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">constraint</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">VersionConstraint</span>
+  <span class="Identifier">branch</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">tag</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">features</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
+  <span class="Identifier">isNim</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+<div id="NimbleFile">
+  <dt><pre><a href="#NimbleFile"><span class="Identifier">NimbleFile</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
+  <span class="Identifier">path</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">version</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">author</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">description</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">license</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">srcDir</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">binDir</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">bin</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
+  <span class="Identifier">installDirs</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
+  <span class="Identifier">installFiles</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
+  <span class="Identifier">installExt</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
+  <span class="Identifier">skipDirs</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
+  <span class="Identifier">skipFiles</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
+  <span class="Identifier">skipExt</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
+  <span class="Identifier">requires</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="#NimbleDependency"><span class="Identifier">NimbleDependency</span></a><span class="Other">]</span>
+  <span class="Identifier">features</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">Table</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="#NimbleDependency"><span class="Identifier">NimbleDependency</span></a><span class="Other">]</span><span class="Other">]</span>
+  <span class="Identifier">dev</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="#NimbleDependency"><span class="Identifier">NimbleDependency</span></a><span class="Other">]</span>
+  <span class="Identifier">tasks</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Keyword">tuple</span><span class="Other">[</span><span class="Identifier">name</span><span class="Other">,</span> <span class="Identifier">description</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">]</span><span class="Other">]</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
   </dl>
 </div>
 <div class="section" id="12">
@@ -115,9 +221,70 @@
 </div>
 
 </div>
+<div id="installCleanCopy-procs-all">
+  <div id="installCleanCopy,string,string,NimbleFile">
+  <dt><pre><span class="Keyword">proc</span> <a href="#installCleanCopy%2Cstring%2Cstring%2CNimbleFile"><span class="Identifier">installCleanCopy</span></a><span class="Other">(</span><span class="Identifier">cacheDir</span><span class="Other">,</span> <span class="Identifier">verDir</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">nimble</span><span class="Other">:</span> <a href="#NimbleFile"><span class="Identifier">NimbleFile</span></a><span class="Other">)</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteDirEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Copy a package into <tt class="docutils literal"><span class="pre"><span class="Identifier">verDir</span></span></tt> with a clean, flat layout matching nimble's pkgs2: the <tt class="docutils literal"><span class="pre"><span class="Identifier">srcDir</span></span></tt> contents are placed at the package root, plus the nimble file and any installDirs/installFiles/installExt. VCS/test cruft is skipped.
+    
+  </dd>
+</div>
+
+</div>
+<div id="isCruftName-procs-all">
+  <div id="isCruftName,string,NimbleFile">
+  <dt><pre><span class="Keyword">proc</span> <a href="#isCruftName%2Cstring%2CNimbleFile"><span class="Identifier">isCruftName</span></a><span class="Other">(</span><span class="Identifier">name</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">nimble</span><span class="Other">:</span> <a href="#NimbleFile"><span class="Identifier">NimbleFile</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="nimbleManifestFileName-procs-all">
+  <div id="nimbleManifestFileName,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#nimbleManifestFileName%2Cstring"><span class="Identifier">nimbleManifestFileName</span></a><span class="Other">(</span><span class="Identifier">pkgName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="nimbleManifestFinder-procs-all">
+  <div id="nimbleManifestFinder,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#nimbleManifestFinder%2Cstring"><span class="Identifier">nimbleManifestFinder</span></a><span class="Other">(</span><span class="Identifier">dir</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="nimbleManifestParser-procs-all">
+  <div id="nimbleManifestParser,string,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#nimbleManifestParser%2Cstring%2Cstring"><span class="Identifier">nimbleManifestParser</span></a><span class="Other">(</span><span class="Identifier">content</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">path</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">dt</span><span class="Other">.</span><span class="Identifier">Manifest</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Pluggable parser for datpkgr - converts NimbleFile to generic Manifest
+    
+  </dd>
+</div>
+
+</div>
 <div id="parseNimbleFile-procs-all">
   <div id="parseNimbleFile,string">
-  <dt><pre><span class="Keyword">proc</span> <a href="#parseNimbleFile%2Cstring"><span class="Identifier">parseNimbleFile</span></a><span class="Other">(</span><span class="Identifier">path</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <a href="configs.html#NimbleFile"><span class="Identifier">NimbleFile</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
+  <dt><pre><span class="Keyword">proc</span> <a href="#parseNimbleFile%2Cstring"><span class="Identifier">parseNimbleFile</span></a><span class="Other">(</span><span class="Identifier">path</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <a href="#NimbleFile"><span class="Identifier">NimbleFile</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
@@ -129,7 +296,7 @@
 </div>
 <div id="parseNimbleString-procs-all">
   <div id="parseNimbleString,string">
-  <dt><pre><span class="Keyword">proc</span> <a href="#parseNimbleString%2Cstring"><span class="Identifier">parseNimbleString</span></a><span class="Other">(</span><span class="Identifier">code</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <a href="configs.html#NimbleFile"><span class="Identifier">NimbleFile</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
+  <dt><pre><span class="Keyword">proc</span> <a href="#parseNimbleString%2Cstring"><span class="Identifier">parseNimbleString</span></a><span class="Other">(</span><span class="Identifier">code</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <a href="#NimbleFile"><span class="Identifier">NimbleFile</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
@@ -141,7 +308,7 @@
 </div>
 <div id="parseRequiresArg-procs-all">
   <div id="parseRequiresArg,string">
-  <dt><pre><span class="Keyword">proc</span> <a href="#parseRequiresArg%2Cstring"><span class="Identifier">parseRequiresArg</span></a><span class="Other">(</span><span class="Identifier">arg</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <a href="configs.html#NimbleDependency"><span class="Identifier">NimbleDependency</span></a> {.
+  <dt><pre><span class="Keyword">proc</span> <a href="#parseRequiresArg%2Cstring"><span class="Identifier">parseRequiresArg</span></a><span class="Other">(</span><span class="Identifier">arg</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <a href="#NimbleDependency"><span class="Identifier">NimbleDependency</span></a> {.
     <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">ResolverError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
@@ -153,11 +320,23 @@
 </div>
 <div id="parseRequiresLine-procs-all">
   <div id="parseRequiresLine,seq[NimbleDependency],string">
-  <dt><pre><span class="Keyword">proc</span> <a href="#parseRequiresLine%2Cseq%5BNimbleDependency%5D%2Cstring"><span class="Identifier">parseRequiresLine</span></a><span class="Other">(</span><span class="Identifier">deps</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="configs.html#NimbleDependency"><span class="Identifier">NimbleDependency</span></a><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">line</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.
+  <dt><pre><span class="Keyword">proc</span> <a href="#parseRequiresLine%2Cseq%5BNimbleDependency%5D%2Cstring"><span class="Identifier">parseRequiresLine</span></a><span class="Other">(</span><span class="Identifier">deps</span><span class="Other">:</span> <span class="Keyword">var</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="#NimbleDependency"><span class="Identifier">NimbleDependency</span></a><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">line</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.
     <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">ResolverError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     Parse a <tt class="docutils literal"><span class="pre"><span class="Identifier">requires</span> <span class="StringLit">&quot;a[f], b &gt;= 1.0&quot;</span></span></tt> line into dependencies.
+    
+  </dd>
+</div>
+
+</div>
+<div id="withNimbleSupport-procs-all">
+  <div id="withNimbleSupport,,">
+  <dt><pre><span class="Keyword">proc</span> <a href="#withNimbleSupport%2C%2C"><span class="Identifier">withNimbleSupport</span></a><span class="Other">(</span><span class="Identifier">cfg</span><span class="Other">:</span> <span class="Identifier">dc</span><span class="Other">.</span><span class="Identifier">DatpkgrConfig</span><span class="Other">;</span> <span class="Identifier">parser</span><span class="Other">:</span> <span class="Identifier">dt</span><span class="Other">.</span><span class="Identifier">ManifestParser</span><span class="Other">)</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    App-specific Nimble wiring for Clue. Keeps datpkgr language-agnostic by configuring the pluggable manifest hooks and Nim defaults here.
     
   </dd>
 </div>
@@ -173,7 +352,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-25 20:15:19 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-31 18:04:51 UTC</small>
       </div>
     </div>
   </div>

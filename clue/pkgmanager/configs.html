@@ -59,88 +59,10 @@
 </li>
 <li>
   <details open>
-    <summary><a class="reference reference-toplevel" href="#7" id="57">Types</a></summary>
-    <ul class="simple simple-toc-section">
-      <li><a class="reference" href="#NimbleDependency" title="NimbleDependency = object
-  name*: string
-  url*: string
-  constraint*: VersionConstraint
-  branch*: string
-  tag*: string
-  features*: seq[string]     ## Feature activations from `pkg[feat1, feat2]` (nimble --features).
-  isNim*: bool">NimbleDependency</a></li>
-<li><a class="reference" href="#NimbleFile" title="NimbleFile = object
-  path*: string
-  version*: string
-  author*: string
-  description*: string
-  license*: string
-  srcDir*: string
-  binDir*: string
-  bin*: seq[string]
-  installDirs*: seq[string]
-  installFiles*: seq[string]
-  installExt*: seq[string]
-  skipDirs*: seq[string]
-  skipFiles*: seq[string]
-  skipExt*: seq[string]
-  requires*: seq[NimbleDependency] ## Hard (always-active) dependencies.
-  features*: Table[string, seq[NimbleDependency]] ## `feature &quot;name&quot;:` blocks → conditional dependencies.
-  dev*: seq[NimbleDependency] ## The `dev:` block → development-only dependencies.
-  tasks*: seq[tuple[name, description: string]] ## Nimscript tasks defined in the .nimble file.">NimbleFile</a></li>
-<li><a class="reference" href="#Package" title="Package = object
-  name*: string              ## The name of the package
-  url*: string               ## The URL where the package can be found, such as a
-                             ## GitHub repository or a package registry.
-  tags*: seq[string] ## Additional metadata about the package, such as &quot;web&quot;, &quot;cli&quot;,
-                     ## &quot;database&quot;, etc.
-  description*: string       ## A brief description of the package, its features, and use cases.
-  license*: string ## The license under which the package is distributed, such as &quot;MIT&quot;,
-                   ## &quot;GPL&quot;, &quot;Apache&quot;, etc.
-  web*: string               ## The URL of the package's website or documentation, if available.">Package</a></li>
-<li><a class="reference" href="#PkgRef" title="PkgRef = object
-  name*: string
-  refStr*: string
-  url*: string">PkgRef</a></li>
-
-    </ul>
-  </details>
-</li>
-<li>
-  <details open>
-    <summary><a class="reference reference-toplevel" href="#8" id="58">Vars</a></summary>
-    <ul class="simple simple-toc-section">
-      <li><a class="reference" href="#clueDB" title="clueDB: Store">clueDB</a></li>
-<li><a class="reference" href="#debugEnabled" title="debugEnabled: bool = getEnv(&quot;CLUE_DEBUG&quot;, &quot;&quot;) == &quot;1&quot; or false">debugEnabled</a></li>
-<li><a class="reference" href="#versionsDB" title="versionsDB: Store">versionsDB</a></li>
-
-    </ul>
-  </details>
-</li>
-<li>
-  <details open>
-    <summary><a class="reference reference-toplevel" href="#9" id="59">Lets</a></summary>
-    <ul class="simple simple-toc-section">
-      <li><a class="reference" href="#clueBinPath" title="clueBinPath = cluePath / &quot;bin&quot;">clueBinPath</a></li>
-<li><a class="reference" href="#clueBuildTempPath" title="clueBuildTempPath = cluePath / &quot;buildtemp&quot;">clueBuildTempPath</a></li>
-<li><a class="reference" href="#clueDBPath" title="clueDBPath = cluePath / &quot;clue.db&quot;">clueDBPath</a></li>
-<li><a class="reference" href="#clueDevelopPath" title="clueDevelopPath = cluePath / &quot;develop&quot;">clueDevelopPath</a></li>
-<li><a class="reference" href="#cluePath" title="cluePath = getHomeDir() / &quot;.clue&quot;">cluePath</a></li>
-<li><a class="reference" href="#cluePkgsCachePath" title="cluePkgsCachePath = cluePkgsPath / &quot;_cache&quot;">cluePkgsCachePath</a></li>
-<li><a class="reference" href="#cluePkgsPath" title="cluePkgsPath = cluePath / &quot;packages&quot;">cluePkgsPath</a></li>
-<li><a class="reference" href="#nimbleLocalPackages" title="nimbleLocalPackages = getHomeDir() / &quot;.nimble&quot; / &quot;packages_official.json&quot;">nimbleLocalPackages</a></li>
-<li><a class="reference" href="#nimblePackagesUrl" title="nimblePackagesUrl = &quot;https://raw.githubusercontent.com/nim-lang/packages/master/packages.json&quot;">nimblePackagesUrl</a></li>
-<li><a class="reference" href="#versionsDBPath" title="versionsDBPath = cluePath / &quot;versions.db&quot;">versionsDBPath</a></li>
-
-    </ul>
-  </details>
-</li>
-<li>
-  <details open>
     <summary><a class="reference reference-toplevel" href="#12" id="62">Procs</a></summary>
     <ul class="simple simple-toc-section">
       <ul class="simple nested-toc-section">checkNimConstraint
-  <li><a class="reference" href="#checkNimConstraint%2CNimbleFile" title="checkNimConstraint(nimble: NimbleFile)">checkNimConstraint(nimble: NimbleFile)</a></li>
+  <li><a class="reference" href="#checkNimConstraint" title="checkNimConstraint(nimble: clueNimbleParser.NimbleFile)">checkNimConstraint(nimble: clueNimbleParser.NimbleFile)</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">debugLog
@@ -159,8 +81,20 @@
   <li><a class="reference" href="#detectNimVersion" title="detectNimVersion(): string">detectNimVersion(): string</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">ensureSourcesFile
+  <li><a class="reference" href="#ensureSourcesFile" title="ensureSourcesFile()">ensureSourcesFile()</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">fetchAllPkgMetas
+  <li><a class="reference" href="#fetchAllPkgMetas%2Cstring" title="fetchAllPkgMetas(pkgName: string): seq[PkgRef]">fetchAllPkgMetas(pkgName: string): seq[PkgRef]</a></li>
+
+</ul>
 <ul class="simple nested-toc-section">fetchPkgMeta
-  <li><a class="reference" href="#fetchPkgMeta%2Cstring" title="fetchPkgMeta(pkgName: string): Option[PkgRef]">fetchPkgMeta(pkgName: string): Option[PkgRef]</a></li>
+  <li><a class="reference" href="#fetchPkgMeta%2Cstring%2Cstring" title="fetchPkgMeta(pkgName: string; sourceFilter: string = &quot;&quot;): Option[PkgRef]">fetchPkgMeta(pkgName: string; sourceFilter: string = &quot;&quot;): Option[PkgRef]</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">getClueCfg
+  <li><a class="reference" href="#getClueCfg" title="getClueCfg(): DatpkgrConfig">getClueCfg(): DatpkgrConfig</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">initClue
@@ -171,8 +105,28 @@
   <li><a class="reference" href="#isInsidePkgs%2Cstring" title="isInsidePkgs(dir: string): bool">isInsidePkgs(dir: string): bool</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">isValidSourceName
+  <li><a class="reference" href="#isValidSourceName%2Cstring" title="isValidSourceName(s: string): bool">isValidSourceName(s: string): bool</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">loadSources
+  <li><a class="reference" href="#loadSources" title="loadSources(): seq[Source]">loadSources(): seq[Source]</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">refreshAllSources
+  <li><a class="reference" href="#refreshAllSources" title="refreshAllSources(): bool">refreshAllSources(): bool</a></li>
+
+</ul>
 <ul class="simple nested-toc-section">refreshRegistry
   <li><a class="reference" href="#refreshRegistry" title="refreshRegistry(): bool">refreshRegistry(): bool</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">refreshSource
+  <li><a class="reference" href="#refreshSource%2Cstring" title="refreshSource(sourceName: string): bool">refreshSource(sourceName: string): bool</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">resetClueForTests
+  <li><a class="reference" href="#resetClueForTests" title="resetClueForTests()">resetClueForTests()</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">resolveNimBin
@@ -187,6 +141,18 @@
   <li><a class="reference" href="#safeRemoveSymlink%2Cstring" title="safeRemoveSymlink(p: string)">safeRemoveSymlink(p: string)</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">saveSources
+  <li><a class="reference" href="#saveSources%2Cseq%5BSource%5D" title="saveSources(sources: seq[Source])">saveSources(sources: seq[Source])</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">seedPackagesTable
+  <li><a class="reference" href="#seedPackagesTable%2CJsonNode%2Cstring" title="seedPackagesTable(nimblePackages: JsonNode; source: string = defaultSourceName): int">seedPackagesTable(nimblePackages: JsonNode; source: string = defaultSourceName): int</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">sourceCachePath
+  <li><a class="reference" href="#sourceCachePath%2Cstring" title="sourceCachePath(name: string): string">sourceCachePath(name: string): string</a></li>
+
+</ul>
 
     </ul>
   </details>
@@ -195,8 +161,76 @@
   <details open>
     <summary><a class="reference reference-toplevel" href="#18" id="68">Templates</a></summary>
     <ul class="simple simple-toc-section">
-      <ul class="simple nested-toc-section">withClueDB
-  <li><a class="reference" href="#withClueDB.t" title="withClueDB(stmt)">withClueDB(stmt)</a></li>
+      <ul class="simple nested-toc-section">clueBinPath
+  <li><a class="reference" href="#clueBinPath.t" title="clueBinPath(): string">clueBinPath(): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">clueBuildTempPath
+  <li><a class="reference" href="#clueBuildTempPath.t" title="clueBuildTempPath(): string">clueBuildTempPath(): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">clueCfg
+  <li><a class="reference" href="#clueCfg.t" title="clueCfg(): DatpkgrConfig">clueCfg(): DatpkgrConfig</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">clueDB
+  <li><a class="reference" href="#clueDB.t" title="clueDB(): Store">clueDB(): Store</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">clueDBPath
+  <li><a class="reference" href="#clueDBPath.t" title="clueDBPath(): string">clueDBPath(): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">clueDevelopPath
+  <li><a class="reference" href="#clueDevelopPath.t" title="clueDevelopPath(): string">clueDevelopPath(): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">cluePath
+  <li><a class="reference" href="#cluePath.t" title="cluePath(): string">cluePath(): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">cluePkgsCachePath
+  <li><a class="reference" href="#cluePkgsCachePath.t" title="cluePkgsCachePath(): string">cluePkgsCachePath(): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">cluePkgsPath
+  <li><a class="reference" href="#cluePkgsPath.t" title="cluePkgsPath(): string">cluePkgsPath(): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">clueRegistriesDir
+  <li><a class="reference" href="#clueRegistriesDir.t" title="clueRegistriesDir(): string">clueRegistriesDir(): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">clueSourcesPath
+  <li><a class="reference" href="#clueSourcesPath.t" title="clueSourcesPath(): string">clueSourcesPath(): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">debugEnabled
+  <li><a class="reference" href="#debugEnabled.t" title="debugEnabled(): untyped">debugEnabled(): untyped</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">defaultSourceName
+  <li><a class="reference" href="#defaultSourceName.t" title="defaultSourceName(): string">defaultSourceName(): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">nimbleLocalPackages
+  <li><a class="reference" href="#nimbleLocalPackages.t" title="nimbleLocalPackages(): string">nimbleLocalPackages(): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">nimblePackagesUrl
+  <li><a class="reference" href="#nimblePackagesUrl.t" title="nimblePackagesUrl(): string">nimblePackagesUrl(): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">versionsDB
+  <li><a class="reference" href="#versionsDB.t" title="versionsDB(): Store">versionsDB(): Store</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">versionsDBPath
+  <li><a class="reference" href="#versionsDBPath.t" title="versionsDBPath(): string">versionsDBPath(): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">withClueDB
+  <li><a class="reference" href="#withClueDB.t%2Cuntyped" title="withClueDB(body: untyped)">withClueDB(body: untyped)</a></li>
 
 </ul>
 
@@ -211,215 +245,25 @@
     
     <div id="tocRoot"></div>
     
-    <p class="module-desc">Permanent debug tracing: enable with <tt class="docutils literal"><span class="pre"><span class="Identifier">CLUE_DEBUG</span><span class="Operator">=</span><span class="DecNumber">1</span></span></tt> (or <tt class="docutils literal"><span class="pre"><span class="Operator">-</span><span class="Identifier">d</span><span class="Punctuation">:</span><span class="Identifier">clueDebug</span></span></tt>).</p>
+    <p class="module-desc"></p>
     <div class="section" id="6">
   <h1><a class="toc-backref" href="#6">Imports</a></h1>
   <dl class="item">
-    <a class="reference external" href="resolver.html">resolver</a>
-  </dl>
-</div>
-<div class="section" id="7">
-  <h1><a class="toc-backref" href="#7">Types</a></h1>
-  <dl class="item">
-    <div id="NimbleDependency">
-  <dt><pre><a href="#NimbleDependency"><span class="Identifier">NimbleDependency</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
-  <span class="Identifier">name</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">url</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">constraint</span><span class="Operator">*</span><span class="Other">:</span> <a href="resolver.html#VersionConstraint"><span class="Identifier">VersionConstraint</span></a>
-  <span class="Identifier">branch</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">tag</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">features</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>     <span class="Comment">## Feature activations from `pkg[feat1, feat2]` (nimble --features).</span>
-  <span class="Identifier">isNim</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-<div id="NimbleFile">
-  <dt><pre><a href="#NimbleFile"><span class="Identifier">NimbleFile</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
-  <span class="Identifier">path</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">version</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">author</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">description</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">license</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">srcDir</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">binDir</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">bin</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
-  <span class="Identifier">installDirs</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
-  <span class="Identifier">installFiles</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
-  <span class="Identifier">installExt</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
-  <span class="Identifier">skipDirs</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
-  <span class="Identifier">skipFiles</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
-  <span class="Identifier">skipExt</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
-  <span class="Identifier">requires</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="#NimbleDependency"><span class="Identifier">NimbleDependency</span></a><span class="Other">]</span> <span class="Comment">## Hard (always-active) dependencies.</span>
-  <span class="Identifier">features</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">Table</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="#NimbleDependency"><span class="Identifier">NimbleDependency</span></a><span class="Other">]</span><span class="Other">]</span> <span class="Comment">## `feature &quot;name&quot;:` blocks → conditional dependencies.</span>
-  <span class="Identifier">dev</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="#NimbleDependency"><span class="Identifier">NimbleDependency</span></a><span class="Other">]</span> <span class="Comment">## The `dev:` block → development-only dependencies.</span>
-  <span class="Identifier">tasks</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Keyword">tuple</span><span class="Other">[</span><span class="Identifier">name</span><span class="Other">,</span> <span class="Identifier">description</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">]</span><span class="Other">]</span> <span class="Comment">## Nimscript tasks defined in the .nimble file.</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-<div id="Package">
-  <dt><pre><a href="#Package"><span class="Identifier">Package</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
-  <span class="Identifier">name</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>              <span class="Comment">## The name of the package</span>
-  <span class="Identifier">url</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>               <span class="Comment">## The URL where the package can be found, such as a</span>
-                             <span class="Comment">## GitHub repository or a package registry.</span>
-  <span class="Identifier">tags</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span> <span class="Comment">## Additional metadata about the package, such as &quot;web&quot;, &quot;cli&quot;,</span>
-                     <span class="Comment">## &quot;database&quot;, etc.</span>
-  <span class="Identifier">description</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>       <span class="Comment">## A brief description of the package, its features, and use cases.</span>
-  <span class="Identifier">license</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Comment">## The license under which the package is distributed, such as &quot;MIT&quot;,</span>
-                   <span class="Comment">## &quot;GPL&quot;, &quot;Apache&quot;, etc.</span>
-  <span class="Identifier">web</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>               <span class="Comment">## The URL of the package's website or documentation, if available.</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-<div id="PkgRef">
-  <dt><pre><a href="#PkgRef"><span class="Identifier">PkgRef</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
-  <span class="Identifier">name</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">refStr</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">url</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-
-  </dl>
-</div>
-<div class="section" id="8">
-  <h1><a class="toc-backref" href="#8">Vars</a></h1>
-  <dl class="item">
-    <div id="clueDB">
-  <dt><pre><a href="#clueDB"><span class="Identifier">clueDB</span></a><span class="Other">:</span> <span class="Identifier">Store</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-<div id="debugEnabled">
-  <dt><pre><a href="#debugEnabled"><span class="Identifier">debugEnabled</span></a><span class="Other">:</span> <span class="Identifier">bool</span> <span class="Other">=</span> <span class="Identifier">getEnv</span><span class="Other">(</span><span class="StringLit">&quot;CLUE_DEBUG&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;&quot;</span><span class="Other">)</span> <span class="Operator">==</span> <span class="StringLit">&quot;1&quot;</span> <span class="Identifier">or</span> <span class="DecNumber">false</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-<div id="versionsDB">
-  <dt><pre><a href="#versionsDB"><span class="Identifier">versionsDB</span></a><span class="Other">:</span> <span class="Identifier">Store</span></pre></dt>
-  <dd>
-    
-    The version index + deps cache live in their own store, separate from the registry/install-state DB (clue.db).
-    
-  </dd>
-</div>
-
-  </dl>
-</div>
-<div class="section" id="9">
-  <h1><a class="toc-backref" href="#9">Lets</a></h1>
-  <dl class="item">
-    <div id="clueBinPath">
-  <dt><pre><a href="#clueBinPath"><span class="Identifier">clueBinPath</span></a> <span class="Other">=</span> <a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;bin&quot;</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-<div id="clueBuildTempPath">
-  <dt><pre><a href="#clueBuildTempPath"><span class="Identifier">clueBuildTempPath</span></a> <span class="Other">=</span> <a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;buildtemp&quot;</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-<div id="clueDBPath">
-  <dt><pre><a href="#clueDBPath"><span class="Identifier">clueDBPath</span></a> <span class="Other">=</span> <a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;clue.db&quot;</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-<div id="clueDevelopPath">
-  <dt><pre><a href="#clueDevelopPath"><span class="Identifier">clueDevelopPath</span></a> <span class="Other">=</span> <a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;develop&quot;</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-<div id="cluePath">
-  <dt><pre><a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Other">=</span> <span class="Identifier">getHomeDir</span><span class="Other">(</span><span class="Other">)</span> <span class="Operator">/</span> <span class="StringLit">&quot;.clue&quot;</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-<div id="cluePkgsCachePath">
-  <dt><pre><a href="#cluePkgsCachePath"><span class="Identifier">cluePkgsCachePath</span></a> <span class="Other">=</span> <a href="#cluePkgsPath"><span class="Identifier">cluePkgsPath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;_cache&quot;</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-<div id="cluePkgsPath">
-  <dt><pre><a href="#cluePkgsPath"><span class="Identifier">cluePkgsPath</span></a> <span class="Other">=</span> <a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;packages&quot;</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-<div id="nimbleLocalPackages">
-  <dt><pre><a href="#nimbleLocalPackages"><span class="Identifier">nimbleLocalPackages</span></a> <span class="Other">=</span> <span class="Identifier">getHomeDir</span><span class="Other">(</span><span class="Other">)</span> <span class="Operator">/</span> <span class="StringLit">&quot;.nimble&quot;</span> <span class="Operator">/</span> <span class="StringLit">&quot;packages_official.json&quot;</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-<div id="nimblePackagesUrl">
-  <dt><pre><a href="#nimblePackagesUrl"><span class="Identifier">nimblePackagesUrl</span></a> <span class="Other">=</span> <span class="StringLit">&quot;https://raw.githubusercontent.com/nim-lang/packages/master/packages.json&quot;</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-<div id="versionsDBPath">
-  <dt><pre><a href="#versionsDBPath"><span class="Identifier">versionsDBPath</span></a> <span class="Other">=</span> <a href="#cluePath"><span class="Identifier">cluePath</span></a> <span class="Operator">/</span> <span class="StringLit">&quot;versions.db&quot;</span></pre></dt>
-  <dd>
-    
-    
-    
-  </dd>
-</div>
-
+    <a class="reference external" href="nimbleparser.html">nimbleparser</a>
   </dl>
 </div>
 <div class="section" id="12">
   <h1><a class="toc-backref" href="#12">Procs</a></h1>
   <dl class="item">
     <div id="checkNimConstraint-procs-all">
-  <div id="checkNimConstraint,NimbleFile">
-  <dt><pre><span class="Keyword">proc</span> <a href="#checkNimConstraint%2CNimbleFile"><span class="Identifier">checkNimConstraint</span></a><span class="Other">(</span><span class="Identifier">nimble</span><span class="Other">:</span> <a href="#NimbleFile"><span class="Identifier">NimbleFile</span></a><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
-    <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <div id="checkNimConstraint">
+  <dt><pre><span class="Keyword">proc</span> <a href="#checkNimConstraint"><span class="Identifier">checkNimConstraint</span></a><span class="Other">(</span><span class="Identifier">nimble</span><span class="Other">:</span> <span class="Identifier">clueNimbleParser</span><span class="Other">.</span><span class="Identifier">NimbleFile</span><span class="Other">)</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
+                                       <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
+                                       <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Check the nimble <tt class="docutils literal"><span class="pre"><span class="Identifier">requires</span> <span class="StringLit">&quot;nim ...&quot;</span></span></tt> constraint against the installed Nim compiler. Exact (<tt class="docutils literal"><span class="pre"><span class="Operator">=</span></span></tt>) mismatches are fatal — the build will fail. Range mismatches (<tt class="docutils literal"><span class="pre"><span class="Operator">&gt;=</span></span></tt>, <tt class="docutils literal"><span class="pre"><span class="Operator">&lt;</span></span></tt>, etc.) emit a warning since the build may still work.
+    
     
   </dd>
 </div>
@@ -427,11 +271,12 @@
 </div>
 <div id="debugLog-procs-all">
   <div id="debugLog,string">
-  <dt><pre><span class="Keyword">proc</span> <a href="#debugLog%2Cstring"><span class="Identifier">debugLog</span></a><span class="Other">(</span><span class="Identifier">msg</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">]</span><span class="Other">,</span>
+  <dt><pre><span class="Keyword">proc</span> <a href="#debugLog%2Cstring"><span class="Identifier">debugLog</span></a><span class="Other">(</span><span class="Identifier">msg</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span>
                              <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Echo a debug trace line to stderr (never interferes with the spinner on stdout). Kept intentionally — it's how we diagnose hangs/timeouts.
+    
     
   </dd>
 </div>
@@ -443,7 +288,7 @@
     <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Nim compiler colors default to on so errors stay readable when output is captured; suppressed when the user passes their own <tt class="docutils literal"><span class="pre"><span class="Operator">--</span><span class="Identifier">colors</span><span class="Punctuation">:</span><span class="Operator">&lt;</span><span class="Identifier">x</span><span class="Operator">&gt;</span></span></tt> flag.
+    
     
   </dd>
 </div>
@@ -455,7 +300,7 @@
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Default native include/link search paths per operating system, appended to every compile so headers/libs from common package managers (MacPorts, Homebrew) resolve without manual <tt class="docutils literal"><span class="pre"><span class="Operator">--</span><span class="Identifier">passC</span></span></tt> / <tt class="docutils literal"><span class="pre"><span class="Operator">--</span><span class="Identifier">passL</span></span></tt>. Skipped entirely when <tt class="docutils literal"><span class="pre"><span class="Identifier">userFlags</span></span></tt> already contains an explicit --passC/--passL.
+    
     
   </dd>
 </div>
@@ -468,21 +313,63 @@
     <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    The installed <tt class="docutils literal"><span class="pre"><span class="Identifier">nim</span> <span class="Operator">--</span><span class="Identifier">version</span></span></tt> as <tt class="docutils literal"><span class="pre"><span class="Identifier">major</span><span class="Operator">.</span><span class="Identifier">minor</span><span class="Operator">.</span><span class="Identifier">patch</span></span></tt> (fallback &quot;2.2.10&quot;).
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="ensureSourcesFile-procs-all">
+  <div id="ensureSourcesFile">
+  <dt><pre><span class="Keyword">proc</span> <a href="#ensureSourcesFile"><span class="Identifier">ensureSourcesFile</span></a><span class="Other">(</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span>
+                                    <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span>
+                           <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="fetchAllPkgMetas-procs-all">
+  <div id="fetchAllPkgMetas,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#fetchAllPkgMetas%2Cstring"><span class="Identifier">fetchAllPkgMetas</span></a><span class="Other">(</span><span class="Identifier">pkgName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">PkgRef</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span>
+    <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span>
+    <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
+                              <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span>
+                              <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
     
   </dd>
 </div>
 
 </div>
 <div id="fetchPkgMeta-procs-all">
-  <div id="fetchPkgMeta,string">
-  <dt><pre><span class="Keyword">proc</span> <a href="#fetchPkgMeta%2Cstring"><span class="Identifier">fetchPkgMeta</span></a><span class="Other">(</span><span class="Identifier">pkgName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Option</span><span class="Other">[</span><a href="#PkgRef"><span class="Identifier">PkgRef</span></a><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span>
-    <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
-    <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <div id="fetchPkgMeta,string,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#fetchPkgMeta%2Cstring%2Cstring"><span class="Identifier">fetchPkgMeta</span></a><span class="Other">(</span><span class="Identifier">pkgName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">sourceFilter</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="StringLit">&quot;&quot;</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Option</span><span class="Other">[</span><span class="Identifier">PkgRef</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span>
+    <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span>
+    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Look up a package URL from the registry DB.
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="getClueCfg-procs-all">
+  <div id="getClueCfg">
+  <dt><pre><span class="Keyword">proc</span> <a href="#getClueCfg"><span class="Identifier">getClueCfg</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">DatpkgrConfig</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
     
   </dd>
 </div>
@@ -490,11 +377,10 @@
 </div>
 <div id="initClue-procs-all">
   <div id="initClue">
-  <dt><pre><span class="Keyword">proc</span> <a href="#initClue"><span class="Identifier">initClue</span></a><span class="Other">(</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span>
-                           <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span>
-                           <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteDirEffect</span><span class="Other">,</span>
-    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
-    <span class="Identifier">ExecIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dt><pre><span class="Keyword">proc</span> <a href="#initClue"><span class="Identifier">initClue</span></a><span class="Other">(</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span>
+                           <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
+    <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
@@ -505,10 +391,49 @@
 </div>
 <div id="isInsidePkgs-procs-all">
   <div id="isInsidePkgs,string">
-  <dt><pre><span class="Keyword">proc</span> <a href="#isInsidePkgs%2Cstring"><span class="Identifier">isInsidePkgs</span></a><span class="Other">(</span><span class="Identifier">dir</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dt><pre><span class="Keyword">proc</span> <a href="#isInsidePkgs%2Cstring"><span class="Identifier">isInsidePkgs</span></a><span class="Other">(</span><span class="Identifier">dir</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    True when <tt class="docutils literal"><span class="pre"><span class="Identifier">dir</span></span></tt> lives inside the clue package registry (~/.clue/packages). Everything clue manages lives here; anything outside it must never be deleted (e.g. develop-mode installs that point at the user's source tree).
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="isValidSourceName-procs-all">
+  <div id="isValidSourceName,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#isValidSourceName%2Cstring"><span class="Identifier">isValidSourceName</span></a><span class="Other">(</span><span class="Identifier">s</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="loadSources-procs-all">
+  <div id="loadSources">
+  <dt><pre><span class="Keyword">proc</span> <a href="#loadSources"><span class="Identifier">loadSources</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">Source</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span>
+    <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="refreshAllSources-procs-all">
+  <div id="refreshAllSources">
+  <dt><pre><span class="Keyword">proc</span> <a href="#refreshAllSources"><span class="Identifier">refreshAllSources</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span>
+    <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
     
   </dd>
 </div>
@@ -516,12 +441,39 @@
 </div>
 <div id="refreshRegistry-procs-all">
   <div id="refreshRegistry">
-  <dt><pre><span class="Keyword">proc</span> <a href="#refreshRegistry"><span class="Identifier">refreshRegistry</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
-    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dt><pre><span class="Keyword">proc</span> <a href="#refreshRegistry"><span class="Identifier">refreshRegistry</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span>
+                                        <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span>
+    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Fetch a fresh packages.json from the nim registry and re-seed the <tt class="docutils literal"><span class="pre"><span class="Identifier">packages</span></span></tt> table in clue.db. Non-destructive: on any failure the previous index is kept.
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="refreshSource-procs-all">
+  <div id="refreshSource,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#refreshSource%2Cstring"><span class="Identifier">refreshSource</span></a><span class="Other">(</span><span class="Identifier">sourceName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span>
+    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="resetClueForTests-procs-all">
+  <div id="resetClueForTests">
+  <dt><pre><span class="Keyword">proc</span> <a href="#resetClueForTests"><span class="Identifier">resetClueForTests</span></a><span class="Other">(</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
     
   </dd>
 </div>
@@ -533,7 +485,7 @@
     <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Resolve the nim compiler binary. Priority: .env/venv.json &gt; PATH &gt; ~/.choosenim/current/bin/nim &gt; bare &quot;nim&quot;
+    
     
   </dd>
 </div>
@@ -541,11 +493,12 @@
 </div>
 <div id="safeRemoveDir-procs-all">
   <div id="safeRemoveDir,string">
-  <dt><pre><span class="Keyword">proc</span> <a href="#safeRemoveDir%2Cstring"><span class="Identifier">safeRemoveDir</span></a><span class="Other">(</span><span class="Identifier">dir</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dt><pre><span class="Keyword">proc</span> <a href="#safeRemoveDir%2Cstring"><span class="Identifier">safeRemoveDir</span></a><span class="Other">(</span><span class="Identifier">dir</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span>
+    <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span>
+                     <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Remove a directory, refusing anything outside the package registry. This is the only deletion layer clue uses — it guarantees develop-mode installs and arbitrary user files are never touched.
+    
     
   </dd>
 </div>
@@ -553,11 +506,55 @@
 </div>
 <div id="safeRemoveSymlink-procs-all">
   <div id="safeRemoveSymlink,string">
-  <dt><pre><span class="Keyword">proc</span> <a href="#safeRemoveSymlink%2Cstring"><span class="Identifier">safeRemoveSymlink</span></a><span class="Other">(</span><span class="Identifier">p</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dt><pre><span class="Keyword">proc</span> <a href="#safeRemoveSymlink%2Cstring"><span class="Identifier">safeRemoveSymlink</span></a><span class="Other">(</span><span class="Identifier">p</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span>
+    <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span>
+                     <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Remove a develop-mode symlink stored under ~/.clue/develop. Only ever unlinks the symlink entry itself — the target (the user's source tree) is never touched.
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="saveSources-procs-all">
+  <div id="saveSources,seq[Source]">
+  <dt><pre><span class="Keyword">proc</span> <a href="#saveSources%2Cseq%5BSource%5D"><span class="Identifier">saveSources</span></a><span class="Other">(</span><span class="Identifier">sources</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">Source</span><span class="Other">]</span><span class="Other">)</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="seedPackagesTable-procs-all">
+  <div id="seedPackagesTable,JsonNode,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#seedPackagesTable%2CJsonNode%2Cstring"><span class="Identifier">seedPackagesTable</span></a><span class="Other">(</span><span class="Identifier">nimblePackages</span><span class="Other">:</span> <span class="Identifier">JsonNode</span><span class="Other">;</span>
+                       <span class="Identifier">source</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="Identifier">defaultSourceName</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">int</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">TimeEffect</span><span class="Other">,</span>
+    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="sourceCachePath-procs-all">
+  <div id="sourceCachePath,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#sourceCachePath%2Cstring"><span class="Identifier">sourceCachePath</span></a><span class="Other">(</span><span class="Identifier">name</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
     
   </dd>
 </div>
@@ -569,9 +566,196 @@
 <div class="section" id="18">
   <h1><a class="toc-backref" href="#18">Templates</a></h1>
   <dl class="item">
-    <div id="withClueDB-templates-all">
-  <div id="withClueDB.t">
-  <dt><pre><span class="Keyword">template</span> <a href="#withClueDB.t"><span class="Identifier">withClueDB</span></a><span class="Other">(</span><span class="Identifier">stmt</span><span class="Other">)</span></pre></dt>
+    <div id="clueBinPath-templates-all">
+  <div id="clueBinPath.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#clueBinPath.t"><span class="Identifier">clueBinPath</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="clueBuildTempPath-templates-all">
+  <div id="clueBuildTempPath.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#clueBuildTempPath.t"><span class="Identifier">clueBuildTempPath</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="clueCfg-templates-all">
+  <div id="clueCfg.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#clueCfg.t"><span class="Identifier">clueCfg</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">DatpkgrConfig</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="clueDB-templates-all">
+  <div id="clueDB.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#clueDB.t"><span class="Identifier">clueDB</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Store</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="clueDBPath-templates-all">
+  <div id="clueDBPath.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#clueDBPath.t"><span class="Identifier">clueDBPath</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="clueDevelopPath-templates-all">
+  <div id="clueDevelopPath.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#clueDevelopPath.t"><span class="Identifier">clueDevelopPath</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="cluePath-templates-all">
+  <div id="cluePath.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#cluePath.t"><span class="Identifier">cluePath</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="cluePkgsCachePath-templates-all">
+  <div id="cluePkgsCachePath.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#cluePkgsCachePath.t"><span class="Identifier">cluePkgsCachePath</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="cluePkgsPath-templates-all">
+  <div id="cluePkgsPath.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#cluePkgsPath.t"><span class="Identifier">cluePkgsPath</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="clueRegistriesDir-templates-all">
+  <div id="clueRegistriesDir.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#clueRegistriesDir.t"><span class="Identifier">clueRegistriesDir</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="clueSourcesPath-templates-all">
+  <div id="clueSourcesPath.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#clueSourcesPath.t"><span class="Identifier">clueSourcesPath</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="debugEnabled-templates-all">
+  <div id="debugEnabled.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#debugEnabled.t"><span class="Identifier">debugEnabled</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">untyped</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="defaultSourceName-templates-all">
+  <div id="defaultSourceName.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#defaultSourceName.t"><span class="Identifier">defaultSourceName</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="nimbleLocalPackages-templates-all">
+  <div id="nimbleLocalPackages.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#nimbleLocalPackages.t"><span class="Identifier">nimbleLocalPackages</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="nimblePackagesUrl-templates-all">
+  <div id="nimblePackagesUrl.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#nimblePackagesUrl.t"><span class="Identifier">nimblePackagesUrl</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="versionsDB-templates-all">
+  <div id="versionsDB.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#versionsDB.t"><span class="Identifier">versionsDB</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Store</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="versionsDBPath-templates-all">
+  <div id="versionsDBPath.t">
+  <dt><pre><span class="Keyword">template</span> <a href="#versionsDBPath.t"><span class="Identifier">versionsDBPath</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="withClueDB-templates-all">
+  <div id="withClueDB.t,untyped">
+  <dt><pre><span class="Keyword">template</span> <a href="#withClueDB.t%2Cuntyped"><span class="Identifier">withClueDB</span></a><span class="Other">(</span><span class="Identifier">body</span><span class="Other">:</span> <span class="Identifier">untyped</span><span class="Other">)</span></pre></dt>
   <dd>
     
     
@@ -590,7 +774,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-25 20:15:18 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-08-31 18:04:51 UTC</small>
       </div>
     </div>
   </div>

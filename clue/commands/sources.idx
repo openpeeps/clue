@@ -1,0 +1,5 @@
+nimTitle	sources	clue/commands/sources.html	module clue/commands/sources		0
+nim	sourceAddCommand	clue/commands/sources.html#sourceAddCommand,Values	proc sourceAddCommand(v: Values)		13
+nim	sourceFetchCommand	clue/commands/sources.html#sourceFetchCommand,Values	proc sourceFetchCommand(v: Values)		35
+nim	sourceListCommand	clue/commands/sources.html#sourceListCommand,Values	proc sourceListCommand(v: Values)		44
+nim	sourceRemoveCommand	clue/commands/sources.html#sourceRemoveCommand,Values	proc sourceRemoveCommand(v: Values)		54
