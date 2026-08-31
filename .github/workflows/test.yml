@@ -6,4 +6,4 @@ jobs:
     with:
       os: '[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-14"},{"os":"macos-15-intel"}]'
       pre-test-command: |
-        clue build -d:release
+        clue build -d:release --verbose
