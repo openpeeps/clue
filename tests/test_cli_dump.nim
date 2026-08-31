@@ -78,6 +78,8 @@ suite "cli dump — registry package":
       checkpoint "skipped: " & pkg & " is not installed in this environment"
       check true
     else:
+      echo code
+      echo outp
       let j = parseJson(outp)
       check j["name"].getStr == pkg
       # registry dump always has method/url; installed registry copy adds nimble
