@@ -41,75 +41,37 @@ outside `~/.clue/packages`.
 
 Command reference (`clue -h`):
 ```text
-A DFS package manager for Nim development
-  (c) OpenPeeps | MIT License  
-  Build Version: 0.2.5
-
 Package Management
-  build <?file:string>                        Build the current package or a single module
-                 --release:bool
-                   --debug:bool
-              --features:string
-                 --verbose:bool
-                   --out:string
-                      -o:string
-          -b:any[c,cpp,objc,js]
-  bump <?pkgOrVersion:string> <?version:string> Bump the version in the current .nimble file, or a root
-                                                dependency's version constraint (`clue bump nim 2.2.0`)
-          --level:string
-  check <?file:string>                        Checks the project for syntax and semantics
-          --features:string
-  develop                                     Editable install for live library discovery
-  dump <?pkg:string>                          Dump package info and git activity
-          --refresh:bool
-  init <?name:string>                         Initialize a new nimble project in the current directory
-          -Y:bool
-  install <?pkg:string>                       Install a package from the registry (or local)
-                 --refresh:bool
-              --features:string
-                 --verbose:bool
-                   --build:bool
-                   --debug:bool
-                --source:string
-          -b:any[c,cpp,objc,js]
-  test                                        Compile and run test modules in tests/
-          -b:any[c,cpp,objc,js]
-  update <?pkg:string>                        Upgrade a package and its dependencies
-          --verbose:bool
-  uninstall <pkg:string>                      Uninstall a package
-  versions <pkg:string>                       List available versions
-          --refresh:bool
-  prune                                       Remove orphaned packages
+  build <?file> ⚑                           Build the current package or a single module
+  bump <?pkgOrVersion> <?version> ⚑         Bump the version in the current .nimble file, or a root
+                                            dependency's version constraint (`clue bump nim 2.2.0`)
+  check <?file> ⚑                           Checks the project for syntax and semantics
+  develop                                   Editable install for live library discovery
+  dump <?pkg> ⚑                             Dump package info and git activity
+  init <?name> ⚑                            Initialize a new nimble project in the current directory
+  install <?pkg> ⚑                          Install a package from the registry (or local)
+  test ⚑                                    Compile and run test modules in tests/
+  update <?pkg> ⚑                           Upgrade a package and its dependencies
+  uninstall <pkg> ⚑                         Uninstall a package
+  versions <pkg> ⚑                          List available versions
+  prune                                     Remove orphaned packages
 Directories
-  source.add <name:string> <url:string>       Add a registry source
-  source.fetch <?name:string>                 Fetch packages.json for a source (or all)
-  source.list                                 List configured sources
-  source.remove <name:string>                 Remove a registry source
+  source.add <name> <url> ⚑                 Add a registry source
+  source.fetch <?name> ⚑                    Fetch packages.json for a source (or all)
+  source.list                               List configured sources
+  source.remove <name> ⚑                    Remove a registry source
 Environment Management
-  venv                                        Manage virtual environments for Nim projects
-          --nim:string
+  venv ⚑                                    Manage virtual environments for Nim projects
 Deployment
-  deploy.init                                 Scaffold clue.deploy.yaml
-            --type:string
-          --workflow:bool
-               --yes:bool
-             --force:bool
-  deploy.web                                  Deploy the web target over rsync/ssh (systemd-managed)
-            --dry-run:bool
-                --yes:bool
-            --verbose:bool
-           --config:string
-              --key:string
-          --profile:string
-             --status:bool
+  deploy.init ⚑                             Scaffold clue.deploy.yaml
+  deploy.web ⚑                              Deploy the web target over rsync/ssh (systemd-managed)
 Documentation
-  docs.gen <pkg:string>                       Build documentation for an installed package
-  docs.open <pkg:string>                      Serve local docs over HTTP (default port 11000)
-          --port:port
+  docs.gen <pkg> ⚑                          Build documentation for an installed package
+  docs.open <pkg> ⚑                         Serve local docs over HTTP (default port 11000)
 Code Quality & Maintenance
-  doctor                                      Analyze code quality with nimalyzer
-  task <?taskName:string>                     List or run nimscript tasks from the current .nimble file
-  upgrade                                     Self-update clue from GitHub releases
+  doctor                                    Analyze code quality with nimalyzer
+  task <?taskName> ⚑                        List or run nimscript tasks from the current .nimble file
+  upgrade                                   Self-update clue from GitHub releases
 ```
 
 ### Package Management
