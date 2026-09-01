@@ -5,10 +5,9 @@ nim	parseRequiresArg	clue/pkgmanager/nimbleparser.html#parseRequiresArg,string	p
 nim	parseRequiresLine	clue/pkgmanager/nimbleparser.html#parseRequiresLine,seq[NimbleDependency],string	proc parseRequiresLine(deps: var seq[NimbleDependency]; line: string)		151
 nim	parseNimbleString	clue/pkgmanager/nimbleparser.html#parseNimbleString,string	proc parseNimbleString(code: string): NimbleFile		360
 nim	parseNimbleFile	clue/pkgmanager/nimbleparser.html#parseNimbleFile,string	proc parseNimbleFile(path: string): NimbleFile		378
-nim	findNimbleFile	clue/pkgmanager/nimbleparser.html#findNimbleFile,string	proc findNimbleFile(dir: string): string		382
-nim	nimbleManifestParser	clue/pkgmanager/nimbleparser.html#nimbleManifestParser,string,string	proc nimbleManifestParser(content: string; path: string): dt.Manifest		399
-nim	nimbleManifestFinder	clue/pkgmanager/nimbleparser.html#nimbleManifestFinder,string	proc nimbleManifestFinder(dir: string): string		420
-nim	nimbleManifestFileName	clue/pkgmanager/nimbleparser.html#nimbleManifestFileName,string	proc nimbleManifestFileName(pkgName: string): string		423
-nim	withNimbleSupport	clue/pkgmanager/nimbleparser.html#withNimbleSupport,,	proc withNimbleSupport(cfg: dc.DatpkgrConfig; parser: dt.ManifestParser)		426
-nim	isCruftName	clue/pkgmanager/nimbleparser.html#isCruftName,string,NimbleFile	proc isCruftName(name: string; nimble: NimbleFile): bool		449
-nim	installCleanCopy	clue/pkgmanager/nimbleparser.html#installCleanCopy,string,string,NimbleFile	proc installCleanCopy(cacheDir, verDir: string; nimble: NimbleFile)		455
+nim	findNimbleFile	clue/pkgmanager/nimbleparser.html#findNimbleFile,string,DatpkgrConfig,Filesystem	proc findNimbleFile(dir: string; cfg: DatpkgrConfig = nil;\n               projectFs: Filesystem = nil): string		382
+nim	nimbleManifestParser	clue/pkgmanager/nimbleparser.html#nimbleManifestParser,string,string	proc nimbleManifestParser(content: string; path: string): dt.Manifest		415
+nim	nimbleManifestFileName	clue/pkgmanager/nimbleparser.html#nimbleManifestFileName,string	proc nimbleManifestFileName(pkgName: string): string		439
+nim	withNimbleSupport	clue/pkgmanager/nimbleparser.html#withNimbleSupport,,	proc withNimbleSupport(cfg: dc.DatpkgrConfig; parser: dt.ManifestParser)		442
+nim	isCruftName	clue/pkgmanager/nimbleparser.html#isCruftName,string,NimbleFile	proc isCruftName(name: string; nimble: NimbleFile): bool		456
+nim	installCleanCopy	clue/pkgmanager/nimbleparser.html#installCleanCopy,string,string,NimbleFile	proc installCleanCopy(cacheDir, verDir: string; nimble: NimbleFile)		462

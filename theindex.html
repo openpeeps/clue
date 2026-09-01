@@ -28,7 +28,7 @@
     <label for="nav-toggle" id="nav-overlay"></label>
     <div class="container">
       <h1 class="title">Index</h1>
-      Modules: <a href="index.html">clue</a>, <a href="clue/cli/live.html">clue/cli/live</a>, <a href="clue/commands/build.html">clue/commands/build</a>, <a href="clue/commands/bump.html">clue/commands/bump</a>, <a href="clue/commands/deploy.html">clue/commands/deploy</a>, <a href="clue/commands/docs.html">clue/commands/docs</a>, <a href="clue/commands/doctor.html">clue/commands/doctor</a>, <a href="clue/commands/init.html">clue/commands/init</a>, <a href="clue/commands/manager.html">clue/commands/manager</a>, <a href="clue/commands/nimscript.html">clue/commands/nimscript</a>, <a href="clue/commands/sources.html">clue/commands/sources</a>, <a href="clue/commands/upgrade.html">clue/commands/upgrade</a>, <a href="clue/deploy/configs.html">clue/deploy/configs</a>, <a href="clue/deploy/init.html">clue/deploy/init</a>, <a href="clue/deploy/web.html">clue/deploy/web</a>, <a href="clue/docbuilder/builder.html">clue/docbuilder/builder</a>, <a href="clue/docbuilder/configs.html">clue/docbuilder/configs</a>, <a href="clue/docbuilder/httpserver.html">clue/docbuilder/httpserver</a>, <a href="clue/docbuilder/overviewgen.html">clue/docbuilder/overviewgen</a>, <a href="clue/pkgmanager/builder.html">clue/pkgmanager/builder</a>, <a href="clue/pkgmanager/configs.html">clue/pkgmanager/configs</a>, <a href="clue/pkgmanager/nimbleparser.html">clue/pkgmanager/nimbleparser</a>, <a href="clue/pkgmanager/resolver.html">clue/pkgmanager/resolver</a>, <a href="clue/pkgmanager/versions.html">clue/pkgmanager/versions</a>.<br/><p /><h2>API symbols</h2>
+      Modules: <a href="index.html">clue</a>, <a href="clue/cli/live.html">clue/cli/live</a>, <a href="clue/commands/build.html">clue/commands/build</a>, <a href="clue/commands/bump.html">clue/commands/bump</a>, <a href="clue/commands/dbcheck.html">clue/commands/dbcheck</a>, <a href="clue/commands/deploy.html">clue/commands/deploy</a>, <a href="clue/commands/docs.html">clue/commands/docs</a>, <a href="clue/commands/doctor.html">clue/commands/doctor</a>, <a href="clue/commands/init.html">clue/commands/init</a>, <a href="clue/commands/manager.html">clue/commands/manager</a>, <a href="clue/commands/nimscript.html">clue/commands/nimscript</a>, <a href="clue/commands/sources.html">clue/commands/sources</a>, <a href="clue/commands/upgrade.html">clue/commands/upgrade</a>, <a href="clue/deploy/configs.html">clue/deploy/configs</a>, <a href="clue/deploy/init.html">clue/deploy/init</a>, <a href="clue/deploy/web.html">clue/deploy/web</a>, <a href="clue/docbuilder/builder.html">clue/docbuilder/builder</a>, <a href="clue/docbuilder/configs.html">clue/docbuilder/configs</a>, <a href="clue/docbuilder/httpserver.html">clue/docbuilder/httpserver</a>, <a href="clue/docbuilder/overviewgen.html">clue/docbuilder/overviewgen</a>, <a href="clue/pkgmanager/builder.html">clue/pkgmanager/builder</a>, <a href="clue/pkgmanager/configs.html">clue/pkgmanager/configs</a>, <a href="clue/pkgmanager/nimbleparser.html">clue/pkgmanager/nimbleparser</a>, <a href="clue/pkgmanager/resolver.html">clue/pkgmanager/resolver</a>, <a href="clue/pkgmanager/versions.html">clue/pkgmanager/versions</a>.<br/><p /><h2>API symbols</h2>
 <dl><dt><a name="allInstalledPaths" href="#allInstalledPaths"><span>allInstalledPaths:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="versions: proc allInstalledPaths(): seq[string]" href="clue/pkgmanager/versions.html#allInstalledPaths">versions: proc allInstalledPaths(): seq[string]</a></li>
@@ -131,6 +131,10 @@
 <li><a class="reference external"
           data-doc-search-tag="configs: let clueDocsPath" href="clue/docbuilder/configs.html#clueDocsPath">configs: let clueDocsPath</a></li>
           </ul></dd>
+<dt><a name="clueLog" href="#clueLog"><span>clueLog:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc clueLog(level: LogLevel; msg: string)" href="clue/pkgmanager/configs.html#clueLog%2CLogLevel%2Cstring">configs: proc clueLog(level: LogLevel; msg: string)</a></li>
+          </ul></dd>
 <dt><a name="cluePath" href="#cluePath"><span>cluePath:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: template cluePath(): string" href="clue/pkgmanager/configs.html#cluePath.t">configs: template cluePath(): string</a></li>
@@ -166,6 +170,14 @@
 <dt><a name="compressOn" href="#compressOn"><span>compressOn:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: proc compressOn(p: WebProfile): bool" href="clue/deploy/configs.html#compressOn%2CWebProfile">configs: proc compressOn(p: WebProfile): bool</a></li>
+          </ul></dd>
+<dt><a name="dbcheckCommand" href="#dbcheckCommand"><span>dbcheckCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="dbcheck: proc dbcheckCommand(v: Values)" href="clue/commands/dbcheck.html#dbcheckCommand%2CValues">dbcheck: proc dbcheckCommand(v: Values)</a></li>
+          </ul></dd>
+<dt><a name="dbcheckVersionsCommand" href="#dbcheckVersionsCommand"><span>dbcheckVersionsCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="dbcheck: proc dbcheckVersionsCommand(v: Values)" href="clue/commands/dbcheck.html#dbcheckVersionsCommand%2CValues">dbcheck: proc dbcheckVersionsCommand(v: Values)</a></li>
           </ul></dd>
 <dt><a name="debugEnabled" href="#debugEnabled"><span>debugEnabled:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -301,7 +313,9 @@
           </ul></dd>
 <dt><a name="findNimbleFile" href="#findNimbleFile"><span>findNimbleFile:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="nimbleparser: proc findNimbleFile(dir: string): string" href="clue/pkgmanager/nimbleparser.html#findNimbleFile%2Cstring">nimbleparser: proc findNimbleFile(dir: string): string</a></li>
+          data-doc-search-tag="nimbleparser: proc findNimbleFile(dir: string; cfg: DatpkgrConfig = nil;
+               projectFs: Filesystem = nil): string" href="clue/pkgmanager/nimbleparser.html#findNimbleFile%2Cstring%2CDatpkgrConfig%2CFilesystem">nimbleparser: proc findNimbleFile(dir: string; cfg: DatpkgrConfig = nil;
+               projectFs: Filesystem = nil): string</a></li>
           </ul></dd>
 <dt><a name="generateOverview" href="#generateOverview"><span>generateOverview:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -388,12 +402,12 @@
                doBuild = false; buildRelease = true; buildDebug = false;
     constraint: VersionConstraint = VersionConstraint(kind: vcAny,
     version: newVersion(0, 0, 0, &quot;&quot;, &quot;&quot;)); backend = &quot;c&quot;;
-               sourceFilter: string = &quot;&quot;)" href="clue/commands/manager.html#installPackage%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cstring%2CVersionConstraint%2Cstring%2Cstring">manager: proc installPackage(pkgName: string; pkgRef: string = &quot;&quot;; refresh = false;
+               sourceFilter: string = &quot;&quot;; suppressSummary = false)" href="clue/commands/manager.html#installPackage%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cstring%2CVersionConstraint%2Cstring%2Cstring">manager: proc installPackage(pkgName: string; pkgRef: string = &quot;&quot;; refresh = false;
                features: seq[string] = @[]; verbose = true; url = &quot;&quot;;
                doBuild = false; buildRelease = true; buildDebug = false;
     constraint: VersionConstraint = VersionConstraint(kind: vcAny,
     version: newVersion(0, 0, 0, &quot;&quot;, &quot;&quot;)); backend = &quot;c&quot;;
-               sourceFilter: string = &quot;&quot;)</a></li>
+               sourceFilter: string = &quot;&quot;; suppressSummary = false)</a></li>
           </ul></dd>
 <dt><a name="isCruftName" href="#isCruftName"><span>isCruftName:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -431,6 +445,10 @@
 <li><a class="reference external"
           data-doc-search-tag="live: proc newLive(text: string; time = true): Live" href="clue/cli/live.html#newLive%2Cstring">live: proc newLive(text: string; time = true): Live</a></li>
           </ul></dd>
+<dt><a name="newProjectDisk" href="#newProjectDisk"><span>newProjectDisk:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc newProjectDisk(dir = getCurrentDir()): Filesystem" href="clue/pkgmanager/configs.html#newProjectDisk">configs: proc newProjectDisk(dir = getCurrentDir()): Filesystem</a></li>
+          </ul></dd>
 <dt><a name="NimbleDependency" href="#NimbleDependency"><span>NimbleDependency:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="nimbleparser: object NimbleDependency" href="clue/pkgmanager/nimbleparser.html#NimbleDependency">nimbleparser: object NimbleDependency</a></li>
@@ -446,10 +464,6 @@
 <dt><a name="nimbleManifestFileName" href="#nimbleManifestFileName"><span>nimbleManifestFileName:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="nimbleparser: proc nimbleManifestFileName(pkgName: string): string" href="clue/pkgmanager/nimbleparser.html#nimbleManifestFileName%2Cstring">nimbleparser: proc nimbleManifestFileName(pkgName: string): string</a></li>
-          </ul></dd>
-<dt><a name="nimbleManifestFinder" href="#nimbleManifestFinder"><span>nimbleManifestFinder:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="nimbleparser: proc nimbleManifestFinder(dir: string): string" href="clue/pkgmanager/nimbleparser.html#nimbleManifestFinder%2Cstring">nimbleparser: proc nimbleManifestFinder(dir: string): string</a></li>
           </ul></dd>
 <dt><a name="nimbleManifestParser" href="#nimbleManifestParser"><span>nimbleManifestParser:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -701,7 +715,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-01 06:48:15 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-01 18:16:47 UTC</small>
       </div>
     </div>
   </div>

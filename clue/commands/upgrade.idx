@@ -1,2 +1,2 @@
 nimTitle	upgrade	clue/commands/upgrade.html	module clue/commands/upgrade		0
-nim	upgradeCommand	clue/commands/upgrade.html#upgradeCommand,Values	proc upgradeCommand(v: Values)		127
+nim	upgradeCommand	clue/commands/upgrade.html#upgradeCommand,Values	proc upgradeCommand(v: Values)		141

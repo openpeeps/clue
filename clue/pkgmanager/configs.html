@@ -65,6 +65,10 @@
   <li><a class="reference" href="#checkNimConstraint" title="checkNimConstraint(nimble: clueNimbleParser.NimbleFile)">checkNimConstraint(nimble: clueNimbleParser.NimbleFile)</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">clueLog
+  <li><a class="reference" href="#clueLog%2CLogLevel%2Cstring" title="clueLog(level: LogLevel; msg: string)">clueLog(level: LogLevel; msg: string)</a></li>
+
+</ul>
 <ul class="simple nested-toc-section">debugLog
   <li><a class="reference" href="#debugLog%2Cstring" title="debugLog(msg: string)">debugLog(msg: string)</a></li>
 
@@ -111,6 +115,10 @@
 </ul>
 <ul class="simple nested-toc-section">loadSources
   <li><a class="reference" href="#loadSources" title="loadSources(): seq[Source]">loadSources(): seq[Source]</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">newProjectDisk
+  <li><a class="reference" href="#newProjectDisk" title="newProjectDisk(dir = getCurrentDir()): Filesystem">newProjectDisk(dir = getCurrentDir()): Filesystem</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">refreshAllSources
@@ -261,6 +269,18 @@
     <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
                                        <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
                                        <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
+    
+  </dd>
+</div>
+
+</div>
+<div id="clueLog-procs-all">
+  <div id="clueLog,LogLevel,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#clueLog%2CLogLevel%2Cstring"><span class="Identifier">clueLog</span></a><span class="Other">(</span><span class="Identifier">level</span><span class="Other">:</span> <span class="Identifier">LogLevel</span><span class="Other">;</span> <span class="Identifier">msg</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">gcsafe</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
@@ -421,6 +441,20 @@
   <dd>
     
     
+    
+  </dd>
+</div>
+
+</div>
+<div id="newProjectDisk-procs-all">
+  <div id="newProjectDisk">
+  <dt><pre><span class="Keyword">proc</span> <a href="#newProjectDisk"><span class="Identifier">newProjectDisk</span></a><span class="Other">(</span><span class="Identifier">dir</span> <span class="Other">=</span> <span class="Identifier">getCurrentDir</span><span class="Other">(</span><span class="Other">)</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Filesystem</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Temporary readonly disk for the local project at <tt class="docutils literal"><span class="pre"><span class="Identifier">dir</span></span></tt>. Created once per command that needs <tt class="docutils literal"><span class="pre"><span class="Identifier">getCurrentDir</span><span class="Punctuation">(</span><span class="Punctuation">)</span></span></tt>. Must be run from the package root (where .nimble lives).
     
   </dd>
 </div>
@@ -775,7 +809,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-01 06:48:14 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-01 18:16:46 UTC</small>
       </div>
     </div>
   </div>

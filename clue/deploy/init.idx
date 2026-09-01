@@ -1,5 +1,5 @@
 nimTitle	init	clue/deploy/init.html	module clue/deploy/init		0
-nim	parseGitRepo	clue/deploy/init.html#parseGitRepo,string	proc parseGitRepo(url: string): string		14
-nim	gitOriginRepo	clue/deploy/init.html#gitOriginRepo	proc gitOriginRepo(): string		40
-nim	detectNimVersion	clue/deploy/init.html#detectNimVersion	proc detectNimVersion(): string		47
-nim	initDeploy	clue/deploy/init.html#initDeploy,string,bool,bool,bool	proc initDeploy(deployType: string; writeWorkflow, yes, force: bool)		217
+nim	parseGitRepo	clue/deploy/init.html#parseGitRepo,string	proc parseGitRepo(url: string): string		15
+nim	gitOriginRepo	clue/deploy/init.html#gitOriginRepo	proc gitOriginRepo(): string		41
+nim	detectNimVersion	clue/deploy/init.html#detectNimVersion	proc detectNimVersion(): string		48
+nim	initDeploy	clue/deploy/init.html#initDeploy,string,bool,bool,bool	proc initDeploy(deployType: string; writeWorkflow, yes, force: bool)		218

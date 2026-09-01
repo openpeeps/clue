@@ -3,13 +3,13 @@ nim	pkgNameFromUrl	clue/commands/manager.html#pkgNameFromUrl,string	proc pkgName
 nim	parseFeatureFlags	clue/commands/manager.html#parseFeatureFlags,string	proc parseFeatureFlags(s: string): seq[string]		54
 nim	isGitUrl	clue/commands/manager.html#isGitUrl,string	proc isGitUrl(s: string): bool		60
 nim	pluralize	clue/commands/manager.html#pluralize,int,string	proc pluralize(n: int; singular: string): string		65
-nim	installPackage	clue/commands/manager.html#installPackage,string,string,seq[string],string,VersionConstraint,string,string	proc installPackage(pkgName: string; pkgRef: string = ""; refresh = false;\n               features: seq[string] = @[]; verbose = true; url = "";\n               doBuild = false; buildRelease = true; buildDebug = false;\n    constraint: VersionConstraint = VersionConstraint(kind: vcAny,\n    version: newVersion(0, 0, 0, "", "")); backend = "c";\n               sourceFilter: string = "")		80
-nim	installCommand	clue/commands/manager.html#installCommand,Values	proc installCommand(v: Values)		101
-nim	updateCommand	clue/commands/manager.html#updateCommand,Values	proc updateCommand(v: Values)		190
-nim	developCommand	clue/commands/manager.html#developCommand,Values	proc developCommand(v: Values)		203
-nim	versionsCommand	clue/commands/manager.html#versionsCommand,Values	proc versionsCommand(v: Values)		214
-nim	pruneCommand	clue/commands/manager.html#pruneCommand,Values	proc pruneCommand(v: Values)		231
-nim	fetchCommand	clue/commands/manager.html#fetchCommand,Values	proc fetchCommand(v: Values)		235
-nim	uninstallCommand	clue/commands/manager.html#uninstallCommand,Values	proc uninstallCommand(v: Values)		261
-nim	dumpCommand	clue/commands/manager.html#dumpCommand,Values	proc dumpCommand(v: Values)		305
-nim	venvCommand	clue/commands/manager.html#venvCommand,Values	proc venvCommand(v: Values)		445
+nim	installPackage	clue/commands/manager.html#installPackage,string,string,seq[string],string,VersionConstraint,string,string	proc installPackage(pkgName: string; pkgRef: string = ""; refresh = false;\n               features: seq[string] = @[]; verbose = true; url = "";\n               doBuild = false; buildRelease = true; buildDebug = false;\n    constraint: VersionConstraint = VersionConstraint(kind: vcAny,\n    version: newVersion(0, 0, 0, "", "")); backend = "c";\n               sourceFilter: string = ""; suppressSummary = false)		80
+nim	installCommand	clue/commands/manager.html#installCommand,Values	proc installCommand(v: Values)		103
+nim	updateCommand	clue/commands/manager.html#updateCommand,Values	proc updateCommand(v: Values)		248
+nim	developCommand	clue/commands/manager.html#developCommand,Values	proc developCommand(v: Values)		261
+nim	versionsCommand	clue/commands/manager.html#versionsCommand,Values	proc versionsCommand(v: Values)		272
+nim	pruneCommand	clue/commands/manager.html#pruneCommand,Values	proc pruneCommand(v: Values)		289
+nim	fetchCommand	clue/commands/manager.html#fetchCommand,Values	proc fetchCommand(v: Values)		293
+nim	uninstallCommand	clue/commands/manager.html#uninstallCommand,Values	proc uninstallCommand(v: Values)		319
+nim	dumpCommand	clue/commands/manager.html#dumpCommand,Values	proc dumpCommand(v: Values)		363
+nim	venvCommand	clue/commands/manager.html#venvCommand,Values	proc venvCommand(v: Values)		488
