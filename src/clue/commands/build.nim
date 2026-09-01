@@ -164,11 +164,11 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
         if verbose: displayInfo("Reinstalling " & name & " (constraint " & $dep.constraint & " not satisfied by " & depPath.lastPathPart & ")")
         needsReinstall = true
       if needsReinstall:
-        installPackage(name, refStr, false, dep.features, verbose, constraint = dep.constraint, url = dep.url)
+        installPackage(name, refStr, false, dep.features, verbose, constraint = dep.constraint, url = dep.url, suppressSummary = true)
         depPath = resolveDepPath(name, refStr)
     if depPath.len == 0:
       if verbose: displayInfo("Dependency not installed, fetching: " & name)
-      installPackage(name, refStr, false, dep.features, verbose, constraint = dep.constraint, url = dep.url)
+      installPackage(name, refStr, false, dep.features, verbose, constraint = dep.constraint, url = dep.url, suppressSummary = true)
       depPath = resolveDepPath(name, refStr)
     if depPath.len > 0:
       processed.incl(name)
@@ -192,7 +192,7 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
       var depPath = resolveDepPath(name)
       if depPath.len == 0:
         if verbose: displayInfo("Transitive dependency not installed, fetching: " & name)
-        installPackage(name, "", false, @[], verbose)
+        installPackage(name, "", false, @[], verbose, suppressSummary = true)
         depPath = resolveDepPath(name)
         changed = true
       if depPath.len > 0:

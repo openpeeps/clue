@@ -8,7 +8,7 @@ when isMainModule:
   # Build the CLI with Kapsis
   import pkg/kapsis
   import ./clue/commands/[manager, build, docs, doctor,
-        deploy, upgrade, bump, nimscript, init, sources]
+        deploy, upgrade, bump, nimscript, init, sources, dbcheck]
 
   initKapsis do:
     commands:
@@ -90,5 +90,11 @@ when isMainModule:
         ## Analyze code quality with nimalyzer
       task ?string(taskName):
         ## List or run nimscript tasks from the current .nimble file
+      dbcheck ?string(query), ?bool("--json"):
+        ## Enter REPL for clue database (read-only SELECT)
+      dbcheck:
+        ## Inspect boogie databases with read-only SQL
+        versions ?string(query), ?bool("--json"):
+          ## Enter REPL for versions database (read-only SELECT)
       upgrade:
         ## Self-update clue from GitHub releases

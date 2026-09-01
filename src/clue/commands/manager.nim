@@ -5,7 +5,7 @@
 #          https://github.com/openpeeps/clue
 
 import std/[sequtils, options, tables, sets, strformat, strutils,
-          times, os, osproc, terminal, strtabs]
+          times, os, osproc, terminal, strtabs, algorithm]
 
 import pkg/[semver, openparser/json]
 import pkg/kapsis/[runtime, interactive/prompts]
@@ -81,7 +81,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     features: seq[string] = @[], verbose = true, url = "",
     doBuild = false, buildRelease = true, buildDebug = false,
     constraint: VersionConstraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0)),
-    backend = "c", sourceFilter: string = "") =
+    backend = "c", sourceFilter: string = "", suppressSummary = false) =
   ## Thin wrapper around datpkgr/operations.installPackage.
   ## Builder (`builder.nim`) stays in clue and is injected via buildHook.
   let cfg = getClueCfg()
@@ -93,7 +93,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
           preferRef = preferRef, nimFlags = extras, backend = backend2)
     else: nil
   let ok = datpkgrOps.installPackage(cfg, pkgName, pkgRef, refresh, features, verbose, url,
-    doBuild, buildRelease, buildDebug, constraint, backend, sourceFilter, buildHook)
+    doBuild, buildRelease, buildDebug, constraint, backend, sourceFilter, buildHook, suppressSummary)
   if not ok:
     # datpkgr already logged; keep CLI exit semantics (original called quit(1) on fail)
     quit(1)
@@ -142,6 +142,8 @@ proc installCommand*(v: Values) =
     recordInstall(pkgName, version, deps, root = true,
       features = @[], installPath = verDir)
     displaySuccess("Installed " & pkgName & "@" & version & " to " & verDir)
+    var localDepLabels: seq[string]
+    var localSeen = initHashSet[string]()
     for d in nimble.requires:
       if d.isNim: continue
       let dep = depName(d)
@@ -149,7 +151,52 @@ proc installCommand*(v: Values) =
         displayWarning("cannot derive package name from URL: " & d.url & " - skipping")
         continue
       let refStr = if d.branch.len > 0: d.branch elif d.tag.len > 0: d.tag else: ""
-      installPackage(dep, refStr, false, d.features, verbose, constraint = d.constraint, url = d.url)
+      installPackage(dep, refStr, false, d.features, verbose, constraint = d.constraint, url = d.url, suppressSummary = true)
+      # collect installed dep for aggregated success (dedup) - use #HEAD when version missing
+      proc fmtLbl(name, ver: string): string =
+        if ver.len == 0 or ver == "0.0.0" or ver == name:
+          return name & "#HEAD"
+        try:
+          discard parseVersion(ver)
+          return name & "@" & ver
+        except CatchableError:
+          return name & "#HEAD"
+      let depPath = resolveInstalledPath(dep, refStr)
+      let verLabel = if depPath.len > 0: depPath.lastPathPart else: refStr
+      let lbl = fmtLbl(dep, verLabel)
+      if lbl notin localSeen:
+        localSeen.incl(lbl)
+        localDepLabels.add(lbl)
+      for tdep in collectInstalledDepNames(@[dep]):
+        if tdep notin localSeen:
+          let tp = resolveInstalledPath(tdep, "")
+          let tv = if tp.len > 0: tp.lastPathPart else: ""
+          let tlbl = fmtLbl(tdep, tv)
+          if tlbl notin localSeen:
+            localSeen.incl(tlbl)
+            localDepLabels.add(tlbl)
+    if localDepLabels.len > 0:
+      # dedup already done; sort for stable output
+      localDepLabels.sort()
+      displaySuccess("Installed " & $localDepLabels.len & " " & pluralize(localDepLabels.len, "package"))
+      for lbl in localDepLabels:
+        let msg = "  " & lbl
+        let headIdx = msg.find("#HEAD")
+        if headIdx >= 0:
+          let prefix = msg[0 ..< headIdx]
+          let suffix = if headIdx + 5 < msg.len: msg[headIdx + 5 .. ^1] else: ""
+          display(@[span(prefix, DefaultTextFg, indentSize = 0),
+                    span("#HEAD", fgYellow, indentSize = 0),
+                    span(suffix, DefaultTextFg, indentSize = 0)])
+        else:
+          let atIdx = msg.find("@")
+          if atIdx >= 0:
+            let prefix = msg[0 .. atIdx]
+            let verPart = if atIdx + 1 < msg.len: msg[atIdx+1 .. ^1] else: ""
+            display(@[span(prefix, DefaultTextFg, indentSize = 0),
+                      span(verPart, indentSize = 0)])
+          else:
+            display(msg)
     if doBuild:
       if not buildInstalled(pkgName, buildRelease, buildDebug, verbose,
           nimFlags = extras, backend = backend):
@@ -337,21 +384,13 @@ proc dumpCommand*(v: Values) =
           "license": pkgData[1]["license"].strVal,
           "tags": fromJson(pkgData[1]["tags"].jsonVal)
         }
-        # available versions (newest first) + latest-commit git activity
+        # available versions (newest first)
         let versions = discoverVersions(pkgName, pkgData[1]["url"].strVal,
           v.has("--refresh"), cloneOnMiss = false)
         var verArr = newJArray()
         for dv in versions:
           verArr.add(%($dv.version))
         pkgInfo["versions"] = verArr
-        let git = gitHeadInfo(pkgName, pkgData[1]["url"].strVal)
-        if git.isSome:
-          pkgInfo["git"] = %*{
-            "head": git.get().hash,
-            "date": git.get().date,
-            "author": git.get().author,
-            "subject": git.get().subject
-          }
         # Embed the dumped package's own .nimble details (from its installed
         # registry copy) when available.
         let pkgDir = resolveInstalledPath(pkgName, "")
@@ -371,14 +410,6 @@ proc dumpCommand*(v: Values) =
             pkgInfo["installedAt"] = %pkgDir
           else:
             pkgInfo = %*{"name": pkgName, "installedAt": pkgDir}
-          let git = gitHeadInfo(pkgName, "")
-          if git.isSome:
-            pkgInfo["git"] = %*{
-              "head": git.get().hash,
-              "date": git.get().date,
-              "author": git.get().author,
-              "subject": git.get().subject
-            }
           echo pretty(pkgInfo)
         else:
           displayError("Package not found: " & cyan(pkgName), quitProcess = true)
