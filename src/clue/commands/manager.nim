@@ -93,9 +93,11 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
           preferRef = preferRef, nimFlags = extras, backend = backend2)
     else: nil
   let ok = datpkgrOps.installPackage(cfg, pkgName, pkgRef, refresh, features, verbose, url,
-    doBuild, buildRelease, buildDebug, constraint, backend, sourceFilter, buildHook, suppressSummary)
+                                        doBuild, buildRelease, buildDebug, constraint,
+                                        backend, sourceFilter, buildHook, suppressSummary)
   if not ok:
-    # datpkgr already logged; keep CLI exit semantics (original called quit(1) on fail)
+    # datpkgr already logged; keep CLI exit
+    # semantics (original called quit(1) on fail)
     quit(1)
 
 proc installCommand*(v: Values) =
@@ -111,7 +113,7 @@ proc installCommand*(v: Values) =
   var features: seq[string]
   if v.has("--features"):
     features = parseFeatureFlags(v.get("--features").getStr)
-
+  
   if raw.len == 0:
     # Local install: copy the current nimble package into the registry
     # (~/.clue/packages/<name>/<version>) with a clean, nimble-style layout.
@@ -226,15 +228,15 @@ proc installCommand*(v: Values) =
       displayError("Could not derive a package name from: " & raw, quitProcess = true)
       return
     installPackage(name, urlRef, refresh, features, verbose, url = url,
-      doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
-      backend = backend, sourceFilter = sourceFilter)
+            doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
+            backend = backend, sourceFilter = sourceFilter)
   else:
     let pkgInput = split(raw, "@")
     let pkgName = pkgInput[0]
     let pkgRef = if pkgInput.len > 1 and pkgInput[1] != "head": pkgInput[1] else: ""
     installPackage(pkgName, pkgRef, refresh, features, verbose,
-      doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
-      backend = backend, sourceFilter = sourceFilter)
+          doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
+          backend = backend, sourceFilter = sourceFilter)
   # except CatchableError as e:
   #   echo "EXCEPTION in installCommand: ", e.msg
   #   echo getStackTrace(e)

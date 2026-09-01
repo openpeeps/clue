@@ -380,21 +380,9 @@ proc parseNimbleFile*(path: string): NimbleFile =
   result.path = path
 
 proc findNimbleFile*(dir: string): string =
-  ## Locate a .nimble file in the given directory, walking up parent
-  ## directories (nimble-style) up to a bounded depth so a missing
-  ## package never scans towards the filesystem root.
-  var cur = dir
-  var depth = 0
-  while depth < 15:
-    for f in walkFiles(cur / "*.nimble"):
-      if f.extractFilename != "nim.nimble":
-        return f
-    let parent = cur.parentDir()
-    if parent == cur:
-      break
-    cur = parent
-    inc depth
-  ""
+  for f in walkFiles(dir / "*.nimble"):
+    if f.extractFilename != "nim.nimble":
+      return f
 
 proc nimbleManifestParser*(content: string, path: string): dt.Manifest =
   ## Pluggable parser for datpkgr - converts NimbleFile to generic Manifest

@@ -46,7 +46,7 @@ proc buildPackageBinaries(pkgName: string, flags: string,
   let srcDir =
     if nimble.srcDir.len > 0: nimble.srcDir
     else: "src"
-  progress("building " & pkgName & " binaries...")
+  progress("Building " & pkgName & " binaries...")
   for bin in nimble.bin:
     # The declared `srcDir` may not exist in a raw repo copy (some packages
     # keep the binary module at the root despite declaring srcDir = "src") —
@@ -96,7 +96,7 @@ proc buildInstalled*(name: string, release = true, debug = false,
   var order = collectInstalledDepNames(@[name]).filterIt(it != name)
   order.add(name)  # deps first, root last
 
-  let useLive = not verbose and isatty(stdout) and not debugEnabled
+  let useLive = false # not verbose and isatty(stdout) and not debugEnabled
   var live: Live
   proc progress(msg: string) =
     if useLive: live.setMain(msg)
@@ -105,15 +105,14 @@ proc buildInstalled*(name: string, release = true, debug = false,
     if useLive: live.error(msg)
     else: displayError(msg, quitProcess = true)
   if useLive:
-    live = newLive("building " & name & " binaries...")
+    live = newLive("Building " & name & " binaries...")
     live.start()
 
   var seenBins = initHashSet[string]()
   for pkg in order:
-    if not buildPackageBinaries(pkg, flags, seenBins, clueBinPath, progress, fail,
-        preferRef = preferRef, backend = backend):
-      return false
-
+    if not buildPackageBinaries(pkg, flags, seenBins, clueBinPath,
+            progress, fail, preferRef = preferRef, backend = backend):
+      return false # a build failed, stopping now
   if useLive:
     live.success("Built binaries to " & clueBinPath)
   elif verbose:
