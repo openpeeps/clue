@@ -12,6 +12,17 @@ proc runClueWithHome(args: varargs[string], home: string): tuple[code: int, outp
   var env = newStringTable(modeStyleInsensitive)
   for k, v in envPairs(): env[k] = v
   env["HOME"] = home
+  when defined(windows):
+    # Nim's getHomeDir on Windows checks USERPROFILE first, then HOME.
+    # Setting only HOME leaves the child using the real profile and
+    # polluting / reading the global ~/.clue DB (causing
+    # beginReadRootStruct on a stale cache). Mirror HOME into
+    # USERPROFILE so the temp home is actually used on Windows.
+    env["USERPROFILE"] = home
+    # Some configs also consult HOMEDRIVE/HOMEPATH; clear them so
+    # getHomeDir doesn't fall back to the real profile.
+    env["HOMEDRIVE"] = ""
+    env["HOMEPATH"] = ""
   let bin = clueBin()
   var cmd = bin.quoteShell
   for a in args: cmd.add(" " & a.quoteShell)
