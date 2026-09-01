@@ -21,10 +21,24 @@ const
   apiLatestUrl = "https://api.github.com/repos/" & repoOwner & "/" & repoName &
                  "/releases/latest"
 
-const currentVersion = block:
-  ## The version declared in clue.nimble, read at compile time.
-  let content = staticRead(currentSourcePath().parentDir.parentDir.parentDir.parentDir /
-    "clue.nimble")
+let currentVersion = block:
+  ## The version declared in clue.nimble. Supports both source layout
+  ## (src/clue/commands/ -> 4 parents to root) and flattened registry
+  ## layout (packages/clue/<ver>/clue/commands/ -> 3 parents).
+  ## Runtime read so it works from installed dir.
+  let srcPath = currentSourcePath()
+  let candidates = [
+    srcPath.parentDir.parentDir.parentDir.parentDir / "clue.nimble",
+    srcPath.parentDir.parentDir.parentDir / "clue.nimble"
+  ]
+  var content = ""
+  for cand in candidates:
+    if fileExists(cand):
+      try:
+        content = readFile(cand)
+        break
+      except CatchableError:
+        discard
   var found = ""
   for line in content.splitLines():
     let t = line.strip()

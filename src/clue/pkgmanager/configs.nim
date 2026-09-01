@@ -7,6 +7,7 @@
 
 import std/[os, osproc, strutils, options, terminal]
 import pkg/boogie/stores/rdbms
+import pkg/flysystem
 import pkg/openparser/json
 import pkg/semver
 import pkg/kapsis/interactive/prompts
@@ -134,7 +135,7 @@ proc clueLog*(level: LogLevel, msg: string) {.gcsafe.} =
   case level
   of lvlDebug: displayInfo(msg)
   of lvlInfo: displayInfo(msg)
-  of lvlSuccess: displaySuccess(msg)
+  of datpkgrConfig.lvlSuccess: displaySuccess(msg)
   of lvlWarn: displayWarning(msg)
   of lvlError: displayError(msg)
 
@@ -145,6 +146,13 @@ proc getClueCfg*(): DatpkgrConfig =
   clueCfgImpl
 
 template clueCfg*(): DatpkgrConfig = getClueCfg()
+
+proc newProjectDisk*(dir = getCurrentDir()): Filesystem =
+  ## Temporary readonly disk for the local project at `dir`.
+  ## Created once per command that needs `getCurrentDir()`.
+  ## Must be run from the package root (where .nimble lives).
+  result = newFilesystem("project")
+  result.addDisk("project", newLocalDriver(dir), PolicyRules(readOnly: true))
 
 # Back-compat globals expected by existing clue code (as templates for lazy)
 template cluePath*: string = getClueCfg().rootPath

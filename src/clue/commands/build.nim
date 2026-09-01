@@ -296,7 +296,8 @@ proc buildCommand*(v: Values) =
     activeRootFeatures.add("dev")
 
   let pkgDir = getCurrentDir()
-  let nimblePath = findNimbleFile(pkgDir)
+  let projectFs = newProjectDisk()
+  let nimblePath = findNimbleFile(pkgDir, getClueCfg(), projectFs)
 
   if nimblePath.len == 0:
     displayError("No .nimble file found in " & pkgDir, quitProcess = true)
@@ -400,7 +401,8 @@ proc testCommand*(v: Values) =
   ## a `task test`, it is executed directly. Otherwise a built-in default
   ## discovers `tests/t*.nim` and compiles each with `nim <backend> -r`.
   let pkgDir = getCurrentDir()
-  let nimblePath = findNimbleFile(pkgDir)
+  let projectFs = newProjectDisk()
+  let nimblePath = findNimbleFile(pkgDir, getClueCfg(), projectFs)
   if nimblePath.len == 0:
     displayError("No .nimble file found in " & pkgDir, quitProcess = true)
     return
@@ -570,7 +572,8 @@ else:
 proc checkCommand*(v: Values) =
   ## Checks the project for syntax and semantics
   let pkgDir = getCurrentDir()
-  let nimblePath = findNimbleFile(pkgDir)
+  let projectFs = newProjectDisk()
+  let nimblePath = findNimbleFile(pkgDir, getClueCfg(), projectFs)
   if nimblePath.len == 0:
     displayError("No .nimble file found in " & pkgDir, quitProcess = true)
     return

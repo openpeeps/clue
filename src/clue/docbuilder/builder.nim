@@ -3,6 +3,7 @@ import std/[os, osproc, strutils, json, times, tables]
 import pkg/semver
 import pkg/kapsis/interactive/prompts
 
+import ../pkgmanager/configs
 import ../pkgmanager/versions
 import ../pkgmanager/nimbleparser
 
@@ -66,7 +67,7 @@ proc buildDocs*(pkgRef: string) =
       return
     pkgDir = best.path
 
-  let nimblePath = findNimbleFile(pkgDir)
+  let nimblePath = findNimbleFile(pkgDir, getClueCfg())
   if nimblePath.len == 0:
     displayError("No .nimble file found in " & pkgDir, quitProcess = true)
     return

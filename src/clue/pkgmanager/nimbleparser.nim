@@ -5,7 +5,7 @@
 #          https://github.com/openpeeps/clue
 
 import std/[tables, strutils, os, json, sets, sequtils]
-import pkg/semver
+import pkg/[semver, flysystem]
 import pkg/sweetsyntax
 import pkg/sweetsyntax/tokenizer
 import pkg/sweetsyntax/engine/[ast, parser]
@@ -379,10 +379,38 @@ proc parseNimbleFile*(path: string): NimbleFile =
   result = parseNimbleString(readFile(path))
   result.path = path
 
-proc findNimbleFile*(dir: string): string =
-  for f in walkFiles(dir / "*.nimble"):
-    if f.extractFilename != "nim.nimble":
-      return f
+proc findNimbleFile*(dir: string, cfg: DatpkgrConfig = nil,
+                     projectFs: Filesystem = nil): string =
+  ## Flysystem-only, no walk-up. .nimble is always at package root.
+  ## - If `dir` is inside the clue disk (packages/develop), resolve symlinks
+  ##   via `cfg.driver.isSymlink` + `expandSymlink` then `cfg.findManifestInDir`.
+  ## - If `projectFs` is provided (local `clue install` / `getCurrentDir()`),
+  ##   use the temporary readonly project disk.
+  ## - Otherwise fallback to raw `walkFiles` for /tmp or tests.
+  if cfg != nil and (dir.startsWith(cfg.rootPath & DirSep) or dir == cfg.rootPath):
+    var resolved = dir
+    let rel = relativePath(dir, cfg.rootPath)
+    try:
+      if cfg.driver.isSymlink(rel):
+        resolved = expandSymlink(dir)
+    except CatchableError:
+      discard
+    return cfg.findManifestInDir(resolved)
+  if projectFs != nil:
+    try:
+      for relPath in projectFs.disk("project").search("*.nimble"):
+        if relPath.extractFilename != "nim.nimble":
+          return projectFs.rawDisk("project").root / relPath
+    except CatchableError:
+      discard
+    return ""
+  if cfg != nil:
+    return cfg.findManifestInDir(dir)
+  if dirExists(dir): # this should be fully replaced by flysystem
+    for f in walkFiles(dir / "*.nimble"):
+      if f.extractFilename != "nim.nimble":
+        return f
+  ""
 
 proc nimbleManifestParser*(content: string, path: string): dt.Manifest =
   ## Pluggable parser for datpkgr - converts NimbleFile to generic Manifest
@@ -405,8 +433,8 @@ proc nimbleManifestParser*(content: string, path: string): dt.Manifest =
   except CatchableError:
     result = dt.Manifest(path: path, extra: newJObject())
 
-proc nimbleManifestFinder*(dir: string): string =
-  findNimbleFile(dir)
+# proc nimbleManifestFinder*(dir: string): string =
+#   findNimbleFile(dir)
 
 proc nimbleManifestFileName*(pkgName: string): string =
   pkgName & ".nimble"
@@ -421,16 +449,7 @@ proc withNimbleSupport*(cfg: dc.DatpkgrConfig, parser: dt.ManifestParser) =
   cfg.manifestParser = parser
   cfg.manifestFileName = proc(pkgName: string): string = pkgName & ".nimble"
   cfg.manifestFinder = proc(dir: string): string =
-    var cur = dir
-    var depth = 0
-    while depth < 15:
-      for f in walkFiles(cur / "*.nimble"):
-        if f.extractFilename != "nim.nimble": return f
-      let parent = cur.parentDir()
-      if parent == cur: break
-      cur = parent
-      inc depth
-    ""
+    cfg.findManifestInDir(dir)
 
 # Nim-specific install layout — owned by Clue, not datpkgr.
 # Uses NimbleFile fields (srcDir, installDirs, skipDirs) so datpkgr stays generic (Manifest).

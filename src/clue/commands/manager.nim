@@ -115,12 +115,11 @@ proc installCommand*(v: Values) =
     features = parseFeatureFlags(v.get("--features").getStr)
   
   if raw.len == 0:
-    # Local install: copy the current nimble package into the registry
-    # (~/.clue/packages/<name>/<version>) with a clean, nimble-style layout.
-    # Dependencies are installed too (like `clue install <pkg>`), so a
-    # subsequent `clue test`/`clue build` finds the whole closure already
-    # present instead of fetching it on the fly.
-    let nimblePath = findNimbleFile(getCurrentDir())
+    # Local install: `clue install` (no <pkg>) — source is the project
+    # readonly disk, destination is the clue disk.
+    # Two disks: projectFs (readonly, getCurrentDir()) and clue disk.
+    let projectFs = newProjectDisk()
+    let nimblePath = findNimbleFile(getCurrentDir(), getClueCfg(), projectFs)
     if nimblePath.len == 0:
       displayError("No .nimble file found in " & getCurrentDir(), quitProcess = true)
       return
@@ -136,6 +135,10 @@ proc installCommand*(v: Values) =
     let version = if nimble.version.len > 0: nimble.version else: "0.0.0"
     let verDir = cluePkgsPath / pkgName / version
     safeRemoveDir(verDir)
+    # Copy via project disk -> clue disk. Uses new LocalDriver API
+    # `copyFromHost` if needed; installCleanCopy now operates between disks.
+    # For now, installCleanCopy still takes host paths; projectFs ensures
+    # the .nimble was found on the readonly disk.
     nimbleparser.installCleanCopy(getCurrentDir(), verDir, nimble)
     var deps: seq[DepEntry]
     for d in nimble.requires:
@@ -366,8 +369,9 @@ proc dumpCommand*(v: Values) =
     if v.has("pkg"): v.get("pkg").getStr
     else: ""
   if pkgName.len == 0:
-    # Local dump: parse the .nimble file in the current directory.
-    let nimblePath = findNimbleFile(getCurrentDir())
+    # Local dump: parse the .nimble file in the current directory (readonly project disk).
+    let projectFs = newProjectDisk()
+    let nimblePath = findNimbleFile(getCurrentDir(), getClueCfg(), projectFs)
     if nimblePath.len == 0:
       displayError("No .nimble file found in " & getCurrentDir(), quitProcess = true)
       return
@@ -403,7 +407,7 @@ proc dumpCommand*(v: Values) =
         # registry copy) when available.
         let pkgDir = resolveInstalledPath(pkgName, "")
         if pkgDir.len > 0:
-          let pkgNimble = findNimbleFile(pkgDir)
+          let pkgNimble = findNimbleFile(pkgDir, getClueCfg())
           if pkgNimble.len > 0:
             pkgInfo["nimble"] = buildLocalNimbleInfo(pkgNimble)
         echo pretty(pkgInfo)
@@ -411,7 +415,7 @@ proc dumpCommand*(v: Values) =
         # installed-only (e.g. direct URL before packages row existed) — dump from installed
         let pkgDir = resolveInstalledPath(pkgName, "")
         if pkgDir.len > 0:
-          let pkgNimble = findNimbleFile(pkgDir)
+          let pkgNimble = findNimbleFile(pkgDir, getClueCfg())
           var pkgInfo: JsonNode
           if pkgNimble.len > 0:
             pkgInfo = buildLocalNimbleInfo(pkgNimble)

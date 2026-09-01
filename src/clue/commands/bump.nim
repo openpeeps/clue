@@ -139,7 +139,8 @@ proc bumpCommand*(v: Values) =
     displayError("Unexpected second argument '" & depTarget &
       "'. Use `clue bump <dep> <version>` for dependencies.", quitProcess = true)
 
-  let nimblePath = findNimbleFile(getCurrentDir())
+  let projectFs = newProjectDisk()
+  let nimblePath = findNimbleFile(getCurrentDir(), getClueCfg(), projectFs)
   if nimblePath.len == 0:
     displayError("No .nimble file found in " & getCurrentDir(), quitProcess = true)
     return

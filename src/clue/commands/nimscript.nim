@@ -491,7 +491,8 @@ proc runNimscriptHook*(nimblePath, action: string, before: bool): bool =
 proc taskCommand*(v: Values) =
   ## List or execute nimscript tasks from the current project's .nimble file.
   let pkgDir = getCurrentDir()
-  let nimblePath = findNimbleFile(pkgDir)
+  let projectFs = newProjectDisk()
+  let nimblePath = findNimbleFile(pkgDir, getClueCfg(), projectFs)
   if nimblePath.len == 0:
     displayError("No .nimble file found in " & pkgDir, quitProcess = true)
     return

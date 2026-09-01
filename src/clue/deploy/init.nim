@@ -9,6 +9,7 @@
 
 import std/[os, osproc, strutils, terminal]
 import pkg/kapsis/interactive/prompts
+import ../pkgmanager/configs
 import ../pkgmanager/nimbleparser
 
 proc parseGitRepo*(url: string): string =
@@ -216,7 +217,8 @@ jobs:
 
 proc initDeploy*(deployType: string, writeWorkflow, yes, force: bool) =
   ## Scaffold `clue.deploy.yaml` (+ optionally `.github/workflows/release.yml`).
-  let nimblePath = findNimbleFile(getCurrentDir())
+  let projectFs = newProjectDisk()
+  let nimblePath = findNimbleFile(getCurrentDir(), getClueCfg(), projectFs)
   if nimblePath.len == 0:
     displayError("No .nimble file found in " & getCurrentDir() & ". `clue deploy.init` needs a nimble package.", quitProcess = true)
     return
