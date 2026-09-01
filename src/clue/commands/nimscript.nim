@@ -296,6 +296,49 @@ proc getOrCreateWrapper(nimblePath: string): string =
 
   nimsFile
 
+proc setupTempNimCfg(): tuple[tempRoot, prevXdg: string] =
+  ## Create a temp XDG config dir with a nim.cfg that exposes clue's
+  ## resolved deps to every child `nim c` spawned via `exec` in the
+  ## nimble task. Uses XDG_CONFIG_HOME so we never touch the project
+  ## tree — everything lives under getTempDir().
+  let pathsEnv = getEnv("__NIMBLE_PATHS")
+  let definesEnv = getEnv("__CLUE_DEFINES")
+  if pathsEnv.strip().len == 0 and definesEnv.strip().len == 0:
+    return ("", "")
+  let tempRoot = getTempDir() / ("clue_xdg_" & $getCurrentProcessId() & "_" & $pathsEnv.hash().abs())
+  let nimCfgDir = tempRoot / "nim"
+  createDir(nimCfgDir)
+  var content = ""
+  for p in pathsEnv.split("|"):
+    let q = p.strip()
+    if q.len > 0:
+      content &= "--path:\"" & q & "\"\n"
+  for d in definesEnv.split(" "):
+    let q = d.strip()
+    if q.len > 0:
+      if q.startsWith("-d:"):
+        content &= "--define:\"" & q[3..^1] & "\"\n"
+      elif q.startsWith("--define:"):
+        content &= q & "\n"
+      else:
+        content &= q & "\n"
+  writeFile(nimCfgDir / "nim.cfg", content)
+  let prev = getEnv("XDG_CONFIG_HOME")
+  putEnv("XDG_CONFIG_HOME", tempRoot)
+  (tempRoot, prev)
+
+proc cleanupTempNimCfg(tempRoot, prevXdg: string) =
+  if tempRoot.len == 0: return
+  if prevXdg.len == 0:
+    delEnv("XDG_CONFIG_HOME")
+  else:
+    putEnv("XDG_CONFIG_HOME", prevXdg)
+  try:
+    removeFile(tempRoot / "nim" / "nim.cfg")
+    removeDir(tempRoot / "nim")
+    removeDir(tempRoot)
+  except CatchableError: discard
+
 proc detectNimBin(): string =
   ## Detect the nim compiler binary.
   resolveNimBin()
@@ -308,6 +351,8 @@ proc execNimscript*(nimblePath, actionName: string,
   let nimsFile = getOrCreateWrapper(nimblePath)
   let outFile = getTempDir() / "clue_nimscript_" & $getCurrentProcessId() & ".out"
   let nimBin = detectNimBin()
+  let (tmpXdg, prevXdg) = setupTempNimCfg()
+  defer: cleanupTempNimCfg(tmpXdg, prevXdg)
 
   var cmd = nimBin & " e --hints:off --verbosity:0" &
     " --define:nimbleExe=clue" &
@@ -340,6 +385,8 @@ proc execNimscriptWithOutput*(nimblePath, actionName: string,
   let nimsFile = getOrCreateWrapper(nimblePath)
   let outFile = getTempDir() / "clue_nimscript_" & $getCurrentProcessId() & ".out"
   let nimBin = detectNimBin()
+  let (tmpXdg, prevXdg) = setupTempNimCfg()
+  defer: cleanupTempNimCfg(tmpXdg, prevXdg)
 
   var cmd = nimBin & " e --hints:off --verbosity:0" &
     " --define:nimbleExe=clue" &
@@ -405,6 +452,8 @@ proc execNimscriptCode*(code: string, actionName: string): int =
   let nimsFile = getTempDir() / "clue_nimscript_code_" & $getCurrentProcessId() & ".nims"
   let outFile = getTempDir() / "clue_nimscript_code_" & $getCurrentProcessId() & ".out"
   let nimBin = detectNimBin()
+  let (tmpXdg, prevXdg) = setupTempNimCfg()
+  defer: cleanupTempNimCfg(tmpXdg, prevXdg)
 
   writeFile(nimsFile, code)
 

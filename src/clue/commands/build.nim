@@ -425,6 +425,10 @@ proc testCommand*(v: Values) =
   let depFlags = pathFlags.join(" ") & " " & featureDefines.strip()
   putEnv("__NIMBLE_PATHS", depFlags.replace("--path:", "").strip())
 
+  # Also expose feature defines via env so the temp nim.cfg
+  # generated inside nimscript.nim can include them.
+  putEnv("__CLUE_DEFINES", featureDefines.strip())
+
   # Check if the .nimble file defines a custom `task test`
   let tasks = listTasks(nimblePath)
   for (name, _) in tasks:
