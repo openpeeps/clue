@@ -28,7 +28,7 @@ when isMainModule:
       develop:
         ## Editable install for live library discovery
       dump ?string(pkg), ?bool("--refresh"):
-        ## Dump package info and git activity
+        ## Dump package info in JSON format
       init ?string(name), ?bool("-Y"):
         ## Initialize a new nimble project in the current directory
       install ?string(pkg), ?bool("--refresh"), ?string("--features"),

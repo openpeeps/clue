@@ -22,7 +22,7 @@ per-version toolchains with virtual environments when `nimble` just doesn't cut 
 - Opt-in binary builds: `clue install <pkg> --build` compiles a package's binaries (and those of its dependencies) into `~/.clue/bin`; release by default, never done implicitly since building runs the package's code
 - Develop mode: `clue develop` links the current package into `~/.clue/develop` for live library discovery (`import pkg/<name>` resolves against your working tree, never copied, never deleted)
 - Local installs: `clue install` inside a package directory copies it into the local registry
-- Install / uninstall / dump / versions / prune with a local package registry; `clue dump` also shows available versions and recent git activity
+- Install / uninstall / dump / versions / prune with a local package registry
 - Virtual environments (`venv`) for per-version Nim toolchains via choosenim
 - Supports flags forwarding (`-d:xxx`, `--features`, `--mm:arc`, `--passL`, etc.) to Nim compiler
 - Local documentation: build and browse versioned `nim doc` output right from the command line
@@ -100,7 +100,7 @@ clue develop
 
 # Inspect the registry
 clue dump spry
-clue dump spry --refresh    # also re-read versions + git activity from remote
+clue dump spry --refresh    # also re-read versions
 clue versions spry --refresh
 clue prune
 ```
@@ -204,8 +204,8 @@ Full reference (`clue -h`): build 0.2.5. Every flag below mirrors that output.
   (`--features:string`).
 - `clue develop` — Editable install for live library discovery (symlink under
   `~/.clue/develop`, never copied).
-- `clue dump <?pkg:string>` — Dump package info and git activity
-  (`--refresh:bool` re-reads versions and git log).
+- `clue dump <?pkg:string>` — Dump package info
+  (`--refresh:bool` re-reads versions).
 - `clue init <?name:string> -Y:bool` — Initialize a new nimble project in the
   current directory (`-Y` non-interactive defaults).
 - `clue install <?pkg:string>` — Install from registry or local path/URL

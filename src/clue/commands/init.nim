@@ -158,7 +158,7 @@ proc promptLicense(): string =
   const licenses = ["MIT", "GPL-2.0", "Apache-2.0", "ISC", "GPL-3.0",
     "BSD-3-Clause", "LGPL-2.1", "LGPL-3.0", "LGPL-3.0-linking-exception",
     "EPL-2.0", "AGPL-3.0", "EUPL-1.2", "Proprietary", "Other"]
-  let idx = promptInteractive("License?", licenses)
+  let idx = promptInteractive("License?", licenses, activeIcon = " ►")
   if idx < 0:
     quit(0)
   licenses[idx]
