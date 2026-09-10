@@ -1,0 +1,21 @@
+nimTitle	publish	clue/commands/publish.html	module clue/commands/publish		0
+nim	packagesUpstream	clue/commands/publish.html#packagesUpstream	const packagesUpstream		30
+nim	packagesUpstreamUrl	clue/commands/publish.html#packagesUpstreamUrl	const packagesUpstreamUrl		31
+nim	packagesApiBase	clue/commands/publish.html#packagesApiBase	const packagesApiBase		32
+nim	packagesApiRoot	clue/commands/publish.html#packagesApiRoot	const packagesApiRoot		33
+nim	packagesDefaultBranch	clue/commands/publish.html#packagesDefaultBranch	const packagesDefaultBranch		34
+nim	publishTokenEnv	clue/commands/publish.html#publishTokenEnv	const publishTokenEnv		35
+nim	nimbleTokenPath	clue/commands/publish.html#nimbleTokenPath	proc nimbleTokenPath(): string		37
+nim	splitPublishTags	clue/commands/publish.html#splitPublishTags,string	proc splitPublishTags(s: string): seq[string]		42
+nim	normalizeRepoUrl	clue/commands/publish.html#normalizeRepoUrl,string	proc normalizeRepoUrl(url: string): string		51
+nim	expandForgeAlias	clue/commands/publish.html#expandForgeAlias,string	proc expandForgeAlias(s: string): string		97
+nim	isForgeAliasShape	clue/commands/publish.html#isForgeAliasShape,string	proc isForgeAliasShape(s: string): bool		124
+nim	resolveRepoUrl	clue/commands/publish.html#resolveRepoUrl,string	proc resolveRepoUrl(input: string): string		140
+nim	publishEntry	clue/commands/publish.html#publishEntry,string,string,string,string,string,seq[string]	proc publishEntry(name, url, description, license, web: string; tags: seq[string]): JsonNode		150
+nim	entryExists	clue/commands/publish.html#entryExists,JsonNode,string	proc entryExists(packagesJson: JsonNode; name: string): bool		166
+nim	readPublishToken	clue/commands/publish.html#readPublishToken	proc readPublishToken(): string		176
+nim	gitHubUser	clue/commands/publish.html#gitHubUser,string	proc gitHubUser(token: string): string		205
+nim	ensureFork	clue/commands/publish.html#ensureFork,string,string	proc ensureFork(user, token: string): bool		230
+nim	createPullRequest	clue/commands/publish.html#createPullRequest,string,string,string,string,string	proc createPullRequest(token, user, branch, title, body: string): string		253
+nim	detectRepoUrl	clue/commands/publish.html#detectRepoUrl	proc detectRepoUrl(): string		273
+nim	publishCommand	clue/commands/publish.html#publishCommand,Values	proc publishCommand(v: Values)		282
