@@ -8,7 +8,7 @@ when isMainModule:
   # Build the CLI with Kapsis
   import pkg/kapsis
   import ./clue/commands/[manager, build, docs, doctor,
-        deploy, upgrade, bump, nimscript, init, sources, dbcheck]
+        deploy, upgrade, bump, nimscript, init, sources, dbcheck, publish]
 
   initKapsis do:
     commands:
@@ -33,8 +33,8 @@ when isMainModule:
         ## Initialize a new nimble project in the current directory
       install ?string(pkg), ?bool("--refresh"), ?string("--features"),
               ?bool("--verbose"), ?bool("--build"), ?bool("--debug"),
-              ?string("--source"), ?any("-b" = ["c", "cpp", "objc", "js"]):
-        ## Install a package from the registry (or local)
+              ?string("--source"), ?bool("--depsOnly"), ?any("-b" = ["c", "cpp", "objc", "js"]):
+        ## Install a package from the registry (or local); --depsOnly installs only its dependencies
       test ?any("-b" = ["c", "cpp", "objc", "js"]):
         ## Compile and run test modules in tests/
       update ?string(pkg), ?bool("--verbose"):
@@ -45,6 +45,8 @@ when isMainModule:
         ## List available versions
       prune:
         ## Remove orphaned packages
+      publish ?string("--tags"), ?string("--web"), ?bool("--dry-run"), ?bool("--yes"), ?bool("-Y"):
+        ## Publish the current package to nim-lang/packages
       
       -- "Directories"
       source:

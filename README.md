@@ -186,7 +186,7 @@ usually succeeds under `clue build`.
 
 ## Command reference
 
-Full reference (`clue -h`): build 0.2.5. Every flag below mirrors that output.
+Full reference (`clue -h`): build 0.2.7. Every flag below mirrors that output.
 
 ### Package management
 - `clue build <?file:string>` — Build the current package or a single module.
@@ -204,20 +204,27 @@ Full reference (`clue -h`): build 0.2.5. Every flag below mirrors that output.
   (`--features:string`).
 - `clue develop` — Editable install for live library discovery (symlink under
   `~/.clue/develop`, never copied).
-- `clue dump <?pkg:string>` — Dump package info
+- `clue dump <?pkg:string>` — Dump package info in JSON format
   (`--refresh:bool` re-reads versions).
 - `clue init <?name:string> -Y:bool` — Initialize a new nimble project in the
   current directory (`-Y` non-interactive defaults).
 - `clue install <?pkg:string>` — Install from registry or local path/URL
   (`pkg@version`, `pkg#branch`, `https://...`). Flags: `--refresh:bool`,
   `--features:string`, `--verbose:bool`, `--build:bool`, `--debug:bool`,
-  `--source:string`, `-b:c|cpp|objc|js`.
+  `--source:string`, `--depsOnly:bool` (install only the dependency closure,
+  never the package itself), `-b:c|cpp|objc|js`.
 - `clue test` — Compile and run test modules in `tests/` (`-b:c|cpp|objc|js`).
 - `clue update <?pkg:string>` — Upgrade a package and its dependencies
   (`--verbose:bool`).
 - `clue uninstall <pkg:string>` — Remove a package.
 - `clue versions <pkg:string>` — List available versions (`--refresh:bool`).
 - `clue prune` — Remove orphaned packages.
+- `clue publish` — Publish the current package to nim-lang/packages (forks the
+  index, appends the entry, opens a PR).
+  - `--tags:string` — comma/space-separated tags for `packages.json`
+  - `--web:string` — homepage URL (defaults to the repo URL)
+  - `--dry-run:bool` — print the entry, touch nothing
+  - `--yes:bool` / `-Y` — skip the confirmation prompt
 
 ### Directories (registry sources)
 - `clue source.add <name:string> <url:string>` — Add a registry source.
@@ -233,6 +240,10 @@ Full reference (`clue -h`): build 0.2.5. Every flag below mirrors that output.
 - `clue doctor` — Analyze code quality with nimalyzer (lint-style checks).
 - `clue task <?taskName:string>` — List or run nimscript tasks declared in the
   current `.nimble` file (no arg = list tasks).
+- `clue dbcheck <?query:string>` — REPL for the clue database, read-only
+  SELECT (`--json:bool` for JSON output).
+- `clue dbcheck.versions <?query:string>` — REPL for the versions database,
+  read-only SELECT (`--json:bool`).
 - `clue upgrade` — Self-update clue from GitHub releases.
 
 ### Documentation

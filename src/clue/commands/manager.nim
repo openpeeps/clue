@@ -81,9 +81,12 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     features: seq[string] = @[], verbose = true, url = "",
     doBuild = false, buildRelease = true, buildDebug = false,
     constraint: VersionConstraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0)),
-    backend = "c", sourceFilter: string = "", suppressSummary = false) =
+    backend = "c", sourceFilter: string = "", suppressSummary = false,
+    depsOnly = false) =
   ## Thin wrapper around datpkgr/operations.installPackage.
   ## Builder (`builder.nim`) stays in clue and is injected via buildHook.
+  ## With `depsOnly` only the dependency closure is installed, never the
+  ## requested package itself.
   let cfg = getClueCfg()
   devShadowWarningsEnabled = verbose
   let buildHook =
@@ -94,7 +97,8 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     else: nil
   let ok = datpkgrOps.installPackage(cfg, pkgName, pkgRef, refresh, features, verbose, url,
                                         doBuild, buildRelease, buildDebug, constraint,
-                                        backend, sourceFilter, buildHook, suppressSummary)
+                                        backend, sourceFilter, buildHook, suppressSummary,
+                                        depsOnly)
   if not ok:
     # datpkgr already logged; keep CLI exit
     # semantics (original called quit(1) on fail)
@@ -110,6 +114,7 @@ proc installCommand*(v: Values) =
   let buildRelease = not buildDebug
   let backend = if v.has("-b"): v.get("-b").getAny else: "c"
   let sourceFilter = if v.has("--source"): v.get("--source").getStr else: ""
+  let depsOnly = v.has("--depsOnly")
   var features: seq[string]
   if v.has("--features"):
     features = parseFeatureFlags(v.get("--features").getStr)
@@ -124,29 +129,30 @@ proc installCommand*(v: Values) =
       displayError("No .nimble file found in " & getCurrentDir(), quitProcess = true)
       return
 
-    # Before install hook
-    discard runNimscriptHook(nimblePath, "install", before=true)
-
     let nimble = parseNimbleFile(nimblePath)
     let pkgName = nimblePath.extractFilename.changeFileExt("")
 
     checkNimConstraint(nimble)
 
-    let version = if nimble.version.len > 0: nimble.version else: "0.0.0"
-    let verDir = cluePkgsPath / pkgName / version
-    safeRemoveDir(verDir)
-    # Copy via project disk -> clue disk. Uses new LocalDriver API
-    # `copyFromHost` if needed; installCleanCopy now operates between disks.
-    # For now, installCleanCopy still takes host paths; projectFs ensures
-    # the .nimble was found on the readonly disk.
-    nimbleparser.installCleanCopy(getCurrentDir(), verDir, nimble)
-    var deps: seq[DepEntry]
-    for d in nimble.requires:
-      if d.isNim: continue
-      deps.add((depName(d), ""))
-    recordInstall(pkgName, version, deps, root = true,
-      features = @[], installPath = verDir)
-    displaySuccess("Installed " & pkgName & "@" & version & " to " & verDir)
+    if not depsOnly:
+      # Before install hook
+      discard runNimscriptHook(nimblePath, "install", before=true)
+
+      let version = if nimble.version.len > 0: nimble.version else: "0.0.0"
+      let verDir = cluePkgsPath / pkgName / version
+      safeRemoveDir(verDir)
+      # Copy via project disk -> clue disk. Uses new LocalDriver API
+      # `copyFromHost` if needed; installCleanCopy now operates between disks.
+      # For now, installCleanCopy still takes host paths; projectFs ensures
+      # the .nimble was found on the readonly disk.
+      nimbleparser.installCleanCopy(getCurrentDir(), verDir, nimble)
+      var deps: seq[DepEntry]
+      for d in nimble.requires:
+        if d.isNim: continue
+        deps.add((depName(d), ""))
+      recordInstall(pkgName, version, deps, root = true,
+        features = @[], installPath = verDir)
+      displaySuccess("Installed " & pkgName & "@" & version & " to " & verDir)
     var localDepLabels: seq[string]
     var localSeen = initHashSet[string]()
     var localHeaderEmitted = false
@@ -208,13 +214,14 @@ proc installCommand*(v: Values) =
             displayLbl(tlbl)
     if localDepLabels.len > 0:
       displaySuccess("Installed " & $localDepLabels.len & " " & pluralize(localDepLabels.len, "package"))
-    if doBuild:
+    if doBuild and not depsOnly:
       if not buildInstalled(pkgName, buildRelease, buildDebug, verbose,
           nimFlags = extras, backend = backend):
         return
 
-    # After install hook
-    discard runNimscriptHook(nimblePath, "install", before=false)
+    if not depsOnly:
+      # After install hook
+      discard runNimscriptHook(nimblePath, "install", before=false)
     return
 
   if isGitUrl(raw):
@@ -232,14 +239,14 @@ proc installCommand*(v: Values) =
       return
     installPackage(name, urlRef, refresh, features, verbose, url = url,
             doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
-            backend = backend, sourceFilter = sourceFilter)
+            backend = backend, sourceFilter = sourceFilter, depsOnly = depsOnly)
   else:
     let pkgInput = split(raw, "@")
     let pkgName = pkgInput[0]
     let pkgRef = if pkgInput.len > 1 and pkgInput[1] != "head": pkgInput[1] else: ""
     installPackage(pkgName, pkgRef, refresh, features, verbose,
           doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
-          backend = backend, sourceFilter = sourceFilter)
+          backend = backend, sourceFilter = sourceFilter, depsOnly = depsOnly)
   # except CatchableError as e:
   #   echo "EXCEPTION in installCommand: ", e.msg
   #   echo getStackTrace(e)
