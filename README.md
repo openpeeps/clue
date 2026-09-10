@@ -124,6 +124,43 @@ clue docs.open spry
 clue docs.open spry --port:8080
 ```
 
+### GitHub Actions
+
+Run clue in CI with the reusable workflows from
+[nimbase/setup-nim-action](https://github.com/nimbase/setup-nim-action).
+The `*_clue.yml` variants preinstall clue and use `clue install` /
+`clue test` / `clue build --release` under the hood.
+
+```yaml
+# .github/workflows/test.yml — test on Linux, Windows and macOS
+name: test
+on: [push, pull_request]
+jobs:
+  test:
+    uses: nimbase/setup-nim-action/.github/workflows/test_clue.yml@main
+    # with:
+    #   nim-version: '2.2.10'
+    #   os: '[{"os":"ubuntu-latest"},{"os":"windows-latest"}]'
+```
+
+```yaml
+# .github/workflows/release.yml — build per OS/arch and attach to a GitHub release
+name: release
+on:
+  push:
+    tags: ['*.*.*']
+jobs:
+  release:
+    permissions:
+      contents: write
+    uses: nimbase/setup-nim-action/.github/workflows/release_clue.yml@main
+    with:
+      app-name: myapp # binary name; built with `clue build --release`
+```
+
+See the [action's README](https://github.com/nimbase/setup-nim-action) for
+all inputs (Nim version, OS matrix, `~/.clue` caching, docs to Pages).
+
 ### Supported Constraint Operators
 
 | Operator | Meaning | Example |
