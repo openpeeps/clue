@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.2.7"
+version       = "0.2.8"
 author        = "OpenPeeps"
 description   = "A DFS package manager for Nim development"
 license       = "MIT"
