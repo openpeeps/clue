@@ -186,7 +186,7 @@ usually succeeds under `clue build`.
 
 ## Command reference
 
-Full reference (`clue -h`): build 0.2.7. Every flag below mirrors that output.
+Full reference (`clue -h`): build 0.2.8. Every flag below mirrors that output.
 
 ### Package management
 - `clue build <?file:string>` — Build the current package or a single module.
