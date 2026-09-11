@@ -1,5 +1,8 @@
 nimTitle	sources	clue/commands/sources.html	module clue/commands/sources		0
-nim	sourceAddCommand	clue/commands/sources.html#sourceAddCommand,Values	proc sourceAddCommand(v: Values)		13
-nim	sourceFetchCommand	clue/commands/sources.html#sourceFetchCommand,Values	proc sourceFetchCommand(v: Values)		35
-nim	sourceListCommand	clue/commands/sources.html#sourceListCommand,Values	proc sourceListCommand(v: Values)		44
-nim	sourceRemoveCommand	clue/commands/sources.html#sourceRemoveCommand,Values	proc sourceRemoveCommand(v: Values)		54
+nim	registryTtlHours	clue/commands/sources.html#registryTtlHours	const registryTtlHours		13
+nim	isRegistryStale	clue/commands/sources.html#isRegistryStale,string	proc isRegistryStale(cachePath: string; ttlHours = registryTtlHours): bool		15
+nim	ensureFreshRegistry	clue/commands/sources.html#ensureFreshRegistry,string	proc ensureFreshRegistry(sourceFilter = ""; ttlHours = registryTtlHours)		26
+nim	sourceAddCommand	clue/commands/sources.html#sourceAddCommand,Values	proc sourceAddCommand(v: Values)		43
+nim	sourceFetchCommand	clue/commands/sources.html#sourceFetchCommand,Values	proc sourceFetchCommand(v: Values)		65
+nim	sourceListCommand	clue/commands/sources.html#sourceListCommand,Values	proc sourceListCommand(v: Values)		74
+nim	sourceRemoveCommand	clue/commands/sources.html#sourceRemoveCommand,Values	proc sourceRemoveCommand(v: Values)		84

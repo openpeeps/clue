@@ -134,6 +134,10 @@
   <li><a class="reference" href="#parseRequiresLine%2Cseq%5BNimbleDependency%5D%2Cstring" title="parseRequiresLine(deps: var seq[NimbleDependency]; line: string)">parseRequiresLine(deps: var seq[NimbleDependency]; line: string)</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">selfImportPaths
+  <li><a class="reference" href="#selfImportPaths%2Cstring%2CNimbleFile" title="selfImportPaths(pkgDir: string; nimble: NimbleFile): seq[string]">selfImportPaths(pkgDir: string; nimble: NimbleFile): seq[string]</a></li>
+
+</ul>
 <ul class="simple nested-toc-section">withNimbleSupport
   <li><a class="reference" href="#withNimbleSupport%2C%2C" title="withNimbleSupport(cfg: dc.DatpkgrConfig; parser: dt.ManifestParser)">withNimbleSupport(cfg: dc.DatpkgrConfig; parser: dt.ManifestParser)</a></li>
 
@@ -322,6 +326,18 @@
 </div>
 
 </div>
+<div id="selfImportPaths-procs-all">
+  <div id="selfImportPaths,string,NimbleFile">
+  <dt><pre><span class="Keyword">proc</span> <a href="#selfImportPaths%2Cstring%2CNimbleFile"><span class="Identifier">selfImportPaths</span></a><span class="Other">(</span><span class="Identifier">pkgDir</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">nimble</span><span class="Other">:</span> <a href="#NimbleFile"><span class="Identifier">NimbleFile</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Absolute import dirs exposing the project itself, so <tt class="docutils literal"><span class="pre"><span class="Keyword">import</span> <span class="Identifier">pkgname</span><span class="Operator">/</span><span class="Keyword">mod</span></span></tt> works from any file in the project (nimble semantics). Self first: the source dir when it exists, then the project root (covers flat layouts).
+    
+  </dd>
+</div>
+
+</div>
 <div id="withNimbleSupport-procs-all">
   <div id="withNimbleSupport,,">
   <dt><pre><span class="Keyword">proc</span> <a href="#withNimbleSupport%2C%2C"><span class="Identifier">withNimbleSupport</span></a><span class="Other">(</span><span class="Identifier">cfg</span><span class="Other">:</span> <span class="Identifier">dc</span><span class="Other">.</span><span class="Identifier">DatpkgrConfig</span><span class="Other">;</span> <span class="Identifier">parser</span><span class="Other">:</span> <span class="Identifier">dt</span><span class="Other">.</span><span class="Identifier">ManifestParser</span><span class="Other">)</span> {.
@@ -344,7 +360,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-10 08:47:00 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-11 07:14:32 UTC</small>
       </div>
     </div>
   </div>

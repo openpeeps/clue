@@ -273,6 +273,14 @@
 <li><a class="reference external"
           data-doc-search-tag="publish: proc ensureFork(user, token: string): bool" href="clue/commands/publish.html#ensureFork%2Cstring%2Cstring">publish: proc ensureFork(user, token: string): bool</a></li>
           </ul></dd>
+<dt><a name="ensureFreshRegistry" href="#ensureFreshRegistry"><span>ensureFreshRegistry:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="sources: proc ensureFreshRegistry(sourceFilter = &quot;&quot;; ttlHours = registryTtlHours)" href="clue/commands/sources.html#ensureFreshRegistry%2Cstring">sources: proc ensureFreshRegistry(sourceFilter = &quot;&quot;; ttlHours = registryTtlHours)</a></li>
+          </ul></dd>
+<dt><a name="ensureNimscriptEnv" href="#ensureNimscriptEnv"><span>ensureNimscriptEnv:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="nimscript: proc ensureNimscriptEnv(nimblePath: string)" href="clue/commands/nimscript.html#ensureNimscriptEnv%2Cstring">nimscript: proc ensureNimscriptEnv(nimblePath: string)</a></li>
+          </ul></dd>
 <dt><a name="ensureSourcesFile" href="#ensureSourcesFile"><span>ensureSourcesFile:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: proc ensureSourcesFile()" href="clue/pkgmanager/configs.html#ensureSourcesFile">configs: proc ensureSourcesFile()</a></li>
@@ -455,6 +463,10 @@
 <li><a class="reference external"
           data-doc-search-tag="configs: proc isInsidePkgs(dir: string): bool" href="clue/pkgmanager/configs.html#isInsidePkgs%2Cstring">configs: proc isInsidePkgs(dir: string): bool</a></li>
           </ul></dd>
+<dt><a name="isRegistryStale" href="#isRegistryStale"><span>isRegistryStale:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="sources: proc isRegistryStale(cachePath: string; ttlHours = registryTtlHours): bool" href="clue/commands/sources.html#isRegistryStale%2Cstring">sources: proc isRegistryStale(cachePath: string; ttlHours = registryTtlHours): bool</a></li>
+          </ul></dd>
 <dt><a name="isValidSourceName" href="#isValidSourceName"><span>isValidSourceName:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: proc isValidSourceName(s: string): bool" href="clue/pkgmanager/configs.html#isValidSourceName%2Cstring">configs: proc isValidSourceName(s: string): bool</a></li>
@@ -617,6 +629,10 @@
 <li><a class="reference external"
           data-doc-search-tag="configs: proc refreshSource(sourceName: string): bool" href="clue/pkgmanager/configs.html#refreshSource%2Cstring">configs: proc refreshSource(sourceName: string): bool</a></li>
           </ul></dd>
+<dt><a name="registryTtlHours" href="#registryTtlHours"><span>registryTtlHours:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="sources: const registryTtlHours" href="clue/commands/sources.html#registryTtlHours">sources: const registryTtlHours</a></li>
+          </ul></dd>
 <dt><a name="ReleaseConfig" href="#ReleaseConfig"><span>ReleaseConfig:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: object ReleaseConfig" href="clue/deploy/configs.html#ReleaseConfig">configs: object ReleaseConfig</a></li>
@@ -676,6 +692,10 @@
 <dt><a name="seedPackagesTable" href="#seedPackagesTable"><span>seedPackagesTable:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: proc seedPackagesTable(nimblePackages: JsonNode; source: string = defaultSourceName): int" href="clue/pkgmanager/configs.html#seedPackagesTable%2CJsonNode%2Cstring">configs: proc seedPackagesTable(nimblePackages: JsonNode; source: string = defaultSourceName): int</a></li>
+          </ul></dd>
+<dt><a name="selfImportPaths" href="#selfImportPaths"><span>selfImportPaths:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="nimbleparser: proc selfImportPaths(pkgDir: string; nimble: NimbleFile): seq[string]" href="clue/pkgmanager/nimbleparser.html#selfImportPaths%2Cstring%2CNimbleFile">nimbleparser: proc selfImportPaths(pkgDir: string; nimble: NimbleFile): seq[string]</a></li>
           </ul></dd>
 <dt><a name="serveDocs" href="#serveDocs"><span>serveDocs:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -797,7 +817,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-10 08:47:01 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-11 07:14:33 UTC</small>
       </div>
     </div>
   </div>
