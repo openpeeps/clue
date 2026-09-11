@@ -62,7 +62,7 @@ proc clueLog*(level: LogLevel, msg: string) {.gcsafe.} =
                     span(suffix, terminal.fgCyan, indentSize = 0)])
           return
         # 2) "  fetched <name> using HEAD" -> chevron prefix, HEAD green
-        #    "  fetched <name> (N version(s))" -> parenthesized part green
+        #    "  fetched <name> (N version(s))" -> chevron prefix, parenthesized part green
         let fetchedIdx = msg.find("fetched ")
         if fetchedIdx >= 0:
           let usingHeadIdx = msg.find(" using HEAD")
@@ -78,21 +78,22 @@ proc clueLog*(level: LogLevel, msg: string) {.gcsafe.} =
             return
           let parenIdx = msg.find(" (", fetchedIdx)
           if parenIdx >= 0:
-            let prefix = msg[0 ..< parenIdx]
             let suffix = msg[parenIdx .. ^1]
-            # prefix needs chevron inserted after leading spaces
-            let leading = prefix[0 ..< fetchedIdx]
-            let restPrefix = prefix[fetchedIdx .. ^1]
+            # chevron inserted after leading spaces, same shape as using HEAD
+            let leading = msg[0 ..< fetchedIdx]
+            let namePart = msg[fetchedIdx + "fetched ".len ..< parenIdx]
             display(@[span(leading, DefaultTextFg, indentSize = 0),
-                      span("> ", DefaultTextFg, indentSize = 0),
-                      span(restPrefix, DefaultTextFg, indentSize = 0),
+                      span("→ ", DefaultTextFg, indentSize = 0),
+                      span("fetched ", terminal.fgCyan, indentSize = 0),
+                      span(namePart, DefaultTextFg, indentSize = 0),
                       span(suffix, terminal.fgGreen, indentSize = 0)])
             return
           # fallback: just add chevron
           let leading = msg[0 ..< fetchedIdx]
-          let rest = msg[fetchedIdx .. ^1]
+          let rest = msg[fetchedIdx + "fetched ".len .. ^1]
           display(@[span(leading, DefaultTextFg, indentSize = 0),
-                    span("> ", DefaultTextFg, indentSize = 0),
+                    span("→ ", DefaultTextFg, indentSize = 0),
+                    span("fetched ", terminal.fgCyan, indentSize = 0),
                     span(rest, DefaultTextFg, indentSize = 0)])
           return
         # 3) "  pkg@version" -> version green

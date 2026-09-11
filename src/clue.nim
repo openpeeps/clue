@@ -46,7 +46,8 @@ when isMainModule:
         ## List available versions
       prune:
         ## Remove orphaned packages
-      publish ?string("--tags"), ?string("--web"), ?bool("--dry-run"), ?bool("--yes"), ?bool("-Y"):
+      publish ?string("--tags"), ?string("--web"), ?bool("--dry-run"),
+              ?bool("--yes"), ?bool("-Y"):
         ## Publish the current package to nim-lang/packages
       
       -- "Directories"
