@@ -217,3 +217,34 @@ suite "nimbleparser — findNimbleFile":
     # walk-up may legitimately find an unrelated .nimble in an ancestor,
     # but it must never return the skipped nim.nimble itself
     check findNimbleFile(dir).extractFilename != "nim.nimble"
+
+suite "nimbleparser — selfImportPaths":
+  test "default src layout yields src first, root second":
+    let dir = getTempDir() / "clue_selfpaths_src" / $getCurrentProcessId()
+    createDir(dir / "src")
+    defer: removeDir(dir)
+    check selfImportPaths(dir, NimbleFile()) ==
+      @[normalizedPath(dir / "src"), normalizedPath(dir)]
+
+  test "custom srcDir is honored":
+    let dir = getTempDir() / "clue_selfpaths_custom" / $getCurrentProcessId()
+    createDir(dir / "source")
+    defer: removeDir(dir)
+    var nf = NimbleFile()
+    nf.srcDir = "source"
+    check selfImportPaths(dir, nf) ==
+      @[normalizedPath(dir / "source"), normalizedPath(dir)]
+
+  test "missing src dir falls back to root only":
+    let dir = getTempDir() / "clue_selfpaths_flat" / $getCurrentProcessId()
+    createDir(dir)
+    defer: removeDir(dir)
+    check selfImportPaths(dir, NimbleFile()) == @[normalizedPath(dir)]
+
+  test "srcDir pointing at root yields root once":
+    let dir = getTempDir() / "clue_selfpaths_dot" / $getCurrentProcessId()
+    createDir(dir)
+    defer: removeDir(dir)
+    var nf = NimbleFile()
+    nf.srcDir = "."
+    check selfImportPaths(dir, nf) == @[normalizedPath(dir)]

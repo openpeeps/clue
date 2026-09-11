@@ -324,8 +324,16 @@ proc buildCommand*(v: Values) =
     elif nimble.binDir.len > 0: nimble.binDir
     else: "bin"
 
-  let (pathFlags, featureDefines) =
+  let (depPathFlags, featureDefines) =
     collectResolvedPaths(nimble, activeRootFeatures, pkgName, verbose)
+
+  # Self first: the working tree shadows same-named installed copies, so
+  # `import pkgname/mod` works from any file in the project.
+  var pathFlags = selfImportPaths(pkgDir, nimble).mapIt("--path:" & it)
+  
+  for f in depPathFlags:
+    if f notin pathFlags:
+      pathFlags.add(f)
 
   if outPath.len > 0:
     discard existsOrCreateDir(outPath)
@@ -414,22 +422,19 @@ proc testCommand*(v: Values) =
   let backend = if v.has("-b"): v.get("-b").getAny else: "c"
   let nimFlags = extras
 
-  # Resolve dependency paths and feature defines so both custom nimscript
-  # tasks and the built-in default runner compile with the same flags as
-  # `clue build`.  Custom tasks read them via getPathsClause(); the default
-  # runner receives them as a CLI argument.
-  let pathFlags = allInstalledPaths().mapIt("--path:" & it)
-  var featureDefines = ""
-  let featsMap = installedFeatures()
-  for pkg, feats in featsMap:
-    for f in feats:
-      featureDefines.add(" -d:features." & pkg & "." & f)
-  let depFlags = pathFlags.join(" ") & " " & featureDefines.strip()
-  putEnv("__NIMBLE_PATHS", depFlags.replace("--path:", "").strip())
-
-  # Also expose feature defines via env so the temp nim.cfg
-  # generated inside nimscript.nim can include them.
-  putEnv("__CLUE_DEFINES", featureDefines.strip())
+  # Resolve self + dependency paths and feature defines so both custom
+  # nimscript tasks and the built-in default runner compile with the same
+  # flags as `clue build`. Custom tasks read them via getPathsClause(); the
+  # default runner receives them as a CLI argument.
+  nimscript.ensureNimscriptEnv(nimblePath)
+  # NOTE: getPathsClause lives inside the nimscript wrapper template, not as a
+  # real proc — build the same clause here from the env ensureNimscriptEnv set.
+  var testPathParts: seq[string] = @[]
+  for p in getEnv("__NIMBLE_PATHS").split("|"):
+    let q = p.strip()
+    if q.len > 0:
+      testPathParts.add("--path:" & q)
+  let depFlags = testPathParts.join(" ") & " " & getEnv("__CLUE_DEFINES")
 
   # Check if the .nimble file defines a custom `task test`
   let tasks = listTasks(nimblePath)
@@ -605,8 +610,13 @@ proc checkCommand*(v: Values) =
     displayInfo("Nothing to check")
     return
 
-  let (pathFlags, featureDefines) =
+  let (depPathFlags, featureDefines) =
     collectResolvedPaths(nimble, activeRootFeatures, pkgName, false)
+  # Self first, same as `clue build` (see buildCommand).
+  var pathFlags = selfImportPaths(pkgDir, nimble).mapIt("--path:" & it)
+  for f in depPathFlags:
+    if f notin pathFlags:
+      pathFlags.add(f)
   let toolchainFlags = defaultToolchainFlags(nimFlags)
 
   var checkFailed = false

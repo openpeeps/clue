@@ -2,13 +2,43 @@
 #
 # (c) 2026 George Lemon | MIT License
 
-import std/[os, strutils, sequtils, options, terminal, tables]
+import std/[os, strutils, sequtils, options, terminal, tables, times]
 
 import pkg/kapsis/[runtime, interactive/prompts]
 import pkg/openparser/json
 
 import ../pkgmanager/configs
 import ../pkgmanager/versions
+
+const registryTtlHours* = 24
+
+proc isRegistryStale*(cachePath: string, ttlHours = registryTtlHours): bool =
+  ## True when the registry cache file is missing or older than `ttlHours`.
+  ## Future mtimes (clock skew) count as fresh.
+  try:
+    if not fileExists(cachePath):
+      return true
+    let age = getTime() - getLastModificationTime(cachePath)
+    result = age.inHours >= ttlHours
+  except CatchableError:
+    result = true
+
+proc ensureFreshRegistry*(sourceFilter = "", ttlHours = registryTtlHours) =
+  ## Re-fetch any stale registry cache before resolving packages.
+  ## Fetch failures only warn — the install proceeds against the local DB.
+  var names: seq[string] = @[]
+  if sourceFilter.len > 0:
+    names.add(sourceFilter)
+  else:
+    for s in loadSources():
+      names.add(s.name)
+  for name in names:
+    let cacheFile = clueRegistriesDir / name & ".json"
+    if not isRegistryStale(cacheFile, ttlHours):
+      continue
+    displayInfo("Refreshing registry: " & name & "...")
+    if not refreshSource(name):
+      displayWarning("Using cached registry for " & name & " (refresh failed)")
 
 proc sourceAddCommand*(v: Values) =
   let name = v.get("name").getStr

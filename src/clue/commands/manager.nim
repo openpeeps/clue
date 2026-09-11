@@ -17,6 +17,7 @@ import ../pkgmanager/versions
 import ../pkgmanager/nimbleparser
 import ../pkgmanager/builder
 import ./nimscript
+import ./sources
 import datpkgr/operations as datpkgrOps
 import datpkgr/config as datpkgrConfig
 import datpkgr/types as datpkgrTypes
@@ -115,6 +116,9 @@ proc installCommand*(v: Values) =
   let backend = if v.has("-b"): v.get("-b").getAny else: "c"
   let sourceFilter = if v.has("--source"): v.get("--source").getStr else: ""
   let depsOnly = v.has("--depsOnly")
+  # Auto-refresh: re-fetch any registry cache older than 24h so installs
+  # resolve against fresh metadata. Failures only warn (see sources.nim).
+  ensureFreshRegistry(sourceFilter)
   var features: seq[string]
   if v.has("--features"):
     features = parseFeatureFlags(v.get("--features").getStr)

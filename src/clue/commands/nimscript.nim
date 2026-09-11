@@ -15,12 +15,13 @@
 ## Clue creates a wrapper `.nims` file that imports `nimscriptapi.nim`
 ## and includes the actual `.nimble` file, then runs `nim e` on it.
 
-import std/[os, osproc, strutils, json, hashes]
+import std/[os, osproc, strutils, json, hashes, sets, tables]
 
 import pkg/kapsis/[runtime, interactive/prompts]
 
 import ../pkgmanager/configs
 import ../pkgmanager/nimbleparser
+import ../pkgmanager/versions
 
 const
   # Wrapper template for .nims files — imports nimscriptapi and includes the .nimble
@@ -296,6 +297,26 @@ proc getOrCreateWrapper(nimblePath: string): string =
 
   nimsFile
 
+proc ensureNimscriptEnv*(nimblePath: string) =
+  ## Expose the project's own source dirs plus every installed dependency to
+  ## child `nim` processes via `__NIMBLE_PATHS` (pipe-separated dirs, read by
+  ## getPaths/getPathsClause and setupTempNimCfg) and `__CLUE_DEFINES`.
+  ## Called by `clue test` and `clue task` before running nimscript tasks.
+  let nimble = parseNimbleFile(nimblePath)
+  let projectRoot = nimblePath.parentDir()
+  var seen = initHashSet[string]()
+  var dirs: seq[string] = @[]
+  for d in selfImportPaths(projectRoot, nimble) & allInstalledPaths():
+    if d notin seen:
+      seen.incl(d)
+      dirs.add(d)
+  putEnv("__NIMBLE_PATHS", dirs.join("|"))
+  var defines = ""
+  for pkg, feats in installedFeatures():
+    for f in feats:
+      defines.add(" -d:features." & pkg & "." & f)
+  putEnv("__CLUE_DEFINES", defines.strip())
+
 proc setupTempNimCfg(): tuple[tempRoot, prevXdg: string] =
   ## Create a temp XDG config dir with a nim.cfg that exposes clue's
   ## resolved deps to every child `nim c` spawned via `exec` in the
@@ -496,6 +517,10 @@ proc taskCommand*(v: Values) =
   if nimblePath.len == 0:
     displayError("No .nimble file found in " & pkgDir, quitProcess = true)
     return
+
+  # Dep + self paths for any child `nim` spawned via exec in tasks
+  # (previously custom tasks ran with no import paths at all).
+  ensureNimscriptEnv(nimblePath)
 
   let tasks = listTasks(nimblePath)
 

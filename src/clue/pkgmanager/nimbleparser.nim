@@ -436,6 +436,17 @@ proc nimbleManifestParser*(content: string, path: string): dt.Manifest =
 # proc nimbleManifestFinder*(dir: string): string =
 #   findNimbleFile(dir)
 
+proc selfImportPaths*(pkgDir: string, nimble: NimbleFile): seq[string] =
+  ## Absolute import dirs exposing the project itself, so `import pkgname/mod`
+  ## works from any file in the project (nimble semantics). Self first: the
+  ## source dir when it exists, then the project root (covers flat layouts).
+  let srcDir = if nimble.srcDir.len > 0: nimble.srcDir else: "src"
+  let rootAbs = normalizedPath(pkgDir)
+  let srcAbs = normalizedPath(pkgDir / srcDir)
+  if srcAbs != rootAbs and dirExists(srcAbs):
+    result.add(srcAbs)
+  result.add(rootAbs)
+
 proc nimbleManifestFileName*(pkgName: string): string =
   pkgName & ".nimble"
 

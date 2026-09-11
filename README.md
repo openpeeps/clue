@@ -223,7 +223,7 @@ usually succeeds under `clue build`.
 
 ## Command reference
 
-Full reference (`clue -h`): build 0.2.8. Every flag below mirrors that output.
+Full reference (`clue -h`): build 0.2.9. Every flag below mirrors that output.
 
 ### Package management
 - `clue build <?file:string>` — Build the current package or a single module.
@@ -249,7 +249,8 @@ Full reference (`clue -h`): build 0.2.8. Every flag below mirrors that output.
   (`pkg@version`, `pkg#branch`, `https://...`). Flags: `--refresh:bool`,
   `--features:string`, `--verbose:bool`, `--build:bool`, `--debug:bool`,
   `--source:string`, `--depsOnly:bool` (install only the dependency closure,
-  never the package itself), `-b:c|cpp|objc|js`.
+  never the package itself), `-b:c|cpp|objc|js`. Registry caches older than
+  24h are re-fetched automatically before resolving (failures only warn).
 - `clue test` — Compile and run test modules in `tests/` (`-b:c|cpp|objc|js`).
 - `clue update <?pkg:string>` — Upgrade a package and its dependencies
   (`--verbose:bool`).
