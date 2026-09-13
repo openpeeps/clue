@@ -118,13 +118,13 @@ proc checkoutRef*(dest, refStr: string, refresh = false): bool =
 
 proc checkoutTagRaw*(dest, tag: string): bool {.gcsafe.} =
   ## Low-level checkout without touching `clueCfg` (usable off main thread).
-  dg.checkoutTagRaw(dest, tag)
+  dg.checkoutTagRaw(dest, tag, allowSubmodules = true)
 
 proc checkoutHeadRaw*(dest: string, refresh = false): bool {.gcsafe.} =
-  dg.checkoutHeadRaw(dest, refresh)
+  dg.checkoutHeadRaw(dest, refresh, allowSubmodules = true)
 
 proc checkoutRefRaw*(dest, refStr: string, refresh = false): bool {.gcsafe.} =
-  dg.checkoutRefRaw(dest, refStr, refresh)
+  dg.checkoutRefRaw(dest, refStr, refresh, allowSubmodules = true)
 
 proc gitHeadInfo*(name, url: string): Option[dg.GitHeadInfo] =
   dg.gitHeadInfo(clueConfigs.clueCfg, name, url)

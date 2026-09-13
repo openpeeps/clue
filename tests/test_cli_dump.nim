@@ -15,7 +15,7 @@ bin           = @["demo"]
 
 requires "nim >= 2.0.0"
 requires "semver >= 1.2.3, flatty >= 0.4.0"
-requires "bro"
+requires "bowdy"
 
 feature "ssl":
   requires "openssl >= 1.0.0"
@@ -51,7 +51,7 @@ suite "cli dump — local (no argument)":
     check reqs[0].getStr == "nim >= 2.0.0"
     check reqs[1].getStr == "semver >= 1.2.3"
     check reqs[2].getStr == "flatty >= 0.4.0"
-    check reqs[3].getStr == "bro"
+    check reqs[3].getStr == "bowdy"
     # feature-block deps stay out of the root list
     for r in reqs:
       check r.getStr != "openssl >= 1.0.0"

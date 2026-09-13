@@ -140,9 +140,15 @@ proc clueLog*(level: LogLevel, msg: string) {.gcsafe.} =
   of lvlWarn: displayWarning(msg)
   of lvlError: displayError(msg)
 
+proc clueSubmodules*(name, dest: string) {.gcsafe.} =
+  ## Notice printed under a package line when it ships git submodules.
+  display("→ Cloning submodules", indent = 4)
+
 proc getClueCfg*(): DatpkgrConfig =
   if clueCfgImpl.isNil:
-    clueCfgImpl = newDatpkgrConfig("clue", callbacks = Callbacks(log: clueLog))
+    clueCfgImpl = newDatpkgrConfig("clue",
+      callbacks = Callbacks(log: clueLog, onSubmodules: clueSubmodules),
+      allowSubmodules = true)
     clueCfgImpl.withNimbleSupport(clueNimbleParser.nimbleManifestParser)
   clueCfgImpl
 
