@@ -13,22 +13,6 @@ import pkg/openparser/json
 import pkg/openparser/yaml
 
 type
-  ReleaseTarget* = object
-    os*: string
-    arch*: string
-
-  ReleaseConfig* = object
-    repo*: string
-    tagPrefix*: string
-    notes*: string
-    notesFile*: string
-    draft*: bool
-    prerelease*: bool
-    assets*: seq[string]
-    workflow*: string
-    targets*: seq[ReleaseTarget]
-    artifactName*: string
-
   SystemdConfig* = object
     service*: string
     unitFile*: string
@@ -82,16 +66,11 @@ type
   DirConfig* = object
     profiles*: OrderedTableRef[string, DirProfile]
 
-  GithubConfig* = object
-    repo*: string
-
   DeployConfig* = object
     path*: string
     project*: string
     `type`*: string
     version*: string
-    github*: GithubConfig
-    release*: ReleaseConfig
     web*: WebConfig
     dir*: DirConfig
 
@@ -142,8 +121,6 @@ proc parseDeployConfig*(path: string): DeployConfig =
   # defaults + profile names
   if result.web.localDir.len == 0:
     result.web.localDir = "dist/web"
-  if result.release.artifactName.len == 0:
-    result.release.artifactName = "{{project}}_{{os}}-{{arch}}"
   if result.web.profiles != nil:
     for name in keys(result.web.profiles):
       var p = result.web.profiles[name]

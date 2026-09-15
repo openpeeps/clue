@@ -66,8 +66,6 @@ suite "deploy configs — parseDeployConfig":
     let p = writeTemp("deploy.yaml", """
 project: myapp
 type: web
-github:
-  repo: owner/myapp
 web:
   profiles:
     production:
@@ -91,8 +89,8 @@ web:
 
   test "parses a json web config":
     let p = writeTemp("deploy.json", """
-{"project":"app","type":"web","github":{"repo":"o/app"},
- "web":{"profiles":{"prod":{"host":"h","user":"u","remoteDir":"/srv","port":2200}}}}
+{"project":"app","type":"web",
+  "web":{"profiles":{"prod":{"host":"h","user":"u","remoteDir":"/srv","port":2200}}}}
 """)
     defer: removeDir(getTempDir() / "clue_deploy_configs" / $getCurrentProcessId())
     let cfg = parseDeployConfig(p)
@@ -105,8 +103,17 @@ web:
     expect IOError:
       discard parseDeployConfig(p)
 
-  test "release defaults are applied":
-    let p = writeTemp("rel.yaml", "project: x\ntype: cli\nrelease: {}\n")
+  test "ignores unknown top-level keys for forward compatibility":
+    let p = writeTemp("legacy.yaml", """
+project: x
+type: cli
+github:
+  repo: owner/x
+release:
+  repo: owner/x
+  workflow: .github/workflows/release.yml
+""")
     defer: removeDir(getTempDir() / "clue_deploy_configs" / $getCurrentProcessId())
     let cfg = parseDeployConfig(p)
-    check cfg.release.artifactName == "{{project}}_{{os}}-{{arch}}"
+    check cfg.project == "x"
+    check cfg.`type` == "cli"

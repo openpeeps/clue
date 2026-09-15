@@ -64,6 +64,7 @@ Environment Management
   venv ⚑                                    Manage virtual environments for Nim projects
 Deployment
   deploy.init ⚑                             Scaffold clue.deploy.yaml
+  deploy.dir ⚑                              Sync a directory profile (from to to, local or remote)
   deploy.web ⚑                              Deploy the web target over rsync/ssh (systemd-managed)
 Documentation
   docs.gen <pkg> ⚑                          Build documentation for an installed package
@@ -195,6 +196,14 @@ you build & serve docs for any clue-installed package right from the terminal.
 - Optional `--port` to override the default port
 
 
+## Deployment
+
+See [docs/deploy.md](docs/deploy.md) for the full reference:
+`deploy.init` scaffolding, the `clue.deploy.yaml` keys and defaults,
+`deploy.dir` directory sync and `deploy.web` remote deploys, with a
+worked example.
+
+
 ### Tell your LLM about Clue
 
 Save the block below as a skill file — e.g. `~/.config/opencode/skills/nim-clue/SKILL.md`
@@ -290,11 +299,16 @@ Full reference (`clue -h`): build 0.2.9. Every flag below mirrors that output.
   11000, override with `--port:port`).
 
 ### Deployment
-- `clue deploy.init` — Scaffold `clue.deploy.yaml` (`--type:string`,
-  `--workflow:bool`, `--yes:bool`, `--force:bool`).
+- `clue deploy.init` — Scaffold `clue.deploy.yaml` (`--type:any[bin,static]`,
+  `--yes:bool`, `--force:bool`).
+- `clue deploy.dir` — Sync a directory profile (`from` to `to`, local
+  path or remote over ssh); supports `--dry-run:bool`, `--yes:bool`,
+  `--verbose:bool`, `--config:string`, `--key:string`, `--profile:string`.
 - `clue deploy.web` — Deploy web target over rsync/ssh (systemd-managed);
   supports `--dry-run:bool`, `--yes:bool`, `--verbose:bool`, `--config:string`,
   `--key:string`, `--profile:string`, `--status:bool`.
+
+Full reference with a worked example: [docs/deploy.md](docs/deploy.md).
 
 ## Agent recipes
 

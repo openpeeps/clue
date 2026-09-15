@@ -42,12 +42,11 @@ proc deployFlags(v: Values): tuple[configPath, profileName, keyOverride: string,
 
 proc deployInitCommand*(v: Values) =
   let deployType =
-    if v.has("--type"): v.get("--type").getStr
-    else: "cli"
-  let writeWorkflow = v.has("--workflow")
+    if v.has("--type"): v.get("--type").getAny
+    else: "bin"
   let yes = v.has("--yes")
   let force = v.has("--force")
-  initDeploy(deployType, writeWorkflow, yes, force)
+  initDeploy(deployType, yes, force)
 
 proc deployDirCommand*(v: Values) =
   let (configPath, profileName, keyOverride, dryRun, yes, verbose) = deployFlags(v)
