@@ -60,6 +60,28 @@ type
     localDir*: string
     profiles*: OrderedTableRef[string, WebProfile]
 
+  DirProfile* = object
+    ## A directory placement profile: sync `from` to `to`.
+    ## `to` is a local path, unless `host` is set — then it is a remote
+    ## path on `user@host` reached over ssh. There is intentionally no
+    ## `password` field: when no `sshKey` is configured, clue prompts for
+    ## the password at deploy time and keeps it only in process memory.
+    name*: string
+    `from`*: string
+    to*: string
+    host*: string
+    user*: string
+    port*: int
+    sshKey*: string
+    exclude*: seq[string]
+    delete*: bool
+    checksum*: bool
+    compress*: Option[bool]
+    timeout*: int
+
+  DirConfig* = object
+    profiles*: OrderedTableRef[string, DirProfile]
+
   GithubConfig* = object
     repo*: string
 
@@ -71,6 +93,7 @@ type
     github*: GithubConfig
     release*: ReleaseConfig
     web*: WebConfig
+    dir*: DirConfig
 
 func compressOn*(p: WebProfile): bool = p.compress.get(true)
 func partialOn*(p: WebProfile): bool = p.partial.get(true)
@@ -130,3 +153,12 @@ proc parseDeployConfig*(path: string): DeployConfig =
       if p.timeout <= 0:
         p.timeout = 60
       result.web.profiles[name] = p
+  if result.dir.profiles != nil:
+    for name in keys(result.dir.profiles):
+      var p = result.dir.profiles[name]
+      p.name = name
+      if p.port <= 0:
+        p.port = 22
+      if p.timeout <= 0:
+        p.timeout = 60
+      result.dir.profiles[name] = p

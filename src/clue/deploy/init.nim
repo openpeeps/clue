@@ -107,6 +107,20 @@ web:
         restart: true
         sudo: true
         status: true
+
+dir:
+  profiles:
+    production:
+      from: "dist/site"
+      to: "/srv/www"
+      # Remote target example (a password is prompted at deploy time,
+      # never stored here):
+      # host: "@@HOST@@"
+      # user: "@@USER@@"
+      # to: "@@REMOTEDIR@@"
+      exclude: ["*.tmp"]
+      delete: false
+      checksum: false
 """
   result = result
     .replace("@@PROJECT@@", project)

@@ -11,43 +11,11 @@
 import std/[os, osproc, strutils, tables]
 import pkg/kapsis/interactive/prompts
 import ./configs
+import ./remotes
 
-proc sshCmd(prof: WebProfile, remote: string): string =
-  ## An `ssh` invocation for `prof` running `remote` (single-quoted on the wire).
-  var s = "ssh"
-  if prof.port > 0 and prof.port != 22:
-    s.add(" -p " & $prof.port)
-  if prof.sshKey.len > 0:
-    s.add(" -i " & expandPath(prof.sshKey))
-  s.add(" -o BatchMode=yes -o ConnectTimeout=" & $prof.timeout)
-  s.add(" " & prof.user & "@" & prof.host & " '" & remote.replace("'", "'\\''") & "'")
-  s
-
-proc rsyncCmd(prof: WebProfile, localDir: string, dryRun: bool): string =
-  ## The rsync invocation mirroring the local dir to the remote dir.
-  var s = "rsync"
-  if prof.compressOn():
-    s.add(" -z")
-  s.add(" -a --partial")
-  if dryRun:
-    s.add(" -n")
-  if prof.delete:
-    s.add(" --delete")
-  if prof.checksum:
-    s.add(" --checksum")
-  for ex in prof.exclude:
-    s.add(" --exclude=" & ex)
-  var sshArgs = "-o BatchMode=yes"
-  if prof.port > 0 and prof.port != 22:
-    sshArgs.add(" -p " & $prof.port)
-  if prof.sshKey.len > 0:
-    sshArgs.add(" -i " & expandPath(prof.sshKey))
-  s.add(" -e 'ssh " & sshArgs & "'")
-  s.add(" " & quoteShell(localDir) & "/ " & prof.user & "@" & prof.host & ":" & prof.remoteDir & "/")
-  s
-
-proc runRemote(prof: WebProfile, cmd: string, verbose: bool): tuple[output: string, exitCode: int] =
-  let full = sshCmd(prof, cmd)
+proc runRemote(prof: WebProfile, auth: RemoteAuth, cmd: string,
+    verbose: bool): tuple[output: string, exitCode: int] =
+  let full = sshCmd(prof.user, prof.host, prof.port, auth, prof.timeout, cmd)
   if verbose:
     display("  > ssh ... " & cmd)
   result = execCmdEx(full)
@@ -69,12 +37,20 @@ proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
     displayError("Local directory not found: " & localDir)
     return 1
 
+  # Remote auth: key when configured, otherwise a one-time password prompt
+  # (never stored in the config file).
+  let authRes = ensureRemoteAuth(prof.user, prof.host, prof.sshKey)
+  if not authRes.ok:
+    return 1
+  let auth = authRes.auth
+  applySshpassEnv(auth)
+
   # `--status`: just report the service state, no deploy.
   if statusOnly:
     if prof.systemd.service.len == 0:
       displayError("No systemd service configured for profile '" & profileName & "'")
       return 1
-    let (output, code) = runRemote(prof, "systemctl status " & prof.systemd.service, verbose)
+    let (output, code) = runRemote(prof, auth, "systemctl status " & prof.systemd.service, verbose)
     write(stdout, output)
     return code
 
@@ -88,7 +64,10 @@ proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
       return code
 
   # rsync (confirm unless --yes; --dry-run is a no-op transfer)
-  let cmd = rsyncCmd(prof, localDir, dryRun)
+  let remoteDest = prof.user & "@" & prof.host & ":" & prof.remoteDir
+  let cmd = rsyncCmd(localDir, remoteDest, prof.user, prof.host, prof.port,
+    auth, prof.timeout, dryRun, prof.delete, prof.checksum,
+    prof.compressOn(), prof.exclude)
   display("  " & cyan(cmd))
   if not yes and not dryRun:
     if not promptConfirm("Deploy to " & profileName & " on " & prof.host & "?"):
@@ -114,7 +93,7 @@ proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
       let remoteUnit =
         if sd.unitRemotePath.len > 0: sd.unitRemotePath
         else: "/etc/systemd/system/" & sd.service & ".service"
-      let uploadCmd = sshCmd(prof, sudoPrefix & "tee " & remoteUnit) &
+      let uploadCmd = sshCmd(prof.user, prof.host, prof.port, auth, prof.timeout, sudoPrefix & "tee " & remoteUnit) &
         " < " & quoteShell(unitPath)
       if verbose:
         display("  > ssh ... " & sudoPrefix & "tee " & remoteUnit & " < " & unitPath)
@@ -124,25 +103,25 @@ proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
         displayError("Failed to install systemd unit " & remoteUnit)
         return c
     if sdDaemonReload(sd):
-      let (o, c) = runRemote(prof, sudoPrefix & "systemctl daemon-reload", verbose)
+      let (o, c) = runRemote(prof, auth, sudoPrefix & "systemctl daemon-reload", verbose)
       write(stdout, o)
       if c != 0:
         displayError("systemctl daemon-reload failed")
         return c
     if sd.enable:
-      let (o, c) = runRemote(prof, sudoPrefix & "systemctl enable " & sd.service, verbose)
+      let (o, c) = runRemote(prof, auth, sudoPrefix & "systemctl enable " & sd.service, verbose)
       write(stdout, o)
       if c != 0:
         displayError("systemctl enable failed")
         return c
     if sdRestart(sd):
-      let (o, c) = runRemote(prof, sudoPrefix & "systemctl restart " & sd.service, verbose)
+      let (o, c) = runRemote(prof, auth, sudoPrefix & "systemctl restart " & sd.service, verbose)
       write(stdout, o)
       if c != 0:
         displayError("systemctl restart failed for " & sd.service)
         return c
     if sdStatus(sd):
-      let (o, c) = runRemote(prof, "systemctl --quiet is-active " & sd.service, verbose)
+      let (o, c) = runRemote(prof, auth, "systemctl --quiet is-active " & sd.service, verbose)
       write(stdout, o)
       if c != 0:
         displayError("Service not active after restart: " & sd.service)
@@ -150,7 +129,7 @@ proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
 
   # post-deploy hooks (remote)
   for c in prof.postDeploy:
-    let (o, code2) = runRemote(prof, c, verbose)
+    let (o, code2) = runRemote(prof, auth, c, verbose)
     write(stdout, o)
     if code2 != 0:
       displayError("postDeploy failed: " & c)

@@ -71,9 +71,12 @@ when isMainModule:
       #
       -- "Deployment"
       deploy:
-        ## Deploy the current project using clue.deploy.yaml (cli/desktop/web)
+        ## Deploy using clue.deploy.yaml (web target, directory sync)
         init ?string("--type"), ?bool("--workflow"), ?bool("--yes"), ?bool("--force"):
           ## Scaffold clue.deploy.yaml
+        dir ?bool("--dry-run"), ?bool("--yes"), ?bool("--verbose"), ?string("--config"),
+            ?string("--key"), ?string("--profile"):
+          ## Sync a directory profile to a local path or remote host (static sites)
         web ?bool("--dry-run"), ?bool("--yes"), ?bool("--verbose"), ?string("--config"),
             ?string("--key"), ?string("--profile"), ?bool("--status"):
           ## Deploy the web target over rsync/ssh (systemd-managed)

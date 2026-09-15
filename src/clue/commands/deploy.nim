@@ -7,7 +7,38 @@
 import pkg/kapsis/runtime
 import pkg/kapsis/interactive/prompts
 
-import ../deploy/[configs, init, web]
+import ../deploy/[configs, dir, init, web]
+
+proc loadDeployConfig(configPath: string): tuple[cfg: DeployConfig, ok: bool] =
+  ## Locate and parse the deploy config. Quits the process on any failure.
+  var path = ""
+  try:
+    path = findDeployConfig(configPath)
+  except CatchableError as e:
+    displayError(e.msg, quitProcess = true)
+    return (DeployConfig(), false)
+  if path.len == 0:
+    displayError("No clue.deploy.yaml / clue.deploy.json found. Run `clue deploy.init` first.", quitProcess = true)
+    return (DeployConfig(), false)
+  try:
+    (parseDeployConfig(path), true)
+  except CatchableError as e:
+    displayError("Failed to parse " & path & ": " & e.msg, quitProcess = true)
+    (DeployConfig(), false)
+
+proc deployFlags(v: Values): tuple[configPath, profileName, keyOverride: string,
+    dryRun, yes, verbose: bool] =
+  let configPath =
+    if v.has("--config"): v.get("--config").getStr
+    else: ""
+  let profileName =
+    if v.has("--profile"): v.get("--profile").getStr
+    else: "production"
+  let keyOverride =
+    if v.has("--key"): v.get("--key").getStr
+    else: ""
+  (configPath, profileName, keyOverride,
+    v.has("--dry-run"), v.has("--yes"), v.has("--verbose"))
 
 proc deployInitCommand*(v: Values) =
   let deployType =
@@ -18,38 +49,21 @@ proc deployInitCommand*(v: Values) =
   let force = v.has("--force")
   initDeploy(deployType, writeWorkflow, yes, force)
 
+proc deployDirCommand*(v: Values) =
+  let (configPath, profileName, keyOverride, dryRun, yes, verbose) = deployFlags(v)
+  let (cfg, ok) = loadDeployConfig(configPath)
+  if not ok:
+    return
+  let code = deployDir(cfg, profileName, keyOverride, dryRun, yes, verbose)
+  if code != 0:
+    quit(code)
+
 proc deployWebCommand*(v: Values) =
-  let configPath =
-    if v.has("--config"): v.get("--config").getStr
-    else: ""
-  let profileName =
-    if v.has("--profile"): v.get("--profile").getStr
-    else: "production"
-  let keyOverride =
-    if v.has("--key"): v.get("--key").getStr
-    else: ""
-  let dryRun = v.has("--dry-run")
-  let yes = v.has("--yes")
-  let verbose = v.has("--verbose")
+  let (configPath, profileName, keyOverride, dryRun, yes, verbose) = deployFlags(v)
   let statusOnly = v.has("--status")
-
-  var path = ""
-  try:
-    path = findDeployConfig(configPath)
-  except CatchableError as e:
-    displayError(e.msg, quitProcess = true)
+  let (cfg, ok) = loadDeployConfig(configPath)
+  if not ok:
     return
-  if path.len == 0:
-    displayError("No clue.deploy.yaml / clue.deploy.json found. Run `clue deploy.init` first.", quitProcess = true)
-    return
-
-  var cfg: DeployConfig
-  try:
-    cfg = parseDeployConfig(path)
-  except CatchableError as e:
-    displayError("Failed to parse " & path & ": " & e.msg, quitProcess = true)
-    return
-
   let code = deployWeb(cfg, profileName, keyOverride, dryRun, yes, verbose, statusOnly)
   if code != 0:
     quit(code)
