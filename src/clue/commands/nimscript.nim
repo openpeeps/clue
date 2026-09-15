@@ -312,6 +312,13 @@ proc ensureNimscriptEnv*(nimblePath: string) =
       dirs.add(d)
   putEnv("__NIMBLE_PATHS", dirs.join("|"))
   var defines = ""
+  # Nimble parity: tests compile with `-d:NimblePkgVersion=<version>` so
+  # `const NimblePkgVersion {.strdefine.}` resolves to the package version.
+  # Covers both the built-in default runner (via `__CLUE_DEFINES`) and custom
+  # `task test` bodies (via the temp nim.cfg in setupTempNimCfg). Skipped when
+  # the nimble file declares no version or the user passed their own define.
+  if nimble.version.len > 0 and not extras.join(" ").contains("NimblePkgVersion"):
+    defines.add(" -d:NimblePkgVersion=" & nimble.version)
   for pkg, feats in installedFeatures():
     for f in feats:
       defines.add(" -d:features." & pkg & "." & f)

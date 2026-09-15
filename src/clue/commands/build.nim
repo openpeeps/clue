@@ -242,8 +242,20 @@ proc resolveBackend(v: Values): string =
   if v.has("-b"): v.get("-b").getAny
   else: "c"
 
-proc buildCommand*(v: Values) =
+proc pkgVersionDefine(nimble: NimbleFile, userFlags: string): string =
+  ## Nimble parity: package builds compile with
+  ## `-d:NimblePkgVersion=<version>` so source code can read it via
+  ## `const NimblePkgVersion {.strdefine.}: string`.
+  ## 
+  ## Skipped when the nimble file declares no version or the user
+  ## already passed their own `-d:NimblePkgVersion` (theirs wins)
+  ## Related: https://github.com/openpeeps/clue/issues/6
+  if nimble.version.len == 0: return ""
+  if userFlags.contains("NimblePkgVersion"): return ""
+  " -d:NimblePkgVersion=" & nimble.version
 
+proc buildCommand*(v: Values) =
+  ## Kapsis CLI handler for build command
   let file =
     if v.has("file"): v.get("file").getStr.changeFileExt("nim")
     else: ""
@@ -348,7 +360,10 @@ proc buildCommand*(v: Values) =
     let srcFile = pkgDir / srcDir / bin.addFileExt("nim")
     let outFile = if outPath.len > 0: outPath / bin
                   else: pkgDir / binDir / bin
-    var flags = " " & pathFlags.join(" ") & featureDefines & defaultColorsFlag(nimFlags) & " " & nimFlags & toolchainFlags
+    var flags = " " & pathFlags.join(" ") & featureDefines &
+                      pkgVersionDefine(nimble, nimFlags) &
+                      defaultColorsFlag(nimFlags) & " " &
+                      nimFlags & toolchainFlags
     if isRelease:
       flags.add(" -d:release --opt:size")
     elif isDebug:
@@ -622,6 +637,7 @@ proc checkCommand*(v: Values) =
   var checkFailed = false
   for target in targets:
     let flags = " " & pathFlags.join(" ") & featureDefines &
+      pkgVersionDefine(nimble, nimFlags) &
       defaultColorsFlag(nimFlags) & " " & nimFlags & toolchainFlags
     let cmd = &"{resolveNimBin()} check{flags} {target}"
     let (output, exitCode) = execCmdEx(cmd)
