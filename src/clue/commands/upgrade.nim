@@ -12,6 +12,7 @@ import pkg/kapsis/runtime
 import pkg/kapsis/interactive/prompts
 
 import ../pkgmanager/configs
+import ../deploy/releases
 
 const
   repoOwner = "openpeeps"
@@ -86,29 +87,6 @@ proc latestVersion(): string =
         return v
   ""
 
-proc extractArchive(workDir, archive, name, ext: string): bool =
-  ## Extract the downloaded release archive into `workDir`, returning true on
-  ## success. Uses bsdtar where possible (POSIX, and Windows 10+ bundles tar);
-  ## falls back to PowerShell Expand-Archive for zips.
-  case ext
-  of "tar.gz":
-    let (_, code) = execCmdEx("tar xzf " & quoteShell(archive) & " -C " &
-      quoteShell(workDir))
-    code == 0
-  of "zip":
-    let (_, code) = execCmdEx("tar xf " & quoteShell(archive) & " -C " &
-      quoteShell(workDir))
-    if code == 0:
-      return true
-    let winZip = archive
-    let winDest = workDir
-    let (_, code2) = execCmdEx("powershell -NoProfile -Command " &
-      quoteShell("Expand-Archive -Force -LiteralPath '" & winZip &
-        "' -DestinationPath '" & winDest & "'"))
-    code2 == 0
-  else:
-    false
-
 proc findBinary(workDir, name: string): string =
   ## Locate the clue binary inside the extracted archive directory.
   for f in walkDirRec(workDir):
@@ -169,7 +147,7 @@ proc upgradeCommand*(v: Values) =
     displayError("Failed to download the release: " & url, quitProcess = true)
     return
 
-  if not extractArchive(workDir, archive, asset, ext):
+  if not extractArchive(workDir, archive):
     displayError("Failed to extract the release archive", quitProcess = true)
     return
 

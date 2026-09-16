@@ -117,3 +117,109 @@ release:
     let cfg = parseDeployConfig(p)
     check cfg.project == "x"
     check cfg.`type` == "cli"
+
+suite "deploy configs — release":
+  test "parses a dir release block and defaults mode to local":
+    let p = writeTemp("release.yaml", """
+project: myapp
+type: bin
+dir:
+  profiles:
+    binary:
+      from: bin
+      to: /srv/myapp
+      release:
+        repo: acme/myapp
+        asset: myapp_linux-x86_64.tar.gz
+        binary: myapp
+""")
+    defer: removeDir(getTempDir() / "clue_deploy_configs" / $getCurrentProcessId())
+    let cfg = parseDeployConfig(p)
+    let rel = cfg.dir.profiles["binary"].release
+    check rel.repo == "acme/myapp"
+    check rel.asset == "myapp_linux-x86_64.tar.gz"
+    check rel.binary == "myapp"
+    check rel.mode == "local"
+
+  test "keeps an explicit remote mode":
+    let p = writeTemp("release-remote.yaml", """
+project: myapp
+type: bin
+dir:
+  profiles:
+    binary:
+      to: /srv/myapp
+      host: example.com
+      user: deploy
+      release:
+        repo: acme/myapp
+        asset: myapp
+        mode: remote
+""")
+    defer: removeDir(getTempDir() / "clue_deploy_configs" / $getCurrentProcessId())
+    let cfg = parseDeployConfig(p)
+    check cfg.dir.profiles["binary"].release.mode == "remote"
+
+  test "release defaults to empty without a block":
+    let p = writeTemp("norelease.yaml", """
+project: myapp
+type: bin
+dir:
+  profiles:
+    binary:
+      from: bin
+      to: /srv/myapp
+""")
+    defer: removeDir(getTempDir() / "clue_deploy_configs" / $getCurrentProcessId())
+    let cfg = parseDeployConfig(p)
+    check cfg.dir.profiles["binary"].release.repo == ""
+
+suite "deploy configs — steps":
+  test "parses web and dir steps with names":
+    let p = writeTemp("steps.yaml", """
+project: myapp
+type: bin
+web:
+  localDir: dist/web
+  profiles:
+    production:
+      host: example.com
+      user: deploy
+      remoteDir: /srv/myapp
+      steps:
+        - name: "Who am I"
+          run: "whoami"
+        - run: "uptime"
+dir:
+  profiles:
+    binary:
+      from: bin
+      to: /srv/myapp
+      steps:
+        - run: "systemctl restart myapp"
+""")
+    defer: removeDir(getTempDir() / "clue_deploy_configs" / $getCurrentProcessId())
+    let cfg = parseDeployConfig(p)
+    let webSteps = cfg.web.profiles["production"].steps
+    check webSteps.len == 2
+    check webSteps[0].name == "Who am I"
+    check webSteps[0].run == "whoami"
+    check webSteps[1].name == ""
+    check webSteps[1].run == "uptime"
+    let dirSteps = cfg.dir.profiles["binary"].steps
+    check dirSteps.len == 1
+    check dirSteps[0].run == "systemctl restart myapp"
+
+  test "steps default to empty without a block":
+    let p = writeTemp("nosteps.yaml", """
+project: myapp
+type: bin
+dir:
+  profiles:
+    binary:
+      from: bin
+      to: /srv/myapp
+""")
+    defer: removeDir(getTempDir() / "clue_deploy_configs" / $getCurrentProcessId())
+    let cfg = parseDeployConfig(p)
+    check cfg.dir.profiles["binary"].steps.len == 0

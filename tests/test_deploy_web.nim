@@ -41,3 +41,18 @@ suite "deploy web — deployWeb validation":
     let cfg = minimalConfig(profs)
     check deployWeb(cfg, "prod", "", dryRun = false, yes = true,
       verbose = false, statusOnly = true) == 1
+
+  test "a password does not bypass the host requirement":
+    var profs = newOrderedTable[string, WebProfile]()
+    profs["prod"] = WebProfile(host: "", user: "deploy", remoteDir: "/srv/app")
+    let cfg = minimalConfig(profs)
+    check deployWeb(cfg, "prod", "", password = "s3cr3t", dryRun = false,
+      yes = true, verbose = false, statusOnly = false) == 1
+
+  test "a step without run is rejected before any transfer":
+    var profs = newOrderedTable[string, WebProfile]()
+    profs["prod"] = WebProfile(host: "example.com", user: "deploy",
+      remoteDir: "/srv/app", steps: @[RunStep(name: "oops")])
+    let cfg = minimalConfig(profs)
+    check deployWeb(cfg, "prod", "", dryRun = false, yes = true,
+      verbose = false, statusOnly = false) == 1

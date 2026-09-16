@@ -4,6 +4,7 @@
 # non-prompting paths (key configured, or no tty available).
 
 import std/[os, strutils, terminal, unittest]
+import clue/deploy/configs
 import clue/deploy/remotes
 
 suite "deploy remotes — sshTransport":
@@ -25,7 +26,8 @@ suite "deploy remotes — sshTransport":
     let cmd = sshTransport("deploy", "example.com", 22, auth, 60)
     check cmd.startsWith("sshpass -e ssh")
     check "s3cr3t!" notin cmd
-    check "BatchMode=yes" in cmd
+    # No BatchMode: ssh must prompt so that sshpass has something to answer.
+    check "BatchMode" notin cmd
 
   test "password without sshpass drops BatchMode for interactive ssh":
     let auth = RemoteAuth(password: "s3cr3t!", useSshpass: false)
@@ -65,6 +67,20 @@ suite "deploy remotes — rsyncCmd":
     check "-e 'ssh " in cmd
     check "deploy@example.com:/srv/www/" in cmd
 
+  test "rsync -e transport carries no host (rsync appends it from dest)":
+    let cmd = rsyncCmd("/s/src", "deploy@example.com:/srv/www", "deploy",
+      "example.com", 22, RemoteAuth(key: "k"), 60, dryRun = false,
+      delete = false, checksum = false, compress = true, exclude = @[])
+    check "-e 'ssh -i k -o BatchMode=yes -o ConnectTimeout=60'" in cmd
+
+  test "rsync -e transport with sshpass carries no host either":
+    let cmd = rsyncCmd("/s/src", "deploy@example.com:/srv/www", "deploy",
+      "example.com", 22, RemoteAuth(password: "pw", useSshpass: true), 60,
+      dryRun = false, delete = false, checksum = false, compress = true,
+      exclude = @[])
+    check "-e 'sshpass -e ssh -o ConnectTimeout=60'" in cmd
+    check "pw" notin cmd
+
 suite "deploy remotes — ensureRemoteAuth":
   test "a configured key resolves without prompting":
     let (auth, ok) = ensureRemoteAuth("deploy", "example.com", "~/.ssh/k")
@@ -79,3 +95,27 @@ suite "deploy remotes — ensureRemoteAuth":
     else:
       let (_, ok) = ensureRemoteAuth("deploy", "example.com", "")
       check not ok
+
+  test "a --password value resolves without prompting, even without a tty":
+    let (auth, ok) = ensureRemoteAuth("deploy", "example.com", "",
+      password = "s3cr3t!")
+    check ok
+    check auth.key == ""
+    check auth.password == "s3cr3t!"
+
+  test "a configured key wins over --password":
+    let (auth, ok) = ensureRemoteAuth("deploy", "example.com", "~/.ssh/k",
+      password = "s3cr3t!")
+    check ok
+    check auth.key == "~/.ssh/k"
+    check auth.password == ""
+
+suite "deploy remotes — steps":
+  test "stepLabel prefers the name over the command":
+    check stepLabel(RunStep(name: "Who am I", run: "whoami")) == "Who am I"
+    check stepLabel(RunStep(run: "uptime")) == "uptime"
+
+  test "validateSteps rejects a step without run":
+    check not validateSteps(@[RunStep(name: "oops")], "prod")
+    check validateSteps(@[RunStep(run: "whoami")], "prod")
+    check validateSteps(@[], "prod")

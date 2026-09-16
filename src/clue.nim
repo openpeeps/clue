@@ -75,10 +75,10 @@ when isMainModule:
         init ?any("--type" = ["bin", "static"]), ?bool("--yes"), ?bool("--force"):
           ## Scaffold clue.deploy.yaml
         dir ?bool("--dry-run"), ?bool("--yes"), ?bool("--verbose"), ?string("--config"),
-            ?string("--key"), ?string("--profile"):
+            ?string("--key"), ?string("--password"), ?string("--profile"):
           ## Sync a directory profile to a local path or remote host (static sites)
         web ?bool("--dry-run"), ?bool("--yes"), ?bool("--verbose"), ?string("--config"),
-            ?string("--key"), ?string("--profile"), ?bool("--status"):
+            ?string("--key"), ?string("--password"), ?string("--profile"), ?bool("--status"):
           ## Deploy the web target over rsync/ssh (systemd-managed)
       
       #

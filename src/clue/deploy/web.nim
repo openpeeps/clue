@@ -6,7 +6,8 @@
 
 ## `clue deploy.web` — deploy a web target over rsync/ssh, with optional
 ## systemd service management (unit install, daemon-reload, enable, restart,
-## is-active verification).
+## is-active verification) and optional script `steps` run on the host
+## after the sync (GH-runner style `- run:` entries).
 
 import std/[os, osproc, strutils, tables]
 import pkg/kapsis/interactive/prompts
@@ -21,7 +22,8 @@ proc runRemote(prof: WebProfile, auth: RemoteAuth, cmd: string,
   result = execCmdEx(full)
 
 proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
-    dryRun, yes, verbose, statusOnly: bool): int =
+    password = "", dryRun = false, yes = false, verbose = false,
+    statusOnly = false): int =
   ## Deploy the `web` target. Returns a process exit code (0 on success).
   if cfg.web.profiles == nil or not cfg.web.profiles.hasKey(profileName):
     displayError("Web profile not found: " & profileName)
@@ -32,14 +34,17 @@ proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
   if prof.host.len == 0 or prof.user.len == 0 or prof.remoteDir.len == 0:
     displayError("Web profile '" & profileName & "' requires host, user and remoteDir")
     return 1
+  if not validateSteps(prof.steps, profileName):
+    return 1
   let localDir = cfg.web.localDir
   if not dirExists(localDir):
     displayError("Local directory not found: " & localDir)
     return 1
 
-  # Remote auth: key when configured, otherwise a one-time password prompt
-  # (never stored in the config file).
-  let authRes = ensureRemoteAuth(prof.user, prof.host, prof.sshKey)
+  # Remote auth: key when configured, otherwise the --password flag
+  # value, otherwise a one-time password prompt (never stored in the
+  # config file).
+  let authRes = ensureRemoteAuth(prof.user, prof.host, prof.sshKey, password)
   if not authRes.ok:
     return 1
   let auth = authRes.auth
@@ -79,7 +84,17 @@ proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
     displayError("rsync failed for profile " & profileName)
     return code
   if dryRun:
+    if prof.steps.len > 0:
+      discard runStepsRemote(prof.user, prof.host, prof.port, prof.timeout,
+        auth, prof.steps, dryRun = true, verbose)
     return 0
+
+  # script steps (remote, after sync, before service management)
+  if prof.steps.len > 0:
+    let stepCode = runStepsRemote(prof.user, prof.host, prof.port,
+      prof.timeout, auth, prof.steps, dryRun = false, verbose)
+    if stepCode != 0:
+      return stepCode
 
   # systemd management
   let sd = prof.systemd

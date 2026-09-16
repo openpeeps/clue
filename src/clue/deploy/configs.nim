@@ -23,6 +23,12 @@ type
     sudo*: Option[bool]
     status*: Option[bool]
 
+  RunStep* = object
+    ## One script step executed on the host, GH-runner style:
+    ## `- run: whoami`. `name` is an optional label shown in the output.
+    name*: string
+    run*: string
+
   WebProfile* = object
     name*: string
     host*: string
@@ -38,11 +44,25 @@ type
     timeout*: int
     preBuild*: seq[string]
     postDeploy*: seq[string]
+    steps*: seq[RunStep]
     systemd*: SystemdConfig
 
   WebConfig* = object
     localDir*: string
     profiles*: OrderedTableRef[string, WebProfile]
+
+  ReleaseConfig* = object
+    ## Optional GitHub release sourcing for a `dir` profile: when `repo`
+    ## is set, the deployed binary comes from the latest release of the
+    ## public `owner/name` repo instead of the local `from` dir.
+    ## `mode` is `local` (download and extract on this machine into a
+    ## staging dir, then rsync as usual) or `remote` (curl and extract
+    ## directly on the target host). `binary` names the binary inside
+    ## archive assets (required there) and renames raw assets.
+    repo*: string
+    asset*: string
+    mode*: string
+    binary*: string
 
   DirProfile* = object
     ## A directory placement profile: sync `from` to `to`.
@@ -62,6 +82,8 @@ type
     checksum*: bool
     compress*: Option[bool]
     timeout*: int
+    release*: ReleaseConfig
+    steps*: seq[RunStep]
 
   DirConfig* = object
     profiles*: OrderedTableRef[string, DirProfile]
@@ -138,4 +160,6 @@ proc parseDeployConfig*(path: string): DeployConfig =
         p.port = 22
       if p.timeout <= 0:
         p.timeout = 60
+      if p.release.repo.len > 0 and p.release.mode.len == 0:
+        p.release.mode = "local"
       result.dir.profiles[name] = p

@@ -4,17 +4,19 @@
 #          Made by Humans from OpenPeeps
 #          https://github.com/openpeeps/clue
 
-## Shared ssh/rsync builders and remote authentication for the deploy
-## targets (`deploy web`, `deploy dir`).
+## Shared ssh/rsync builders, remote authentication and script steps
+## for the deploy targets (`deploy web`, `deploy dir`).
 ##
-## Passwords are never stored in config files: when a remote target has no
-## ssh key configured, clue prompts once via `promptSecret` and keeps the
-## secret only in process memory for the duration of the run. It is fed to
-## ssh via `sshpass -e` (the `SSHPASS` env var, never a cmdline argument)
-## when `sshpass` is available; otherwise `BatchMode` is dropped so ssh
-## itself prompts interactively on the terminal.
+## Passwords are never stored in config files: they arrive via the
+## `--password` flag or, when neither a key nor the flag is given, via a
+## one-time terminal prompt. Either way the secret is kept only in
+## process memory for the duration of the run. It is fed to ssh via
+## `sshpass -e` (the `SSHPASS` env var, never a cmdline argument) when
+## `sshpass` is available (required for non-interactive password use);
+## otherwise `BatchMode` is dropped so ssh itself prompts interactively
+## on the terminal.
 
-import std/[os, strutils, terminal]
+import std/[os, osproc, strutils, terminal]
 import pkg/kapsis/interactive/prompts
 import ./configs
 
@@ -28,15 +30,20 @@ proc isRemoteHost*(host: string): bool =
   ## A target is remote when a host is configured, local otherwise.
   host.len > 0
 
-proc ensureRemoteAuth*(user, host, key: string): tuple[auth: RemoteAuth, ok: bool] =
+proc ensureRemoteAuth*(user, host, key: string, password = ""): tuple[auth: RemoteAuth, ok: bool] =
   ## Resolve how to authenticate to `user@host`. Key auth when a key is
-  ## configured, otherwise prompt once for a password (empty answer means
-  ## key auth only). Fails cleanly when stdin is not a terminal.
+  ## configured (it wins over a password), otherwise the `--password`
+  ## flag value when given, otherwise prompt once for a password (empty
+  ## answer means key auth only). Fails cleanly when stdin is not a
+  ## terminal and no password was supplied.
   if key.len > 0:
     return (RemoteAuth(key: key), true)
+  if password.len > 0:
+    return (RemoteAuth(password: password,
+      useSshpass: findExe("sshpass").len > 0), true)
   if not isatty(stdin):
     displayError("No ssh key configured for " & user & "@" & host &
-      " and stdin is not a terminal. Configure sshKey or use key auth.")
+      " and stdin is not a terminal. Configure sshKey, pass --password, or use key auth.")
     return (RemoteAuth(), false)
   let pw = promptSecret("Password for " & user & "@" & host & " (empty for key auth):",
     required = false)
@@ -50,12 +57,12 @@ proc applySshpassEnv*(auth: RemoteAuth) =
   if auth.useSshpass:
     putEnv("SSHPASS", auth.password)
 
-proc sshTransport*(user, host: string, port: int, auth: RemoteAuth,
+proc sshTransportArgs*(port: int, auth: RemoteAuth,
     timeout: int): string =
-  ## The ssh invocation (without remote command) used directly and as the
-  ## rsync `-e` transport. Never embeds the password: with `sshpass` it
-  ## comes from the `SSHPASS` env var (see `applySshpassEnv`), otherwise
-  ## `BatchMode` is dropped so ssh prompts on the terminal itself.
+  ## The ssh flags (no host): for rsync `-e`, which appends the host from
+  ## the destination itself. A transport string that already contains
+  ## `user@host` would make rsync hand ssh two hosts, and the second one
+  ## would be executed as a remote command.
   result = ""
   if auth.useSshpass:
     result.add("sshpass -e ")
@@ -64,16 +71,76 @@ proc sshTransport*(user, host: string, port: int, auth: RemoteAuth,
     result.add(" -p " & $port)
   if auth.key.len > 0:
     result.add(" -i " & expandPath(auth.key))
-  if auth.key.len > 0 or auth.useSshpass:
+  if auth.key.len > 0 and auth.password.len == 0:
     result.add(" -o BatchMode=yes")
   result.add(" -o ConnectTimeout=" & $timeout)
-  result.add(" " & user & "@" & host)
+
+proc sshTransport*(user, host: string, port: int, auth: RemoteAuth,
+    timeout: int): string =
+  ## The ssh invocation (without remote command) for direct ssh use
+  ## (`sshCmd`). Never embeds the password: with `sshpass` it comes from
+  ## the `SSHPASS` env var (see `applySshpassEnv`), otherwise `BatchMode`
+  ## is dropped so ssh prompts on the terminal itself.
+  ## Note `BatchMode` is only set for key auth: password logins need ssh
+  ## to actually prompt, otherwise `sshpass` has nothing to answer and
+  ## every password login fails. rsync does NOT use this proc: it takes
+  ## `sshTransportArgs` and appends the host from the destination.
+  sshTransportArgs(port, auth, timeout) & " " & user & "@" & host
 
 proc sshCmd*(user, host: string, port: int, auth: RemoteAuth,
     timeout: int, remote: string): string =
   ## An `ssh` invocation running `remote` (single-quoted on the wire).
   sshTransport(user, host, port, auth, timeout) &
     " '" & remote.replace("'", "'\\''") & "'"
+
+proc validateSteps*(steps: seq[RunStep], profileName: string): bool =
+  ## Every step needs a `run` command. Call before any auth or transfer
+  ## so config mistakes fail without touching the network.
+  for s in steps:
+    if s.run.strip().len == 0:
+      displayError("Profile '" & profileName & "' has a step without `run`")
+      return false
+  true
+
+proc stepLabel*(s: RunStep): string =
+  ## What to show for a step: its name, or the command itself.
+  if s.name.len > 0: s.name else: s.run
+
+proc runStepsRemote*(user, host: string, port, timeout: int,
+    auth: RemoteAuth, steps: seq[RunStep], dryRun, verbose: bool): int =
+  ## Run `steps` on `user@host` over ssh, in order, stopping at the
+  ## first failure. `dryRun` only prints what would run. Returns a
+  ## process exit code (0 on success).
+  for s in steps:
+    display("  $ " & stepLabel(s))
+    let full = sshCmd(user, host, port, auth, timeout, s.run)
+    if verbose:
+      display("  > ssh ... " & s.run)
+    if dryRun:
+      continue
+    let (output, code) = execCmdEx(full)
+    write(stdout, output)
+    if code != 0:
+      displayError("step failed: " & stepLabel(s))
+      return code
+  0
+
+proc runStepsLocal*(steps: seq[RunStep], dryRun, verbose: bool): int =
+  ## Run `steps` in a local shell, in order, stopping at the first
+  ## failure. `dryRun` only prints what would run. Returns a process
+  ## exit code (0 on success).
+  for s in steps:
+    display("  $ " & stepLabel(s))
+    if verbose:
+      display("  > " & s.run)
+    if dryRun:
+      continue
+    let (output, code) = execCmdEx(s.run)
+    write(stdout, output)
+    if code != 0:
+      displayError("step failed: " & stepLabel(s))
+      return code
+  0
 
 proc rsyncCmd*(localSrc, dest, user, host: string, port: int,
     auth: RemoteAuth, timeout: int, dryRun, delete, checksum,
@@ -93,7 +160,7 @@ proc rsyncCmd*(localSrc, dest, user, host: string, port: int,
   for ex in exclude:
     result.add(" --exclude=" & ex)
   if remote:
-    result.add(" -e '" & sshTransport(user, host, port, auth, timeout) & "'")
+    result.add(" -e '" & sshTransportArgs(port, auth, timeout) & "'")
     result.add(" " & quoteShell(localSrc) & "/ " & dest & "/")
   else:
     result.add(" " & quoteShell(localSrc) & "/ " & quoteShell(dest) & "/")

@@ -42,6 +42,94 @@ suite "deploy dir — validation":
     check deployDir(cfg, "site", "", dryRun = false, yes = true,
       verbose = false) == 1
 
+  test "a password does not bypass the user requirement":
+    var profs = newOrderedTable[string, DirProfile]()
+    profs["site"] = DirProfile(`from`: getTempDir(), to: "/srv/www",
+      host: "example.com", user: "")
+    let cfg = DeployConfig(dir: DirConfig(profiles: profs))
+    check deployDir(cfg, "site", "", password = "s3cr3t",
+      dryRun = false, yes = true, verbose = false) == 1
+
+  test "release without asset is rejected without network":
+    var profs = newOrderedTable[string, DirProfile]()
+    profs["binary"] = DirProfile(to: "/srv/myapp",
+      release: ReleaseConfig(repo: "acme/myapp"))
+    let cfg = DeployConfig(dir: DirConfig(profiles: profs))
+    check deployDir(cfg, "binary", "", dryRun = true, yes = true,
+      verbose = false) == 1
+
+  test "release with unknown mode is rejected without network":
+    var profs = newOrderedTable[string, DirProfile]()
+    profs["binary"] = DirProfile(to: "/srv/myapp",
+      release: ReleaseConfig(repo: "acme/myapp", asset: "myapp", mode: "ftp"))
+    let cfg = DeployConfig(dir: DirConfig(profiles: profs))
+    check deployDir(cfg, "binary", "", dryRun = true, yes = true,
+      verbose = false) == 1
+
+  test "remote release mode without host is rejected without network":
+    var profs = newOrderedTable[string, DirProfile]()
+    profs["binary"] = DirProfile(to: "/srv/myapp",
+      release: ReleaseConfig(repo: "acme/myapp", asset: "myapp", mode: "remote"))
+    let cfg = DeployConfig(dir: DirConfig(profiles: profs))
+    check deployDir(cfg, "binary", "", dryRun = true, yes = true,
+      verbose = false) == 1
+
+suite "deploy dir — steps":
+  test "a step without run is rejected before any transfer":
+    var profs = newOrderedTable[string, DirProfile]()
+    profs["site"] = DirProfile(`from`: getTempDir(), to: getTempDir(),
+      steps: @[RunStep(name: "oops")])
+    let cfg = DeployConfig(dir: DirConfig(profiles: profs))
+    check deployDir(cfg, "site", "", dryRun = false, yes = true,
+      verbose = false) == 1
+
+  test "dry-run prints steps without running them":
+    let base = tmpBase("steps-dry")
+    let src = base / "src"
+    let dest = base / "dest"
+    let marker = base / "marker.txt"
+    createDir(src)
+    defer: removeDir(base)
+    var profs = newOrderedTable[string, DirProfile]()
+    profs["site"] = DirProfile(`from`: src, to: dest,
+      steps: @[RunStep(run: "touch " & marker)])
+    let cfg = DeployConfig(dir: DirConfig(profiles: profs))
+    check deployDir(cfg, "site", "", dryRun = true, yes = true,
+      verbose = false) == 0
+    check not fileExists(marker)
+
+  when defined(posix):
+    test "local steps run in order after the sync":
+      let base = tmpBase("steps-run")
+      let src = base / "src"
+      let dest = base / "dest"
+      let marker = base / "marker.txt"
+      createDir(src)
+      defer: removeDir(base)
+      var profs = newOrderedTable[string, DirProfile]()
+      profs["site"] = DirProfile(`from`: src, to: dest,
+        steps: @[RunStep(name: "Mark", run: "touch " & marker)])
+      let cfg = DeployConfig(dir: DirConfig(profiles: profs))
+      check deployDir(cfg, "site", "", dryRun = false, yes = true,
+        verbose = false) == 0
+      check fileExists(marker)
+
+    test "a failing step stops the run with its exit code":
+      let base = tmpBase("steps-fail")
+      let src = base / "src"
+      let dest = base / "dest"
+      let marker = base / "marker.txt"
+      createDir(src)
+      defer: removeDir(base)
+      var profs = newOrderedTable[string, DirProfile]()
+      profs["site"] = DirProfile(`from`: src, to: dest,
+        steps: @[RunStep(run: "exit 3"),
+          RunStep(run: "touch " & marker)])
+      let cfg = DeployConfig(dir: DirConfig(profiles: profs))
+      check deployDir(cfg, "site", "", dryRun = false, yes = true,
+        verbose = false) == 3
+      check not fileExists(marker)
+
 suite "deploy dir — local sync":
   test "copies files from source to destination":
     let base = tmpBase("copy")
