@@ -136,11 +136,25 @@ proc runStepsLocal*(steps: seq[RunStep], dryRun, verbose: bool): int =
       return code
   0
 
+proc toMsysPath*(path: string): string =
+  ## Rewrite a native Windows path to msys-posix form (`C:\a\b` ->
+  ## `/c/a/b`) so an msys rsync (e.g. from Git for Windows) does not
+  ## parse the drive colon as a remote `host:path` separator. UNC paths
+  ## (`\\srv\sh` -> `//srv/sh`) and relative paths pass through with
+  ## only backslashes normalized. Callers gate this on `defined(windows)`;
+  ## it is a pure conversion so it stays unit-testable on every OS.
+  result = path.replace('\\', '/')
+  if result.len >= 2 and result[1] == ':' and
+      result[0] in {'a'..'z', 'A'..'Z'}:
+    result = "/" & result[0].toLowerAscii() & result[2 .. ^1]
+
 proc rsyncCmd*(localSrc, dest, user, host: string, port: int,
     auth: RemoteAuth, timeout: int, dryRun, delete, checksum,
     compress: bool, exclude: seq[string]): string =
   ## The rsync invocation mirroring `localSrc` to `dest`. `dest` is a local
-  ## path when `host` is empty, otherwise `user@host:path`.
+  ## path when `host` is empty, otherwise `user@host:path`. On Windows the
+  ## local side is converted with `toMsysPath`; the remote side is already
+  ## `user@host:path` and is never converted.
   let remote = isRemoteHost(host)
   result = "rsync -a --partial"
   if dryRun:
@@ -153,8 +167,14 @@ proc rsyncCmd*(localSrc, dest, user, host: string, port: int,
     result.add(" -z")
   for ex in exclude:
     result.add(" --exclude=" & ex)
+  let src =
+    when defined(windows): quoteShell(toMsysPath(localSrc))
+    else: quoteShell(localSrc)
   if remote:
     result.add(" -e '" & sshTransportArgs(port, auth, timeout) & "'")
-    result.add(" " & quoteShell(localSrc) & "/ " & dest & "/")
+    result.add(" " & src & "/ " & dest & "/")
   else:
-    result.add(" " & quoteShell(localSrc) & "/ " & quoteShell(dest) & "/")
+    let dst =
+      when defined(windows): quoteShell(toMsysPath(dest))
+      else: quoteShell(dest)
+    result.add(" " & src & "/ " & dst & "/")

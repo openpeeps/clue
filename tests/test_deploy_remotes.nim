@@ -105,3 +105,15 @@ suite "deploy remotes — steps":
     check not validateSteps(@[RunStep(name: "oops")], "prod")
     check validateSteps(@[RunStep(run: "whoami")], "prod")
     check validateSteps(@[], "prod")
+
+suite "deploy remotes — toMsysPath":
+  test "drive-letter paths become posix without a colon":
+    check toMsysPath("C:\\Users\\a\\site") == "/c/Users/a/site"
+    check toMsysPath("D:/x") == "/d/x"
+    check toMsysPath("c:\\a") == "/c/a"
+
+  test "colon-free paths only get backslashes normalized":
+    check toMsysPath("/c/already") == "/c/already"
+    check toMsysPath("dist\\site") == "dist/site"
+    check toMsysPath("\\\\srv\\share") == "//srv/share"
+    check toMsysPath("user@host:/srv/app") == "user@host:/srv/app"
