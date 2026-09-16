@@ -42,14 +42,6 @@ suite "deploy dir — validation":
     check deployDir(cfg, "site", "", dryRun = false, yes = true,
       verbose = false) == 1
 
-  test "a password does not bypass the user requirement":
-    var profs = newOrderedTable[string, DirProfile]()
-    profs["site"] = DirProfile(`from`: getTempDir(), to: "/srv/www",
-      host: "example.com", user: "")
-    let cfg = DeployConfig(dir: DirConfig(profiles: profs))
-    check deployDir(cfg, "site", "", password = "s3cr3t",
-      dryRun = false, yes = true, verbose = false) == 1
-
   test "release without asset is rejected without network":
     var profs = newOrderedTable[string, DirProfile]()
     profs["binary"] = DirProfile(to: "/srv/myapp",

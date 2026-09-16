@@ -27,7 +27,7 @@ proc loadDeployConfig(configPath: string): tuple[cfg: DeployConfig, ok: bool] =
     (DeployConfig(), false)
 
 proc deployFlags(v: Values): tuple[configPath, profileName, keyOverride: string,
-    password: string, dryRun, yes, verbose: bool] =
+    dryRun, yes, verbose: bool] =
   let configPath =
     if v.has("--config"): v.get("--config").getStr
     else: ""
@@ -37,10 +37,7 @@ proc deployFlags(v: Values): tuple[configPath, profileName, keyOverride: string,
   let keyOverride =
     if v.has("--key"): v.get("--key").getStr
     else: ""
-  let password =
-    if v.has("--password"): v.get("--password").getStr
-    else: ""
-  (configPath, profileName, keyOverride, password,
+  (configPath, profileName, keyOverride,
     v.has("--dry-run"), v.has("--yes"), v.has("--verbose"))
 
 proc deployInitCommand*(v: Values) =
@@ -52,20 +49,20 @@ proc deployInitCommand*(v: Values) =
   initDeploy(deployType, yes, force)
 
 proc deployDirCommand*(v: Values) =
-  let (configPath, profileName, keyOverride, password, dryRun, yes, verbose) = deployFlags(v)
+  let (configPath, profileName, keyOverride, dryRun, yes, verbose) = deployFlags(v)
   let (cfg, ok) = loadDeployConfig(configPath)
   if not ok:
     return
-  let code = deployDir(cfg, profileName, keyOverride, password, dryRun, yes, verbose)
+  let code = deployDir(cfg, profileName, keyOverride, dryRun, yes, verbose)
   if code != 0:
     quit(code)
 
 proc deployWebCommand*(v: Values) =
-  let (configPath, profileName, keyOverride, password, dryRun, yes, verbose) = deployFlags(v)
+  let (configPath, profileName, keyOverride, dryRun, yes, verbose) = deployFlags(v)
   let statusOnly = v.has("--status")
   let (cfg, ok) = loadDeployConfig(configPath)
   if not ok:
     return
-  let code = deployWeb(cfg, profileName, keyOverride, password, dryRun, yes, verbose, statusOnly)
+  let code = deployWeb(cfg, profileName, keyOverride, dryRun, yes, verbose, statusOnly)
   if code != 0:
     quit(code)

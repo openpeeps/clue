@@ -27,8 +27,7 @@ import ./remotes
 import ./releases
 
 proc deployDir*(cfg: DeployConfig, profileName, keyOverride: string,
-    password = "", dryRun = false, yes = false,
-    verbose = false): int =
+    dryRun = false, yes = false, verbose = false): int =
   ## Sync the `dir` profile `profileName`. Returns a process exit code
   ## (0 on success).
   if cfg.dir.profiles == nil or not cfg.dir.profiles.hasKey(profileName):
@@ -63,7 +62,7 @@ proc deployDir*(cfg: DeployConfig, profileName, keyOverride: string,
         displayError("Dir profile '" & profileName &
           "' requires user for a remote host")
         return 1
-      let authRes = ensureRemoteAuth(prof.user, prof.host, prof.sshKey, password)
+      let authRes = ensureRemoteAuth(prof.user, prof.host, prof.sshKey)
       if not authRes.ok:
         return 1
       applySshpassEnv(authRes.auth)
@@ -95,7 +94,7 @@ proc deployDir*(cfg: DeployConfig, profileName, keyOverride: string,
     if prof.user.len == 0:
       displayError("Dir profile '" & profileName & "' requires user for a remote host")
       return 1
-    let authRes = ensureRemoteAuth(prof.user, prof.host, prof.sshKey, password)
+    let authRes = ensureRemoteAuth(prof.user, prof.host, prof.sshKey)
     if not authRes.ok:
       return 1
     auth = authRes.auth

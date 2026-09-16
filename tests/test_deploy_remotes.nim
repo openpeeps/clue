@@ -96,20 +96,6 @@ suite "deploy remotes — ensureRemoteAuth":
       let (_, ok) = ensureRemoteAuth("deploy", "example.com", "")
       check not ok
 
-  test "a --password value resolves without prompting, even without a tty":
-    let (auth, ok) = ensureRemoteAuth("deploy", "example.com", "",
-      password = "s3cr3t!")
-    check ok
-    check auth.key == ""
-    check auth.password == "s3cr3t!"
-
-  test "a configured key wins over --password":
-    let (auth, ok) = ensureRemoteAuth("deploy", "example.com", "~/.ssh/k",
-      password = "s3cr3t!")
-    check ok
-    check auth.key == "~/.ssh/k"
-    check auth.password == ""
-
 suite "deploy remotes — steps":
   test "stepLabel prefers the name over the command":
     check stepLabel(RunStep(name: "Who am I", run: "whoami")) == "Who am I"

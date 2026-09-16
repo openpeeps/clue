@@ -22,7 +22,7 @@ proc runRemote(prof: WebProfile, auth: RemoteAuth, cmd: string,
   result = execCmdEx(full)
 
 proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
-    password = "", dryRun = false, yes = false, verbose = false,
+    dryRun = false, yes = false, verbose = false,
     statusOnly = false): int =
   ## Deploy the `web` target. Returns a process exit code (0 on success).
   if cfg.web.profiles == nil or not cfg.web.profiles.hasKey(profileName):
@@ -41,10 +41,9 @@ proc deployWeb*(cfg: DeployConfig, profileName, keyOverride: string,
     displayError("Local directory not found: " & localDir)
     return 1
 
-  # Remote auth: key when configured, otherwise the --password flag
-  # value, otherwise a one-time password prompt (never stored in the
-  # config file).
-  let authRes = ensureRemoteAuth(prof.user, prof.host, prof.sshKey, password)
+  # Remote auth: key when configured, otherwise a one-time password prompt
+  # (never stored in the config file).
+  let authRes = ensureRemoteAuth(prof.user, prof.host, prof.sshKey)
   if not authRes.ok:
     return 1
   let auth = authRes.auth

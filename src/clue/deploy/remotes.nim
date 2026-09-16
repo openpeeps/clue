@@ -7,14 +7,13 @@
 ## Shared ssh/rsync builders, remote authentication and script steps
 ## for the deploy targets (`deploy web`, `deploy dir`).
 ##
-## Passwords are never stored in config files: they arrive via the
-## `--password` flag or, when neither a key nor the flag is given, via a
-## one-time terminal prompt. Either way the secret is kept only in
-## process memory for the duration of the run. It is fed to ssh via
-## `sshpass -e` (the `SSHPASS` env var, never a cmdline argument) when
-## `sshpass` is available (required for non-interactive password use);
-## otherwise `BatchMode` is dropped so ssh itself prompts interactively
-## on the terminal.
+## Passwords are never stored in config files and never passed as flags:
+## when a remote target has no ssh key configured, clue prompts once on
+## the terminal via `promptSecret` and keeps the secret only in process
+## memory for the duration of the run. It is fed to ssh via `sshpass -e`
+## (the `SSHPASS` env var, never a cmdline argument) when `sshpass` is
+## available; otherwise `BatchMode` is dropped so ssh itself prompts
+## interactively on the terminal.
 
 import std/[os, osproc, strutils, terminal]
 import pkg/kapsis/interactive/prompts
@@ -30,20 +29,15 @@ proc isRemoteHost*(host: string): bool =
   ## A target is remote when a host is configured, local otherwise.
   host.len > 0
 
-proc ensureRemoteAuth*(user, host, key: string, password = ""): tuple[auth: RemoteAuth, ok: bool] =
+proc ensureRemoteAuth*(user, host, key: string): tuple[auth: RemoteAuth, ok: bool] =
   ## Resolve how to authenticate to `user@host`. Key auth when a key is
-  ## configured (it wins over a password), otherwise the `--password`
-  ## flag value when given, otherwise prompt once for a password (empty
-  ## answer means key auth only). Fails cleanly when stdin is not a
-  ## terminal and no password was supplied.
+  ## configured, otherwise prompt once for a password (empty answer means
+  ## key auth only). Fails cleanly when stdin is not a terminal.
   if key.len > 0:
     return (RemoteAuth(key: key), true)
-  if password.len > 0:
-    return (RemoteAuth(password: password,
-      useSshpass: findExe("sshpass").len > 0), true)
   if not isatty(stdin):
     displayError("No ssh key configured for " & user & "@" & host &
-      " and stdin is not a terminal. Configure sshKey, pass --password, or use key auth.")
+      " and stdin is not a terminal. Configure sshKey or use key auth.")
     return (RemoteAuth(), false)
   let pw = promptSecret("Password for " & user & "@" & host & " (empty for key auth):",
     required = false)
