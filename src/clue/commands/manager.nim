@@ -157,67 +157,31 @@ proc installCommand*(v: Values) =
       recordInstall(pkgName, version, deps, root = true,
         features = @[], installPath = verDir)
       displaySuccess("Installed " & pkgName & "@" & version & " to " & verDir)
-    var localDepLabels: seq[string]
-    var localSeen = initHashSet[string]()
+    # Immediate mode: per-package lines stream from inside `installPackage`
+    # (clone/fetch/install start + finish). Emit one header up front, then
+    # only a summary count afterwards — no post-hoc bulk re-print.
+    var localDirect: seq[string]
     var localHeaderEmitted = false
-    proc ensureLocalHeader() =
-      if not localHeaderEmitted:
-        displaySuccess("Installing packages...")
-        localHeaderEmitted = true
-    proc displayLbl(lbl: string) =
-      let msg = "  " & lbl
-      let headIdx = msg.find("#HEAD")
-      if headIdx >= 0:
-        let prefix = msg[0 ..< headIdx]
-        let suffix = if headIdx + 5 < msg.len: msg[headIdx + 5 .. ^1] else: ""
-        display(@[span(prefix, DefaultTextFg, indentSize = 0),
-                  span("#HEAD", fgYellow, indentSize = 0),
-                  span(suffix, DefaultTextFg, indentSize = 0)])
-      else:
-        let atIdx = msg.find("@")
-        if atIdx >= 0:
-          let prefix = msg[0 .. atIdx]
-          let verPart = if atIdx + 1 < msg.len: msg[atIdx+1 .. ^1] else: ""
-          display(@[span(prefix, DefaultTextFg, indentSize = 0),
-                    span(verPart, indentSize = 0)])
-        else:
-          display(msg)
     for d in nimble.requires:
       if d.isNim: continue
+      if not localHeaderEmitted:
+        displayInfo("Installing packages...")
+        localHeaderEmitted = true
       let dep = depName(d)
       if dep.len == 0:
-        displayWarning("cannot derive package name from URL: " & d.url & " - skipping")
+        displayWarning("Cannot derive package name from URL: " & d.url & " - skipping")
         continue
+      if dep notin localDirect:
+        localDirect.add(dep)
       let refStr = if d.branch.len > 0: d.branch elif d.tag.len > 0: d.tag else: ""
       installPackage(dep, refStr, false, d.features, verbose, constraint = d.constraint, url = d.url, suppressSummary = true)
-      proc fmtLbl(name, ver: string): string =
-        if ver.len == 0 or ver == "0.0.0" or ver == name:
-          return name & "#HEAD"
-        try:
-          discard parseVersion(ver)
-          return name & "@" & ver
-        except CatchableError:
-          return name & "#HEAD"
-      let depPath = resolveInstalledPath(dep, refStr)
-      let verLabel = if depPath.len > 0: depPath.lastPathPart else: refStr
-      let lbl = fmtLbl(dep, verLabel)
-      if lbl notin localSeen:
-        localSeen.incl(lbl)
-        localDepLabels.add(lbl)
-        ensureLocalHeader()
-        displayLbl(lbl)
+    var localSeen = initHashSet[string]()
+    for dep in localDirect:
+      localSeen.incl(dep)
       for tdep in collectInstalledDepNames(@[dep]):
-        if tdep notin localSeen:
-          let tp = resolveInstalledPath(tdep, "")
-          let tv = if tp.len > 0: tp.lastPathPart else: ""
-          let tlbl = fmtLbl(tdep, tv)
-          if tlbl notin localSeen:
-            localSeen.incl(tlbl)
-            localDepLabels.add(tlbl)
-            ensureLocalHeader()
-            displayLbl(tlbl)
-    if localDepLabels.len > 0:
-      displaySuccess("Installed " & $localDepLabels.len & " " & pluralize(localDepLabels.len, "package"))
+        localSeen.incl(tdep)
+    if localSeen.len > 0:
+      displaySuccess("Installed " & $localSeen.len & " " & pluralize(localSeen.len, "package"))
     if doBuild and not depsOnly:
       if not buildInstalled(pkgName, buildRelease, buildDebug, verbose,
           nimFlags = extras, backend = backend):
@@ -316,11 +280,14 @@ template whenPackageExists(pkgName: string, body: untyped): untyped =
         break
   if not hasInstalled:
     hasInstalled = resolveInstalledPath(pkgName, "").len > 0
-  let hasRegistry = clueDB.getTable("packages")
-                        .get()
-                        .where("name", newTextValue(pkgName))
-                        .toSeq()
-                        .len > 0
+  # Self-scoped (nesting is free): valid regardless of caller scope.
+  var hasRegistry = false
+  withClueDB do:
+    hasRegistry = clueDB.getTable("packages")
+                          .get()
+                          .where("name", newTextValue(pkgName))
+                          .toSeq()
+                          .len > 0
   if hasInstalled or hasRegistry:
     block:
       `body`

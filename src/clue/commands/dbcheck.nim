@@ -28,8 +28,16 @@ proc dbPathLabel(a: ActiveDb): string =
   of adbClue: "clue.db"
   of adbVersions: "versions.db"
 
+proc dbPathFor(a: ActiveDb): string =
+  case a
+  of adbClue: getClueCfg().dbPath()
+  of adbVersions: getClueCfg().versionsDBPath()
+
 proc initDbCtx(a: ActiveDb): DbCtx =
-  initClue()
+  ## Builds a context on the currently open stores. Call ONLY inside
+  ## `withClueDB` — the handle is invalid once the scope closes, so every
+  ## REPL command / one-shot query builds a fresh ctx per scope instead of
+  ## holding the databases (and their cross-process lock) for the session.
   case a
   of adbClue:
     let s = getClueCfg().stores.db
@@ -156,14 +164,16 @@ proc renderDotHelp() =
   echo "  SELECT name, url FROM packages WHERE name='semver';"
   echo ""
 
-proc renderDatabases(clueCtx, versionsCtx: DbCtx, active: ActiveDb) =
+proc renderDatabases(active: ActiveDb) =
   echo ""
   let cur = dbPathLabel(active)
   echo "Attached databases:"
-  for ctx in [clueCtx, versionsCtx]:
-    let marker = if ctx.label == cur: " * " else: "   "
-    let exists = if fileExists(ctx.path): "" else: " (not found)"
-    echo marker & ctx.label & "  ->  " & ctx.path & exists
+  for a in [adbClue, adbVersions]:
+    let label = dbPathLabel(a)
+    let path = dbPathFor(a)
+    let marker = if label == cur: " * " else: "   "
+    let exists = if fileExists(path): "" else: " (not found)"
+    echo marker & label & "  ->  " & path & exists
   echo ""
 
 proc renderSchema(ctx: DbCtx, tableName: string) =
@@ -210,25 +220,24 @@ proc execAndRender(ctx: DbCtx, sql: string, asJson: bool) =
     displayError(e.msg)
 
 proc repl(active: ActiveDb, asJson: bool) =
-  let clueCtx = initDbCtx(adbClue)
-  let versionsCtx = initDbCtx(adbVersions)
+  # No long-lived ctx: every command below opens the databases in a short
+  # `withClueDB` scope and closes them right after, so other clue processes
+  # can use them while this REPL idles.
   var curActive = active
-  proc curCtx(): DbCtx =
-    if curActive == adbClue: clueCtx else: versionsCtx
 
-  if not fileExists(curCtx().path):
-    displayWarning(curCtx().label & " not found at " & curCtx().path & " — tables will be empty")
+  if not fileExists(dbPathFor(curActive)):
+    displayWarning(dbPathLabel(curActive) & " not found at " & dbPathFor(curActive) & " — tables will be empty")
 
   echo ""
   echo "clue dbcheck — read-only SQL REPL (boogie/openparser/sql)"
-  echo "  DB: " & curCtx().label & "  " & curCtx().path
+  echo "  DB: " & dbPathLabel(curActive) & "  " & dbPathFor(curActive)
   echo "  Type .help for dot-commands, .quit to exit. Only SELECT is allowed."
   echo ""
 
   var buffer = ""
   while true:
     let promptStr =
-      if buffer.len == 0: "clue:" & curCtx().label & "> "
+      if buffer.len == 0: "clue:" & dbPathLabel(curActive) & "> "
       else: "   ...> "
     stdout.write(promptStr)
     stdout.flushFile()
@@ -251,17 +260,19 @@ proc repl(active: ActiveDb, asJson: bool) =
       of ".help", ".h":
         renderDotHelp()
       of ".tables":
-        let tables = curCtx().listTables()
-        if tables.len == 0:
-          displayInfo("no tables")
-        else:
-          for t in tables:
-            echo "  " & t
+        withClueDB do:
+          let tables = initDbCtx(curActive).listTables()
+          if tables.len == 0:
+            displayInfo("no tables")
+          else:
+            for t in tables:
+              echo "  " & t
       of ".schema":
         let arg = if parts.len > 1: parts[1] else: ""
-        renderSchema(curCtx(), arg)
+        withClueDB do:
+          renderSchema(initDbCtx(curActive), arg)
       of ".databases", ".dbs", ".db":
-        renderDatabases(clueCtx, versionsCtx, curActive)
+        renderDatabases(curActive)
       of ".quit", ".exit", ".q":
         break
       of ".use":
@@ -271,10 +282,10 @@ proc repl(active: ActiveDb, asJson: bool) =
           let target = parts[1].toLowerAscii()
           if target in ["clue", "clue.db"]:
             curActive = adbClue
-            echo "Switched to clue.db (" & clueCtx.path & ")"
+            echo "Switched to clue.db (" & dbPathFor(curActive) & ")"
           elif target in ["versions", "versions.db"]:
             curActive = adbVersions
-            echo "Switched to versions.db (" & versionsCtx.path & ")"
+            echo "Switched to versions.db (" & dbPathFor(curActive) & ")"
           else:
             displayError("unknown database: " & parts[1] & " (use clue or versions)")
       else:
@@ -294,7 +305,8 @@ proc repl(active: ActiveDb, asJson: bool) =
       # skip empty
       if sql.strip == ";":
         continue
-      execAndRender(curCtx(), sql, asJson)
+      withClueDB do:
+        execAndRender(initDbCtx(curActive), sql, asJson)
     else:
       # also allow executing on empty line? no — keep buffering
       # If buffer contains a dot-command-like but we already handled, continue
@@ -305,25 +317,26 @@ proc repl(active: ActiveDb, asJson: bool) =
       discard
 
 proc oneShot(active: ActiveDb, sql: string, asJson: bool) =
-  let ctx = initDbCtx(active)
-  if not fileExists(ctx.path):
-    displayWarning(ctx.label & " not found at " & ctx.path)
   let check = isReadOnlySql(sql)
   if not check.ok:
     displayError(check.err, quitProcess = true)
-  try:
-    let res = ctx.eng.execSql(sql)
-    let (cols, rr) = applyLimitFallback(res.columns, res.rows, sql)
-    if asJson:
-      renderJson(cols, rr)
-    else:
-      renderTable(cols, rr)
-  except SqlEngineError as e:
-    displayError(e.msg, quitProcess = true)
-  except SqlParseError as e:
-    displayError(e.msg, quitProcess = true)
-  except CatchableError as e:
-    displayError(e.msg, quitProcess = true)
+  withClueDB do:
+    let ctx = initDbCtx(active)
+    if not fileExists(ctx.path):
+      displayWarning(ctx.label & " not found at " & ctx.path)
+    try:
+      let res = ctx.eng.execSql(sql)
+      let (cols, rr) = applyLimitFallback(res.columns, res.rows, sql)
+      if asJson:
+        renderJson(cols, rr)
+      else:
+        renderTable(cols, rr)
+    except SqlEngineError as e:
+      displayError(e.msg, quitProcess = true)
+    except SqlParseError as e:
+      displayError(e.msg, quitProcess = true)
+    except CatchableError as e:
+      displayError(e.msg, quitProcess = true)
 
 proc collectQuery(v: Values): string =
   # Prefer raw command line tail to preserve single quotes.
