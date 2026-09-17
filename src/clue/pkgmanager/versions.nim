@@ -24,6 +24,7 @@ import datpkgr/git as dg
 import datpkgr/types
 import datpkgr/config
 import datpkgr/install as di
+import datpkgr/store as ds
 import ./configs as clueConfigs
 import ./nimbleparser
 
@@ -151,8 +152,23 @@ proc resolveInstalledPath*(name, preferRef: string): string =
 proc installedRecords*(name: string): seq[di.InstalledRecord] =
   di.installedRecords(clueConfigs.clueCfg, name)
 
+proc isInstalledOnDisk*(name: string): bool =
+  di.isInstalledOnDisk(clueConfigs.clueCfg, name)
+
+proc installedVersionForReuse*(name, refStr: string): string =
+  di.installedVersionForReuse(clueConfigs.clueCfg, name, refStr)
+
+proc closureOnDisk*(name: string): bool =
+  di.closureOnDisk(clueConfigs.clueCfg, name)
+
+proc markInstalledRoot*(name, version: string) =
+  di.markInstalledRoot(clueConfigs.clueCfg, name, version)
+
 proc isDevInstall*(rec: di.InstalledRecord): bool =
   di.isDevInstall(clueConfigs.clueCfg, rec)
+
+proc isDevelopAvailable*(name: string): bool =
+  ds.isDevelopAvailable(clueConfigs.clueCfg, name)
 
 proc installedRoots*(): seq[string] =
   di.installedRoots(clueConfigs.clueCfg)

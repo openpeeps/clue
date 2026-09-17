@@ -9,7 +9,6 @@ import std/[sequtils, options, tables, sets, strformat, strutils,
 
 import pkg/[semver, openparser/json]
 import pkg/kapsis/[runtime, interactive/prompts]
-import pkg/malebolgia
 
 import ../pkgmanager/resolver
 import ../pkgmanager/configs
@@ -164,24 +163,103 @@ proc installCommand*(v: Values) =
       if not localHeaderEmitted:
         displaySuccess("Installing packages...")
         localHeaderEmitted = true
-    proc displayLbl(lbl: string) =
+    proc displayLbl(lbl: string, cached = false) =
       let msg = "  " & lbl
       let headIdx = msg.find("#HEAD")
       if headIdx >= 0:
         let prefix = msg[0 ..< headIdx]
         let suffix = if headIdx + 5 < msg.len: msg[headIdx + 5 .. ^1] else: ""
-        display(@[span(prefix, DefaultTextFg, indentSize = 0),
-                  span("#HEAD", fgYellow, indentSize = 0),
-                  span(suffix, DefaultTextFg, indentSize = 0)])
+        var parts = @[span(prefix, DefaultTextFg, indentSize = 0),
+                      span("#HEAD", fgYellow, indentSize = 0),
+                      span(suffix, DefaultTextFg, indentSize = 0)]
+        if cached:
+          parts.add(span(" (cached)", fgCyan, indentSize = 0))
+        display(parts)
       else:
         let atIdx = msg.find("@")
         if atIdx >= 0:
           let prefix = msg[0 .. atIdx]
           let verPart = if atIdx + 1 < msg.len: msg[atIdx+1 .. ^1] else: ""
-          display(@[span(prefix, DefaultTextFg, indentSize = 0),
-                    span(verPart, indentSize = 0)])
+          var parts = @[span(prefix, DefaultTextFg, indentSize = 0),
+                        span(verPart, indentSize = 0)]
+          if cached:
+            parts.add(span(" (cached)", fgCyan, indentSize = 0))
+          display(parts)
+        elif cached:
+          display(@[span(msg, DefaultTextFg, indentSize = 0),
+                    span(" (cached)", fgCyan, indentSize = 0)])
         else:
           display(msg)
+    proc fmtLbl(name, ver: string): string =
+      if ver.len == 0 or ver == "0.0.0" or ver == name:
+        return name & "#HEAD"
+      try:
+        discard parseVersion(ver)
+        return name & "@" & ver
+      except CatchableError:
+        return name & "#HEAD"
+    proc emitLbl(lbl: string, cached: bool) =
+      if lbl notin localSeen:
+        localSeen.incl(lbl)
+        localDepLabels.add(lbl)
+        ensureLocalHeader()
+        displayLbl(lbl, cached)
+    proc isInstalledOnDisk(name: string): bool =
+      ## Any installed-manifest row for `name` whose install dir exists on
+      ## disk. Matches semver rows, `HEAD`/ref rows and develop rows alike —
+      ## a db entry for an existing dir means the bits are reusable as-is.
+      for rec in installedRecords(name):
+        if rec.version.len == 0:
+          continue
+        let verDir = cluePkgsPath / name / rec.version
+        if dirExists(verDir) or (rec.path.len > 0 and dirExists(rec.path)):
+          return true
+      false
+    proc emitTransitives(dep: string) =
+      ## Display labels for `dep`'s recorded closure. Each label is marked
+      ## `(cached)` on its own merit (record + dir on disk), so markers don't
+      ## depend on which parent claimed the label first.
+      for tdep in collectInstalledDepNames(@[dep]):
+        if tdep notin localSeen:
+          let tp = resolveInstalledPath(tdep, "")
+          let tv = if tp.len > 0: tp.lastPathPart else: ""
+          emitLbl(fmtLbl(tdep, tv), isInstalledOnDisk(tdep))
+    proc installedVersionForReuse(dep: string, refStr: string,
+        constraint: VersionConstraint): string =
+      ## Installed version of `dep` reusable as-is (record exists and the
+      ## install dir is on disk), else "". Ref-pinned deps (branch/tag, incl.
+      ## HEAD installs recorded under their ref) match by ref; semver deps
+      ## match the newest record satisfying the nimble constraint.
+      var bestVer = newVersion(0, 0, 0)
+      for rec in installedRecords(dep):
+        if rec.version.len == 0:
+          continue
+        if refStr.len > 0:
+          if rec.version != refStr:
+            continue
+        else:
+          var v: Version
+          try: v = parseVersion(rec.version)
+          except CatchableError: continue
+          if not v.satisfies(constraint):
+            continue
+          if result.len > 0 and cmp(v, bestVer) <= 0:
+            continue
+          bestVer = v
+        let verDir = cluePkgsPath / dep / rec.version
+        if dirExists(verDir) or (rec.path.len > 0 and dirExists(rec.path)):
+          if refStr.len > 0:
+            return rec.version
+          result = rec.version
+    proc closureOnDisk(dep: string): bool =
+      ## Every package in `dep`'s recorded closure has an installed-manifest
+      ## row with an existing dir (roots included — `collectInstalledDepNames`
+      ## returns them; `HEAD`/ref rows count, `resolveInstalledPath` can't
+      ## see those).
+      for name in collectInstalledDepNames(@[dep]):
+        if not isInstalledOnDisk(name):
+          return false
+      true
     for d in nimble.requires:
       if d.isNim: continue
       let dep = depName(d)
@@ -189,33 +267,23 @@ proc installCommand*(v: Values) =
         displayWarning("cannot derive package name from URL: " & d.url & " - skipping")
         continue
       let refStr = if d.branch.len > 0: d.branch elif d.tag.len > 0: d.tag else: ""
+      var reused = ""
+      if not refresh and d.features.len == 0 and
+          not isDevelopAvailable(dep):
+        reused = installedVersionForReuse(dep, refStr, d.constraint)
+        if reused.len > 0 and not closureOnDisk(dep):
+          reused = ""
+      if reused.len > 0:
+        # Already installed with a complete closure on disk: no resolve, no
+        # fetch — reuse the bits as-is.
+        emitLbl(fmtLbl(dep, reused), true)
+        emitTransitives(dep)
+        continue
       installPackage(dep, refStr, false, d.features, verbose, constraint = d.constraint, url = d.url, suppressSummary = true)
-      proc fmtLbl(name, ver: string): string =
-        if ver.len == 0 or ver == "0.0.0" or ver == name:
-          return name & "#HEAD"
-        try:
-          discard parseVersion(ver)
-          return name & "@" & ver
-        except CatchableError:
-          return name & "#HEAD"
       let depPath = resolveInstalledPath(dep, refStr)
       let verLabel = if depPath.len > 0: depPath.lastPathPart else: refStr
-      let lbl = fmtLbl(dep, verLabel)
-      if lbl notin localSeen:
-        localSeen.incl(lbl)
-        localDepLabels.add(lbl)
-        ensureLocalHeader()
-        displayLbl(lbl)
-      for tdep in collectInstalledDepNames(@[dep]):
-        if tdep notin localSeen:
-          let tp = resolveInstalledPath(tdep, "")
-          let tv = if tp.len > 0: tp.lastPathPart else: ""
-          let tlbl = fmtLbl(tdep, tv)
-          if tlbl notin localSeen:
-            localSeen.incl(tlbl)
-            localDepLabels.add(tlbl)
-            ensureLocalHeader()
-            displayLbl(tlbl)
+      emitLbl(fmtLbl(dep, verLabel), false)
+      emitTransitives(dep)
     if localDepLabels.len > 0:
       displaySuccess("Installed " & $localDepLabels.len & " " & pluralize(localDepLabels.len, "package"))
     if doBuild and not depsOnly:
@@ -248,6 +316,30 @@ proc installCommand*(v: Values) =
     let pkgInput = split(raw, "@")
     let pkgName = pkgInput[0]
     let pkgRef = if pkgInput.len > 1 and pkgInput[1] != "head": pkgInput[1] else: ""
+    if not refresh:
+      # Already installed with a complete closure on disk: no resolve, no
+      # fetch — reuse the bits as-is. `--refresh` and git-URL installs
+      # always take the full path below.
+      let reused = installedVersionForReuse(pkgName, pkgRef)
+      if reused.len > 0 and closureOnDisk(pkgName):
+        markInstalledRoot(pkgName, reused)
+        displaySuccess("Installing packages...")
+        var isSemver = true
+        try: discard parseVersion(reused)
+        except CatchableError: isSemver = false
+        if isSemver:
+          display(@[span("  " & pkgName & "@", DefaultTextFg, indentSize = 0),
+                    span(reused, indentSize = 0),
+                    span(" (cached)", fgCyan, indentSize = 0)])
+        else:
+          display(@[span("  " & pkgName & "#" & reused, DefaultTextFg, indentSize = 0),
+                    span(" (cached)", fgCyan, indentSize = 0)])
+        displaySuccess("Installed 1 package")
+        if doBuild:
+          if not buildInstalled(pkgName, buildRelease, buildDebug, verbose,
+              nimFlags = extras, backend = backend):
+            return
+        return
     installPackage(pkgName, pkgRef, refresh, features, verbose,
           doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
           backend = backend, sourceFilter = sourceFilter, depsOnly = depsOnly)
@@ -258,7 +350,7 @@ proc installCommand*(v: Values) =
 
 proc updateCommand*(v: Values) =
   ## Wrapper around datpkgr/operations.updateAllPackages / updatePackage.
-  ## Parallelism (malebolgia) lives in datpkgr/operations (kept as subprocess model).
+  ## Parallelism (install-time thread pool) lives in datpkgr/pool.
   let verbose = v.has("--verbose")
   let cfg = getClueCfg()
   if v.has("pkg"):

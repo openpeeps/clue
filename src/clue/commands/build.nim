@@ -6,7 +6,6 @@
 import std/[os, osproc, strformat, strutils, algorithm, sets, tables, json, sequtils, options, locks]
 import pkg/semver
 import pkg/kapsis/[runtime, interactive/prompts]
-import pkg/malebolgia
 
 import ../pkgmanager/nimbleparser
 import ../pkgmanager/configs
@@ -175,7 +174,12 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
       directNames.add(name)
       directFeats[name] = dep.features
       pathFlags.add("--path:" & depPath)
-      if verbose: display("  dep " & name & " → " & depPath)
+      if verbose:
+        if isInsidePkgs(depPath):
+          display("  dep " & name & " → " & depPath)
+        else:
+          # Develop-mode checkout (live source outside the package registry).
+          displayWarning("dep " & name & " → " & depPath)
     else:
       displayWarning("Dependency not found: " & name)
 
@@ -197,7 +201,12 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
         changed = true
       if depPath.len > 0:
         pathFlags.add("--path:" & depPath)
-        if verbose: display("  dep " & name & " → " & depPath)
+        if verbose:
+          if isInsidePkgs(depPath):
+            display("  dep " & name & " → " & depPath)
+          else:
+            # Develop-mode checkout (live source outside the package registry).
+            displayWarning("dep " & name & " → " & depPath)
       else:
         displayWarning("Transitive dependency not found: " & name)
 
