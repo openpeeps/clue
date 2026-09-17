@@ -160,6 +160,8 @@ proc installCommand*(v: Values) =
     # (clone/fetch/install start + finish). Emit one header up front, then
     # only a summary count afterwards — no post-hoc bulk re-print.
     var localDirect: seq[string]
+    var localDepLabels: seq[string]
+    var localSeen = initHashSet[string]()
     var localHeaderEmitted = false
     proc ensureLocalHeader() =
       if not localHeaderEmitted:
