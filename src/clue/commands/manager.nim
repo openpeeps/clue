@@ -161,7 +161,6 @@ proc installCommand*(v: Values) =
     # only a summary count afterwards — no post-hoc bulk re-print.
     var localDirect: seq[string]
     var localHeaderEmitted = false
-<<<<<<< HEAD
     proc ensureLocalHeader() =
       if not localHeaderEmitted:
         displaySuccess("Installing packages...")
@@ -263,8 +262,6 @@ proc installCommand*(v: Values) =
         if not isInstalledOnDisk(name):
           return false
       true
-=======
->>>>>>> 25e4b935046b21ebbf6276be976b533c20a32c9b
     for d in nimble.requires:
       if d.isNim: continue
       if not localHeaderEmitted:
@@ -290,22 +287,12 @@ proc installCommand*(v: Values) =
         emitTransitives(dep)
         continue
       installPackage(dep, refStr, false, d.features, verbose, constraint = d.constraint, url = d.url, suppressSummary = true)
-<<<<<<< HEAD
       let depPath = resolveInstalledPath(dep, refStr)
       let verLabel = if depPath.len > 0: depPath.lastPathPart else: refStr
       emitLbl(fmtLbl(dep, verLabel), false)
       emitTransitives(dep)
     if localDepLabels.len > 0:
       displaySuccess("Installed " & $localDepLabels.len & " " & pluralize(localDepLabels.len, "package"))
-=======
-    var localSeen = initHashSet[string]()
-    for dep in localDirect:
-      localSeen.incl(dep)
-      for tdep in collectInstalledDepNames(@[dep]):
-        localSeen.incl(tdep)
-    if localSeen.len > 0:
-      displaySuccess("Installed " & $localSeen.len & " " & pluralize(localSeen.len, "package"))
->>>>>>> 25e4b935046b21ebbf6276be976b533c20a32c9b
     if doBuild and not depsOnly:
       if not buildInstalled(pkgName, buildRelease, buildDebug, verbose,
           nimFlags = extras, backend = backend):
