@@ -428,10 +428,20 @@ proc runTest(job: TestJob): int {.gcsafe.} =
   printTestOutput(output)
   exitCode
 
+proc normalizeTestFilter*(raw: string): string =
+  ## `sometest`, `sometest.nim`, `tests/sometest` and `tests/sometest.nim`
+  ## all resolve to `sometest`.
+  var s = raw.strip().extractFilename().strip()
+  if s.toLowerAscii.endsWith(".nim"):
+    s = s[0 ..< ^5]
+  s.strip()
+
 proc testCommand*(v: Values) =
   ## Compile and run test modules via nimscript. If the .nimble file defines
   ## a `task test`, it is executed directly. Otherwise a built-in default
   ## discovers `tests/t*.nim` and compiles each with `nim <backend> -r`.
+  ## With `clue test <name>` / `clue test "a, b"` only the given
+  ## `tests/*.nim` modules are compiled and run.
   let pkgDir = getCurrentDir()
   let projectFs = newProjectDisk()
   let nimblePath = findNimbleFile(pkgDir, getClueCfg(), projectFs)
@@ -445,6 +455,21 @@ proc testCommand*(v: Values) =
   checkNimConstraint(parseNimbleFile(nimblePath))
   let backend = if v.has("-b"): v.get("-b").getAny else: "c"
   let nimFlags = extras
+
+  # Optional test filter: `clue test sometest` or
+  # `clue test "test_one, test_two"`. Each entry accepts `name`,
+  # `name.nim` or `tests/name[.nim]`.
+  var testFilters: seq[string] = @[]
+  var testFiltersRaw: seq[string] = @[]
+  if v.has("files"):
+    for part in v.get("files").getStr.split(","):
+      let raw = part.strip()
+      if raw.len == 0: continue
+      testFiltersRaw.add(raw)
+      testFilters.add(normalizeTestFilter(raw))
+    if testFilters.len == 0:
+      displayError("Empty test name: " & v.get("files").getStr, quitProcess = true)
+      return
 
   # Resolve self + dependency paths and feature defines so both custom
   # nimscript tasks and the built-in default runner compile with the same
@@ -464,11 +489,15 @@ proc testCommand*(v: Values) =
   let tasks = listTasks(nimblePath)
   for (name, _) in tasks:
     if name.toLowerAscii == "test":
-      displayInfo("Running task 'test' from " & nimblePath.extractFilename() & "...")
+      if testFilters.len > 0:
+        displayInfo("Running task 'test' from " & nimblePath.extractFilename() &
+          " (filter: " & testFilters.join(", ") & ")...")
+      else:
+        displayInfo("Running task 'test' from " & nimblePath.extractFilename() & "...")
       let beforeCode = execNimscript(nimblePath, "testBefore", passNim = nimFlags)
       if beforeCode != 0:
         displayWarning("before hook for 'test' failed (exit " & $beforeCode & ")")
-      let exitCode = execNimscript(nimblePath, "test", passNim = nimFlags)
+      let exitCode = execNimscript(nimblePath, "test", args = testFilters, passNim = nimFlags)
       let afterCode = execNimscript(nimblePath, "testAfter", passNim = nimFlags)
       if afterCode != 0:
         displayWarning("after hook for 'test' failed (exit " & $afterCode & ")")
@@ -476,6 +505,71 @@ proc testCommand*(v: Values) =
         displayError("Task 'test' failed (exit " & $exitCode & ")")
         quit(1)
       return
+
+  # Filtered mode: `clue test <name>` or `clue test "a, b"` compiles and
+  # runs only the given `tests/*.nim` modules from the package root.
+  # Missing names are reported via displayError but don't block the
+  # ones that were found.
+  if testFilters.len > 0:
+    let testsDir = projectRoot / "tests"
+    var available: seq[string] = @[]
+    if dirExists(testsDir):
+      for kind, path in walkDir(testsDir):
+        if kind == pcFile and path.endsWith(".nim"):
+          available.add(path.extractFilename.changeFileExt(""))
+      available.sort()
+    var found: seq[tuple[name, raw, path: string]] = @[]
+    var missing: seq[string] = @[]
+    for i, f in testFilters:
+      let testPath = testsDir / (f & ".nim")
+      if fileExists(testPath):
+        found.add((f, testFiltersRaw[i], testPath))
+      else:
+        missing.add(testFiltersRaw[i])
+    for m in missing:
+      if available.len > 0:
+        displayError("Test \"" & m & "\" not found" &
+          " (available: " & available.join(", ") & ")")
+      else:
+        displayError("Test \"" & m & "\" not found" &
+          " (no .nim files in " & testsDir & ")")
+    if found.len == 0:
+      quit(1)
+    discard runNimscriptHook(nimblePath, "test", before=true)
+    let singleDefines = getEnv("__CLUE_DEFINES")
+    var failed: seq[string] = @[]
+    var passed = 0
+    for (name, raw, testPath) in found:
+      displayInfo("Compiling " & name & ".nim (" & backend & " backend)...")
+      let outFile = getTempDir() / ("clue_test_" & name)
+      var args = @[backend, "-r", "--path:" & projectRoot]
+      for f in testPathParts:
+        args.add(f)
+      if singleDefines.strip().len > 0:
+        for f in singleDefines.split(" "):
+          if f.len > 0: args.add(f)
+      for f in nimFlags:
+        args.add(f)
+      args.add("--out:" & outFile)
+      args.add(testPath)
+      var singleProcess = startProcess(resolveNimBin(), args = args,
+        workingDir = projectRoot, options = {poParentStreams})
+      let singleCode = singleProcess.waitForExit()
+      singleProcess.close()
+      if singleCode != 0:
+        displayError("Test '" & name & "' failed (exit " & $singleCode & ")")
+        failed.add(name)
+      else:
+        displaySuccess("OK: " & name)
+        inc passed
+    discard runNimscriptHook(nimblePath, "test", before=false)
+    if failed.len > 0:
+      displayError($failed.len & " test(s) failed: " & failed.join(", "))
+      quit(1)
+    if missing.len > 0:
+      quit(1)
+    displaySuccess("All " & $passed & " test(s) passed!")
+    return
 
   # No custom task — run built-in default via a compiled test runner
   displayInfo("Running default test task...")
