@@ -5,7 +5,7 @@
 # All filesystem is via flysystem single LocalDriver at ~/.clue,
 # callbacks replace kapsis, and manifest is pluggable (.nimble for Clue).
 
-import std/[os, osproc, strutils, options, terminal]
+import std/[os, osproc, strutils, options, terminal, locks]
 import pkg/boogie/stores/rdbms
 import pkg/flysystem
 import pkg/openparser/json
@@ -23,7 +23,15 @@ export datpkgrConfig
 # Global config for Clue - lazy init to avoid module init order segfault
 var clueCfgImpl: DatpkgrConfig
 
-proc clueLog*(level: LogLevel, msg: string) {.gcsafe.} =
+var displayLock: Lock
+displayLock.initLock()
+## Serializes ALL display output (styling spans are not thread-safe):
+## every clue callback below takes it, whether called from the main
+## thread (log) or a malebolgia worker (fetch/clone/install starts).
+## Leaf lock — display never calls back into datpkgr, so no inversion
+## with datpkgr's emitLock (which is always the outer one).
+
+proc clueLogImpl(level: LogLevel, msg: string) {.gcsafe.} =
   if msg == "":
     display("")
     return
@@ -140,14 +148,45 @@ proc clueLog*(level: LogLevel, msg: string) {.gcsafe.} =
   of lvlWarn: displayWarning(msg)
   of lvlError: displayError(msg)
 
+proc clueLog*(level: LogLevel, msg: string) {.gcsafe.} =
+  {.cast(gcsafe).}:
+    withLock displayLock:
+      clueLogImpl(level, msg)
+
 proc clueSubmodules*(name, dest: string) {.gcsafe.} =
   ## Notice printed under a package line when it ships git submodules.
-  display("→ Cloning submodules", indent = 4)
+  {.cast(gcsafe).}:
+    withLock displayLock:
+      display("→ Cloning submodules", indent = 4)
+
+proc clueFetchStart*(name: string) {.gcsafe.} =
+  ## Immediate mode: version discovery for `name` started.
+  {.cast(gcsafe).}:
+    withLock displayLock:
+      displayInfo("Resolving " & name & "...")
+      try: flushFile(stdout) except: discard
+
+proc clueCloneStart*(name, url: string) {.gcsafe.} =
+  ## Immediate mode: a `git clone`/`fetch` for `name` started.
+  {.cast(gcsafe).}:
+    withLock displayLock:
+      displayInfo(span(name), cyanSpan("→"), span(url))
+      try: flushFile(stdout) except: discard
+
+proc clueInstallStart*(label: string) {.gcsafe.} =
+  ## Immediate mode: installation of one resolved package started
+  ## (`label` is e.g. `name@1.2.3`).
+  {.cast(gcsafe).}:
+    withLock displayLock:
+      display("  " & label)
+      try: flushFile(stdout) except: discard
 
 proc getClueCfg*(): DatpkgrConfig =
   if clueCfgImpl.isNil:
     clueCfgImpl = newDatpkgrConfig("clue",
-      callbacks = Callbacks(log: clueLog, onSubmodules: clueSubmodules),
+      callbacks = Callbacks(log: clueLog, onSubmodules: clueSubmodules,
+        onFetchStart: clueFetchStart, onCloneStart: clueCloneStart,
+        onInstallStart: clueInstallStart),
       allowSubmodules = true)
     clueCfgImpl.withNimbleSupport(clueNimbleParser.nimbleManifestParser)
   clueCfgImpl

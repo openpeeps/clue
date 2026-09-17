@@ -104,7 +104,7 @@ proc buildInstalled*(name: string, release = true, debug = false,
   var seenPaths = initHashSet[string]()
   for pkg in dedupClosure:
     var p = ""
-    # Prefer develop symlink if present (e.g. datpkgr -> ~/Development/toys/datpkgr)
+    # Prefer develop symlink if present (e.g. datpkgr -> ~/src/datpkgr)
     let devPath = getClueCfg().developPath() / pkg
     if symlinkExists(devPath) or dirExists(devPath):
       p = devPath

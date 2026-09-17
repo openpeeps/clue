@@ -156,9 +156,12 @@ proc installCommand*(v: Values) =
       recordInstall(pkgName, version, deps, root = true,
         features = @[], installPath = verDir)
       displaySuccess("Installed " & pkgName & "@" & version & " to " & verDir)
-    var localDepLabels: seq[string]
-    var localSeen = initHashSet[string]()
+    # Immediate mode: per-package lines stream from inside `installPackage`
+    # (clone/fetch/install start + finish). Emit one header up front, then
+    # only a summary count afterwards — no post-hoc bulk re-print.
+    var localDirect: seq[string]
     var localHeaderEmitted = false
+<<<<<<< HEAD
     proc ensureLocalHeader() =
       if not localHeaderEmitted:
         displaySuccess("Installing packages...")
@@ -260,12 +263,19 @@ proc installCommand*(v: Values) =
         if not isInstalledOnDisk(name):
           return false
       true
+=======
+>>>>>>> 25e4b935046b21ebbf6276be976b533c20a32c9b
     for d in nimble.requires:
       if d.isNim: continue
+      if not localHeaderEmitted:
+        displayInfo("Installing packages...")
+        localHeaderEmitted = true
       let dep = depName(d)
       if dep.len == 0:
-        displayWarning("cannot derive package name from URL: " & d.url & " - skipping")
+        displayWarning("Cannot derive package name from URL: " & d.url & " - skipping")
         continue
+      if dep notin localDirect:
+        localDirect.add(dep)
       let refStr = if d.branch.len > 0: d.branch elif d.tag.len > 0: d.tag else: ""
       var reused = ""
       if not refresh and d.features.len == 0 and
@@ -280,12 +290,22 @@ proc installCommand*(v: Values) =
         emitTransitives(dep)
         continue
       installPackage(dep, refStr, false, d.features, verbose, constraint = d.constraint, url = d.url, suppressSummary = true)
+<<<<<<< HEAD
       let depPath = resolveInstalledPath(dep, refStr)
       let verLabel = if depPath.len > 0: depPath.lastPathPart else: refStr
       emitLbl(fmtLbl(dep, verLabel), false)
       emitTransitives(dep)
     if localDepLabels.len > 0:
       displaySuccess("Installed " & $localDepLabels.len & " " & pluralize(localDepLabels.len, "package"))
+=======
+    var localSeen = initHashSet[string]()
+    for dep in localDirect:
+      localSeen.incl(dep)
+      for tdep in collectInstalledDepNames(@[dep]):
+        localSeen.incl(tdep)
+    if localSeen.len > 0:
+      displaySuccess("Installed " & $localSeen.len & " " & pluralize(localSeen.len, "package"))
+>>>>>>> 25e4b935046b21ebbf6276be976b533c20a32c9b
     if doBuild and not depsOnly:
       if not buildInstalled(pkgName, buildRelease, buildDebug, verbose,
           nimFlags = extras, backend = backend):
@@ -408,11 +428,14 @@ template whenPackageExists(pkgName: string, body: untyped): untyped =
         break
   if not hasInstalled:
     hasInstalled = resolveInstalledPath(pkgName, "").len > 0
-  let hasRegistry = clueDB.getTable("packages")
-                        .get()
-                        .where("name", newTextValue(pkgName))
-                        .toSeq()
-                        .len > 0
+  # Self-scoped (nesting is free): valid regardless of caller scope.
+  var hasRegistry = false
+  withClueDB do:
+    hasRegistry = clueDB.getTable("packages")
+                          .get()
+                          .where("name", newTextValue(pkgName))
+                          .toSeq()
+                          .len > 0
   if hasInstalled or hasRegistry:
     block:
       `body`
