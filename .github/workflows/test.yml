@@ -11,21 +11,18 @@ jobs:
       pre-test-command: |
         clue build -d:release --verbose
         if [[ "$RUNNER_OS" == "Windows" ]]; then
-          # Windows has no built-in rsync, so install it via Chocolatey.
-          # cwRsync lands on system PATH and is visible to cmd-spawned
-          # processes (which is how Nim execCmdEx launches tools).
-          choco install -y rsync
-          # Fallback: Git for Windows ssh/touch in usr/bin. Probe the
-          # canonical location first, then the git-relative one, since
-          # command -v git can resolve to mingw64/bin on some runners.
-          for cand in "/c/Program Files/Git/usr/bin" "$(dirname "$(command -v git)")/../usr/bin"; do
-            if [[ -x "$cand/rsync.exe" ]]; then
-              echo "$(cygpath -w "$cand")" >> "$GITHUB_PATH"
-              break
-            fi
-          done
-          export PATH="$PATH:/c/Program Files/Git/usr/bin"
+          # Windows has no built-in rsync, and Git for Windows does not
+          # bundle rsync.exe. Clue converts local paths to msys-posix
+          # form (/c/...), so it needs MSYS2 rsync, not native cwRsync
+          # (which fails with change_dir errors on /c/... paths).
+          # Remove a shadowing cwRsync shim if present, then install
+          # rsync into the preinstalled MSYS2 at C:\msys64.
+          choco uninstall -y rsync || true
+          C:/msys64/usr/bin/pacman.exe -S --needed --noconfirm rsync
+          echo "C:\msys64\usr\bin" >> "$GITHUB_PATH"
+          export PATH="/c/msys64/usr/bin:$PATH"
           which rsync || where rsync
           rsync --version
           cmd.exe /c "rsync --version"
+          ls -l "/c/msys64/usr/bin/rsync.exe" || true
         fi
