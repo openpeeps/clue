@@ -6,6 +6,8 @@ jobs:
     with:
       cache: false
       os: '[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-14"},{"os":"macos-15-intel"}]'
+      nim-version: stable
+      test-flags: "-d:release"
       pre-test-command: |
         clue build -d:release --verbose
         if [[ "$RUNNER_OS" == "Windows" ]]; then
