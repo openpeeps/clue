@@ -11,9 +11,21 @@ jobs:
       pre-test-command: |
         clue build -d:release --verbose
         if [[ "$RUNNER_OS" == "Windows" ]]; then
-          # Git for Windows bundles rsync/touch/ssh in usr/bin, but that
-          # dir is not on PATH for cmd-spawned processes (which is how
-          # Nim's execCmdEx launches tools). Expose it to later steps.
-          git_bin="$(dirname "$(command -v git)")"
-          echo "$(cygpath -w "${git_bin}/../usr/bin")" >> "$GITHUB_PATH"
+          # Windows has no built-in rsync, so install it via Chocolatey.
+          # cwRsync lands on system PATH and is visible to cmd-spawned
+          # processes (which is how Nim execCmdEx launches tools).
+          choco install -y rsync
+          # Fallback: Git for Windows ssh/touch in usr/bin. Probe the
+          # canonical location first, then the git-relative one, since
+          # command -v git can resolve to mingw64/bin on some runners.
+          for cand in "/c/Program Files/Git/usr/bin" "$(dirname "$(command -v git)")/../usr/bin"; do
+            if [[ -x "$cand/rsync.exe" ]]; then
+              echo "$(cygpath -w "$cand")" >> "$GITHUB_PATH"
+              break
+            fi
+          done
+          export PATH="$PATH:/c/Program Files/Git/usr/bin"
+          which rsync || where rsync
+          rsync --version
+          cmd.exe /c "rsync --version"
         fi
