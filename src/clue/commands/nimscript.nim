@@ -22,6 +22,7 @@ import pkg/kapsis/[runtime, interactive/prompts]
 import ../pkgmanager/configs
 import ../pkgmanager/nimbleparser
 import ../pkgmanager/versions
+import ../pkgmanager/lockfile
 
 const
   # Wrapper template for .nims files — imports nimscriptapi and includes the .nimble
@@ -302,8 +303,41 @@ proc ensureNimscriptEnv*(nimblePath: string) =
   ## child `nim` processes via `__NIMBLE_PATHS` (pipe-separated dirs, read by
   ## getPaths/getPathsClause and setupTempNimCfg) and `__CLUE_DEFINES`.
   ## Called by `clue test` and `clue task` before running nimscript tasks.
+  ##
+  ## Fast path: reuse `clue.lock` when it matches a `dev`-only resolution.
+  ## A lock written with extra `--features` won't match here and falls back
+  ## to the full scan below — slower but always correct.
   let nimble = parseNimbleFile(nimblePath)
   let projectRoot = nimblePath.parentDir()
+  let pkgName = nimblePath.extractFilename.changeFileExt("")
+  let active = @["dev"]
+  let (ok, lock) = readLock(projectRoot)
+  if ok:
+    let nimVersion =
+      try: detectNimVersion()
+      except CatchableError: ""
+    if validateLock(lock, nimble, active, nimVersion,
+        getClueCfg().developPath()):
+      let (depFlags, _) = lockToFlags(lock, pkgName, active)
+      var seen = initHashSet[string]()
+      var dirs: seq[string] = @[]
+      for d in selfImportPaths(projectRoot, nimble):
+        if d notin seen:
+          seen.incl(d)
+          dirs.add(d)
+      for f in depFlags:
+        let p = if f.startsWith("--path:"): f[7 .. ^1] else: f
+        if p notin seen:
+          seen.incl(p)
+          dirs.add(p)
+      putEnv("__NIMBLE_PATHS", dirs.join("|"))
+      var defines = ""
+      if nimble.version.len > 0 and not extras.join(" ").contains("NimblePkgVersion"):
+        defines.add(" -d:NimblePkgVersion=" & nimble.version)
+      let (_, featDefines) = lockToFlags(lock, pkgName, active)
+      defines.add(featDefines)
+      putEnv("__CLUE_DEFINES", defines.strip())
+      return
   var seen = initHashSet[string]()
   var dirs: seq[string] = @[]
   for d in selfImportPaths(projectRoot, nimble) & allInstalledPaths():

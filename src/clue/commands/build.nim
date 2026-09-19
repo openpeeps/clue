@@ -11,6 +11,7 @@ import ../pkgmanager/nimbleparser
 import ../pkgmanager/configs
 import ../pkgmanager/versions
 import ../pkgmanager/resolver
+import ../pkgmanager/lockfile
 import ./manager
 import ./nimscript
 
@@ -123,8 +124,48 @@ proc resolveDepPath(depName: string, preferRef = ""): string =
       return srcDirPath(clueInstall / best, depName)
   ""
 
-proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
-    pkgName: string, verbose: bool): tuple[pathFlags: seq[string], featureDefines: string] =
+proc resolveDepVerDir(depName: string, preferRef = ""): string =
+  ## Like `resolveDepPath` but returns the version dir itself (unmapped),
+  ## so callers can read the resolved version via `lastPathPart` and tell
+  ## develop checkouts apart before `srcDir` mapping.
+  let recorded = resolveInstalledPath(depName, preferRef)
+  if recorded.len > 0:
+    return recorded
+  let clueInstall = cluePkgsPath / depName
+  if dirExists(clueInstall):
+    if preferRef.len > 0 and dirExists(clueInstall / preferRef):
+      return clueInstall / preferRef
+    var dirs: seq[string] = @[]
+    for entry in walkDir(clueInstall):
+      if entry.kind == pcDir:
+        dirs.add(entry.path.extractFilename)
+    var best = ""
+    var bestIsSemver = false
+    for d in dirs:
+      var isSemver = false
+      try:
+        discard parseVersion(d)
+        isSemver = true
+      except CatchableError:
+        discard
+      if best.len == 0:
+        best = d
+        bestIsSemver = isSemver
+      elif isSemver and not bestIsSemver:
+        best = d
+        bestIsSemver = true
+      elif isSemver == bestIsSemver:
+        if isSemver:
+          if parseVersion(d) > parseVersion(best): best = d
+        elif d > best:
+          best = d
+    if best.len > 0:
+      return clueInstall / best
+  ""
+
+proc collectResolvedPathsDetailed*(nimble: NimbleFile, activeRootFeatures: seq[string],
+    pkgName: string, verbose: bool): tuple[pathFlags: seq[string],
+    featureDefines: string, entries: seq[LockEntry]] =
   ## Resolve the dependency `--path` flags (and feature defines) for the given
   ## package, auto-installing anything missing. Used by `clue build` and
   ## `clue test`.
@@ -137,6 +178,25 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
 
   var pathFlags: seq[string]
   var processed = initHashSet[string]()
+  var lockEntries: seq[LockEntry] = @[]
+  var lockEntryIdx = initTable[string, int]()
+
+  proc trackEntry(name, constraintStr, verDir, importPath, url, refStr: string,
+      feats: seq[string]) =
+    # A live develop checkout (symlink present) must be re-validated on every
+    # build, so it is flagged. A record pointing outside the registry without
+    # a develop link (stale dev row) is just a pinned path — validated by
+    # existence like any registry entry.
+    let develop = isDevelopAvailable(name)
+    let version = if develop or not isInsidePkgs(verDir): "" else: verDir.lastPathPart
+    let e = LockEntry(name: name, version: version, constraint: constraintStr,
+      features: feats, path: importPath, develop: develop, url: url,
+      refStr: refStr)
+    if lockEntryIdx.hasKey(name):
+      lockEntries[lockEntryIdx[name]] = e
+    else:
+      lockEntryIdx[name] = lockEntries.len
+      lockEntries.add(e)
 
   # 1. Ensure direct deps are installed with the right features, resolving
   #    their paths. A registry-installed dep lacking a requested feature is
@@ -145,6 +205,9 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
   #    they're never re-installed for this purpose.
   var directNames: seq[string]
   var directFeats = initTable[string, seq[string]]()
+  var directConstraints = initTable[string, string]()
+  var directUrls = initTable[string, string]()
+  var directRefs = initTable[string, string]()
   for dep in directDeps:
     if dep.isNim: continue
     let name = depNameOf(dep)
@@ -173,6 +236,11 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
       processed.incl(name)
       directNames.add(name)
       directFeats[name] = dep.features
+      directConstraints[name] = $dep.constraint
+      directUrls[name] = dep.url
+      directRefs[name] = refStr
+      trackEntry(name, $dep.constraint, resolveDepVerDir(name, refStr),
+        depPath, dep.url, refStr, dep.features)
       pathFlags.add("--path:" & depPath)
       if verbose:
         if isInsidePkgs(depPath):
@@ -200,6 +268,7 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
         depPath = resolveDepPath(name)
         changed = true
       if depPath.len > 0:
+        trackEntry(name, "", resolveDepVerDir(name, ""), depPath, "", "", @[])
         pathFlags.add("--path:" & depPath)
         if verbose:
           if isInsidePkgs(depPath):
@@ -245,7 +314,71 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
         if d notin definedFeats:
           definedFeats.incl(d)
           featureDefines.add(d)
-  (pathFlags, featureDefines)
+  # Backfill transitive lock entries with recorded features (direct entries
+  # already carry the authoritative nimble features).
+  for i in 0 ..< lockEntries.len:
+    let n = lockEntries[i].name
+    if not directFeats.hasKey(n) and featsMap.hasKey(n):
+      lockEntries[i].features = featsMap[n]
+  (pathFlags, featureDefines, lockEntries)
+
+proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
+    pkgName: string, verbose: bool): tuple[pathFlags: seq[string], featureDefines: string] =
+  ## Back-compat wrapper — new code should prefer `collectResolvedPathsDetailed`
+  ## so the resolution can be persisted to `clue.lock`.
+  let (flags, defines, _) =
+    collectResolvedPathsDetailed(nimble, activeRootFeatures, pkgName, verbose)
+  (flags, defines)
+
+proc tryLockedFlags*(projectDir: string, nimble: NimbleFile,
+    activeRootFeatures: seq[string], pkgName: string,
+    verbose: bool): tuple[hit: bool, pathFlags: seq[string], featureDefines: string] =
+  ## Fast path: reuse `clue.lock` when it matches the current fingerprint and
+  ## every recorded path is still on disk. No Boogie DB, no git, no resolver.
+  let (ok, lock) = readLock(projectDir)
+  if not ok:
+    return (false, @[], "")
+  let nimVersion =
+    try: detectNimVersion()
+    except CatchableError: ""
+  if not validateLock(lock, nimble, activeRootFeatures, nimVersion,
+      getClueCfg().developPath()):
+    return (false, @[], "")
+  let (flags, defines) = lockToFlags(lock, pkgName, activeRootFeatures)
+  if verbose:
+    display("  using " & LockFileName & " (" & $lock.packages.len & " packages)")
+  (true, flags, defines)
+
+proc storeLock*(projectDir: string, nimble: NimbleFile,
+    activeRootFeatures: seq[string], pkgName: string,
+    entries: seq[LockEntry]) =
+  ## Persist a fresh resolution. Failures are silent — a missing lock only
+  ## costs speed, never correctness.
+  try:
+    let nimVersion =
+      try: detectNimVersion()
+      except CatchableError: ""
+    var active = activeRootFeatures
+    active.sort()
+    writeLock(projectDir, newLockFile(pkgName,
+      computeNimbleHash(nimble, activeRootFeatures, nimVersion),
+      nimVersion, active, entries))
+  except CatchableError:
+    discard
+
+proc collectPathsWithLock*(projectDir: string, nimble: NimbleFile,
+    activeRootFeatures: seq[string], pkgName: string,
+    verbose: bool): tuple[pathFlags: seq[string], featureDefines: string] =
+  ## Lock-aware resolution for `build`/`check`: fast path on hit, slow
+  ## resolve + lock rewrite on miss.
+  let (hit, flags, defines) =
+    tryLockedFlags(projectDir, nimble, activeRootFeatures, pkgName, verbose)
+  if hit:
+    return (flags, defines)
+  let (slowFlags, slowDefines, entries) =
+    collectResolvedPathsDetailed(nimble, activeRootFeatures, pkgName, verbose)
+  storeLock(projectDir, nimble, activeRootFeatures, pkgName, entries)
+  (slowFlags, slowDefines)
 
 proc resolveBackend(v: Values): string =
   if v.has("-b"): v.get("-b").getAny
@@ -346,7 +479,8 @@ proc buildCommand*(v: Values) =
     else: "bin"
 
   let (depPathFlags, featureDefines) =
-    collectResolvedPaths(nimble, activeRootFeatures, pkgName, verbose)
+    collectPathsWithLock(nimblePath.parentDir(), nimble, activeRootFeatures,
+      pkgName, verbose)
 
   # Self first: the working tree shadows same-named installed copies, so
   # `import pkgname/mod` works from any file in the project.
@@ -729,7 +863,8 @@ proc checkCommand*(v: Values) =
     return
 
   let (depPathFlags, featureDefines) =
-    collectResolvedPaths(nimble, activeRootFeatures, pkgName, false)
+    collectPathsWithLock(nimblePath.parentDir(), nimble, activeRootFeatures,
+      pkgName, false)
   # Self first, same as `clue build` (see buildCommand).
   var pathFlags = selfImportPaths(pkgDir, nimble).mapIt("--path:" & it)
   for f in depPathFlags:

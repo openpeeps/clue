@@ -15,6 +15,7 @@ import ../pkgmanager/configs
 import ../pkgmanager/versions
 import ../pkgmanager/nimbleparser
 import ../pkgmanager/builder
+import ../pkgmanager/lockfile
 import ./nimscript
 import ./sources
 import datpkgr/operations as datpkgrOps
@@ -303,6 +304,9 @@ proc installCommand*(v: Values) =
     if not depsOnly:
       # After install hook
       discard runNimscriptHook(nimblePath, "install", before=false)
+    # The dependency closure changed — drop any stale `clue.lock` so the
+    # next build re-resolves instead of reusing pinned versions.
+    invalidateLock(nimblePath.parentDir())
     return
 
   if isGitUrl(raw):
@@ -352,6 +356,10 @@ proc installCommand*(v: Values) =
     installPackage(pkgName, pkgRef, refresh, features, verbose,
           doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
           backend = backend, sourceFilter = sourceFilter, depsOnly = depsOnly)
+    # Dependency versions on disk may have moved — the project lock (if any)
+    # pins the previous resolution, so drop it for a clean re-resolve.
+    try: invalidateLock(getCurrentDir())
+    except CatchableError: discard
   # except CatchableError as e:
   #   echo "EXCEPTION in installCommand: ", e.msg
   #   echo getStackTrace(e)
@@ -369,6 +377,10 @@ proc updateCommand*(v: Values) =
     let exe = getAppFilename()
     let ok = datpkgrOps.updateAllPackages(cfg, verbose, exe)
     if not ok: quit(1)
+  # Installed versions moved — drop the project lock so the next build
+  # re-resolves instead of reusing the previous pins.
+  try: invalidateLock(getCurrentDir())
+  except CatchableError: discard
 
 proc developCommand*(v: Values) =
   ## Thin wrapper around datpkgr/operations.developPackage (generic Manifest).

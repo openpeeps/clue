@@ -232,12 +232,13 @@ usually succeeds under `clue build`.
 
 ## Command reference
 
-Full reference (`clue -h`): build 0.2.9. Every flag below mirrors that output.
+Full reference (`clue -h`): build 0.3.1. Every flag below mirrors that output.
 
 ### Package management
 - `clue build <?file:string>` — Build the current package or a single module.
-  Default way to compile. Binary lands in project root; redirect with
-  `--out:<path>` / `-o:<path>`.
+  Default way to compile. Binaries land in `bin/` (or the nimble `binDir`);
+  redirect with `--out:<path>` / `-o:<path>`. Resolved deps are cached in
+  `clue.lock` and reused on the next build (auto re-resolved when stale).
   - `--release:bool` / `--debug:bool` — optimization mode
   - `--features:string` — enable nimble features
   - `--verbose:bool` — verbose output
@@ -260,7 +261,9 @@ Full reference (`clue -h`): build 0.2.9. Every flag below mirrors that output.
   `--source:string`, `--depsOnly:bool` (install only the dependency closure,
   never the package itself), `-b:c|cpp|objc|js`. Registry caches older than
   24h are re-fetched automatically before resolving (failures only warn).
-- `clue test` — Compile and run test modules in `tests/` (`-b:c|cpp|objc|js`).
+- `clue test <?files:string>` — Compile and run test modules in `tests/`
+  (optional comma-separated filter, e.g. `clue test "foo, bar"`)
+  (`-b:c|cpp|objc|js`).
 - `clue update <?pkg:string>` — Upgrade a package and its dependencies
   (`--verbose:bool`).
 - `clue uninstall <pkg:string>` — Remove a package.
