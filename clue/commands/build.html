@@ -69,6 +69,16 @@
   <li><a class="reference" href="#checkCommand%2CValues" title="checkCommand(v: Values)">checkCommand(v: Values)</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">collectPathsWithLock
+  <li><a class="reference" href="#collectPathsWithLock%2Cstring%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cbool" title="collectPathsWithLock(projectDir: string; nimble: NimbleFile;
+                     activeRootFeatures: seq[string]; pkgName: string;
+                     verbose: bool): tuple[pathFlags: seq[string],
+    featureDefines: string]">collectPathsWithLock(projectDir: string; nimble: NimbleFile;
+                     activeRootFeatures: seq[string]; pkgName: string;
+                     verbose: bool): tuple[pathFlags: seq[string],
+    featureDefines: string]</a></li>
+
+</ul>
 <ul class="simple nested-toc-section">collectResolvedPaths
   <li><a class="reference" href="#collectResolvedPaths%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cbool" title="collectResolvedPaths(nimble: NimbleFile; activeRootFeatures: seq[string];
                      pkgName: string; verbose: bool): tuple[
@@ -77,8 +87,38 @@
     pathFlags: seq[string], featureDefines: string]</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">collectResolvedPathsDetailed
+  <li><a class="reference" href="#collectResolvedPathsDetailed%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cbool" title="collectResolvedPathsDetailed(nimble: NimbleFile;
+                             activeRootFeatures: seq[string]; pkgName: string;
+                             verbose: bool): tuple[pathFlags: seq[string],
+    featureDefines: string, entries: seq[LockEntry]]">collectResolvedPathsDetailed(nimble: NimbleFile;
+                             activeRootFeatures: seq[string]; pkgName: string;
+                             verbose: bool): tuple[pathFlags: seq[string],
+    featureDefines: string, entries: seq[LockEntry]]</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">normalizeTestFilter
+  <li><a class="reference" href="#normalizeTestFilter%2Cstring" title="normalizeTestFilter(raw: string): string">normalizeTestFilter(raw: string): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">storeLock
+  <li><a class="reference" href="#storeLock%2Cstring%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cseq%5BLockEntry%5D" title="storeLock(projectDir: string; nimble: NimbleFile;
+          activeRootFeatures: seq[string]; pkgName: string;
+          entries: seq[LockEntry])">storeLock(projectDir: string; nimble: NimbleFile;
+          activeRootFeatures: seq[string]; pkgName: string;
+          entries: seq[LockEntry])</a></li>
+
+</ul>
 <ul class="simple nested-toc-section">testCommand
   <li><a class="reference" href="#testCommand%2CValues" title="testCommand(v: Values)">testCommand(v: Values)</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">tryLockedFlags
+  <li><a class="reference" href="#tryLockedFlags%2Cstring%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cbool" title="tryLockedFlags(projectDir: string; nimble: NimbleFile;
+               activeRootFeatures: seq[string]; pkgName: string; verbose: bool): tuple[
+    hit: bool, pathFlags: seq[string], featureDefines: string]">tryLockedFlags(projectDir: string; nimble: NimbleFile;
+               activeRootFeatures: seq[string]; pkgName: string; verbose: bool): tuple[
+    hit: bool, pathFlags: seq[string], featureDefines: string]</a></li>
 
 </ul>
 
@@ -97,7 +137,7 @@
     <div class="section" id="6">
   <h1><a class="toc-backref" href="#6">Imports</a></h1>
   <dl class="item">
-    <a class="reference external" href="../pkgmanager/nimbleparser.html">../pkgmanager/nimbleparser</a>, <a class="reference external" href="../pkgmanager/configs.html">../pkgmanager/configs</a>, <a class="reference external" href="../pkgmanager/versions.html">../pkgmanager/versions</a>, <a class="reference external" href="../pkgmanager/resolver.html">../pkgmanager/resolver</a>, <a class="reference external" href="manager.html">manager</a>, <a class="reference external" href="nimscript.html">nimscript</a>
+    <a class="reference external" href="../pkgmanager/nimbleparser.html">../pkgmanager/nimbleparser</a>, <a class="reference external" href="../pkgmanager/configs.html">../pkgmanager/configs</a>, <a class="reference external" href="../pkgmanager/versions.html">../pkgmanager/versions</a>, <a class="reference external" href="../pkgmanager/resolver.html">../pkgmanager/resolver</a>, <a class="reference external" href="../pkgmanager/lockfile.html">../pkgmanager/lockfile</a>, <a class="reference external" href="manager.html">manager</a>, <a class="reference external" href="nimscript.html">nimscript</a>
   </dl>
 </div>
 <div class="section" id="12">
@@ -106,15 +146,15 @@
     <div id="buildCommand-procs-all">
   <div id="buildCommand,Values">
   <dt><pre><span class="Keyword">proc</span> <a href="#buildCommand%2CValues"><span class="Identifier">buildCommand</span></a><span class="Other">(</span><span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">Values</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span>
-                                        <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span>
-                                        <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">CatchableError</span><span class="Other">,</span>
-                                        <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span>
-                                        <span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">ParseError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
-    <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+                                        <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span>
+                                        <span class="Identifier">ParseError</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span>
+                                        <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">CatchableError</span><span class="Other">,</span>
+                                        <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">ResourceExhaustedError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span>
+    <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    
+    Kapsis CLI handler for build command
     
   </dd>
 </div>
@@ -123,15 +163,35 @@
 <div id="checkCommand-procs-all">
   <div id="checkCommand,Values">
   <dt><pre><span class="Keyword">proc</span> <a href="#checkCommand%2CValues"><span class="Identifier">checkCommand</span></a><span class="Other">(</span><span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">Values</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span>
-                                        <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span>
-                                        <span class="Identifier">CatchableError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span>
-                                        <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">,</span>
-                                        <span class="Identifier">ParseError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadEnvEffect</span><span class="Other">,</span>
-    <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
-    <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+                                        <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">,</span>
+                                        <span class="Identifier">ParseError</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span>
+                                        <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">CatchableError</span><span class="Other">,</span>
+                                        <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">ResourceExhaustedError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
+    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     Checks the project for syntax and semantics
+    
+  </dd>
+</div>
+
+</div>
+<div id="collectPathsWithLock-procs-all">
+  <div id="collectPathsWithLock,string,NimbleFile,seq[string],string,bool">
+  <dt><pre><span class="Keyword">proc</span> <a href="#collectPathsWithLock%2Cstring%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cbool"><span class="Identifier">collectPathsWithLock</span></a><span class="Other">(</span><span class="Identifier">projectDir</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">nimble</span><span class="Other">:</span> <a href="../pkgmanager/nimbleparser.html#NimbleFile"><span class="Identifier">NimbleFile</span></a><span class="Other">;</span>
+                          <span class="Identifier">activeRootFeatures</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">pkgName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
+                          <span class="Identifier">verbose</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span><span class="Other">:</span> <span class="Keyword">tuple</span><span class="Other">[</span><span class="Identifier">pathFlags</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">featureDefines</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span>
+                                       <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">,</span>
+                                       <span class="Identifier">ParseError</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span>
+                                       <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">CatchableError</span><span class="Other">,</span>
+                                       <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">ResourceExhaustedError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Lock-aware resolution for <tt class="docutils literal"><span class="pre"><span class="Identifier">build</span></span></tt>/<tt class="docutils literal"><span class="pre"><span class="Identifier">check</span></span></tt>: fast path on hit, slow resolve + lock rewrite on miss.
     
   </dd>
 </div>
@@ -142,10 +202,30 @@
   <dt><pre><span class="Keyword">proc</span> <a href="#collectResolvedPaths%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cbool"><span class="Identifier">collectResolvedPaths</span></a><span class="Other">(</span><span class="Identifier">nimble</span><span class="Other">:</span> <a href="../pkgmanager/nimbleparser.html#NimbleFile"><span class="Identifier">NimbleFile</span></a><span class="Other">;</span> <span class="Identifier">activeRootFeatures</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">;</span>
                           <span class="Identifier">pkgName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">verbose</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span><span class="Other">:</span> <span class="Keyword">tuple</span><span class="Other">[</span>
     <span class="Identifier">pathFlags</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">featureDefines</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">KeyError</span><span class="Other">,</span>
-    <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">CatchableError</span><span class="Other">,</span>
-    <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">ParseError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
-    <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">ParseError</span><span class="Other">,</span>
+    <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">CatchableError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span>
+    <span class="Identifier">ResourceExhaustedError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
+                                    <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
+                                    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Back-compat wrapper — new code should prefer <tt class="docutils literal"><span class="pre"><span class="Identifier">collectResolvedPathsDetailed</span></span></tt> so the resolution can be persisted to <tt class="docutils literal"><span class="pre"><span class="Identifier">clue</span><span class="Operator">.</span><span class="Identifier">lock</span></span></tt>.
+    
+  </dd>
+</div>
+
+</div>
+<div id="collectResolvedPathsDetailed-procs-all">
+  <div id="collectResolvedPathsDetailed,NimbleFile,seq[string],string,bool">
+  <dt><pre><span class="Keyword">proc</span> <a href="#collectResolvedPathsDetailed%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cbool"><span class="Identifier">collectResolvedPathsDetailed</span></a><span class="Other">(</span><span class="Identifier">nimble</span><span class="Other">:</span> <a href="../pkgmanager/nimbleparser.html#NimbleFile"><span class="Identifier">NimbleFile</span></a><span class="Other">;</span>
+                                  <span class="Identifier">activeRootFeatures</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">;</span>
+                                  <span class="Identifier">pkgName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">verbose</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span><span class="Other">:</span> <span class="Keyword">tuple</span><span class="Other">[</span>
+    <span class="Identifier">pathFlags</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">featureDefines</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">,</span> <span class="Identifier">entries</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="../pkgmanager/lockfile.html#LockEntry"><span class="Identifier">LockEntry</span></a><span class="Other">]</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span>
+    <span class="Identifier">ParseError</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">CatchableError</span><span class="Other">,</span>
+    <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">ResourceExhaustedError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     Resolve the dependency <tt class="docutils literal"><span class="pre"><span class="Operator">--</span><span class="Identifier">path</span></span></tt> flags (and feature defines) for the given package, auto-installing anything missing. Used by <tt class="docutils literal"><span class="pre"><span class="Identifier">clue</span> <span class="Identifier">build</span></span></tt> and <tt class="docutils literal"><span class="pre"><span class="Identifier">clue</span> <span class="Identifier">test</span></span></tt>.
@@ -154,17 +234,58 @@
 </div>
 
 </div>
+<div id="normalizeTestFilter-procs-all">
+  <div id="normalizeTestFilter,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#normalizeTestFilter%2Cstring"><span class="Identifier">normalizeTestFilter</span></a><span class="Other">(</span><span class="Identifier">raw</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    <tt class="docutils literal"><span class="pre"><span class="Identifier">sometest</span></span></tt>, <tt class="docutils literal"><span class="pre"><span class="Identifier">sometest</span><span class="Operator">.</span><span class="Identifier">nim</span></span></tt>, <tt class="docutils literal"><span class="pre"><span class="Identifier">tests</span><span class="Operator">/</span><span class="Identifier">sometest</span></span></tt> and <tt class="docutils literal"><span class="pre"><span class="Identifier">tests</span><span class="Operator">/</span><span class="Identifier">sometest</span><span class="Operator">.</span><span class="Identifier">nim</span></span></tt> all resolve to <tt class="docutils literal"><span class="pre"><span class="Identifier">sometest</span></span></tt>.
+    
+  </dd>
+</div>
+
+</div>
+<div id="storeLock-procs-all">
+  <div id="storeLock,string,NimbleFile,seq[string],string,seq[LockEntry]">
+  <dt><pre><span class="Keyword">proc</span> <a href="#storeLock%2Cstring%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cseq%5BLockEntry%5D"><span class="Identifier">storeLock</span></a><span class="Other">(</span><span class="Identifier">projectDir</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">nimble</span><span class="Other">:</span> <a href="../pkgmanager/nimbleparser.html#NimbleFile"><span class="Identifier">NimbleFile</span></a><span class="Other">;</span>
+               <span class="Identifier">activeRootFeatures</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">pkgName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
+               <span class="Identifier">entries</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="../pkgmanager/lockfile.html#LockEntry"><span class="Identifier">LockEntry</span></a><span class="Other">]</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Persist a fresh resolution. Failures are silent — a missing lock only costs speed, never correctness.
+    
+  </dd>
+</div>
+
+</div>
 <div id="testCommand-procs-all">
   <div id="testCommand,Values">
   <dt><pre><span class="Keyword">proc</span> <a href="#testCommand%2CValues"><span class="Identifier">testCommand</span></a><span class="Other">(</span><span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">Values</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span>
-                                       <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span>
-                                       <span class="Identifier">CatchableError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span>
-                                       <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+                                       <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
     <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
-    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Compile and run test modules via nimscript. If the .nimble file defines a <tt class="docutils literal"><span class="pre"><span class="Identifier">task</span> <span class="Identifier">test</span></span></tt>, it is executed directly. Otherwise a built-in default discovers <tt class="docutils literal"><span class="pre"><span class="Identifier">tests</span><span class="Operator">/</span><span class="Identifier">t</span><span class="Operator">*.</span><span class="Identifier">nim</span></span></tt> and compiles each with <tt class="docutils literal"><span class="pre"><span class="Identifier">nim</span> <span class="Operator">&lt;</span><span class="Identifier">backend</span><span class="Operator">&gt;</span> <span class="Operator">-</span><span class="Identifier">r</span></span></tt>.
+    Compile and run test modules via nimscript. If the .nimble file defines a <tt class="docutils literal"><span class="pre"><span class="Identifier">task</span> <span class="Identifier">test</span></span></tt>, it is executed directly. Otherwise a built-in default discovers <tt class="docutils literal"><span class="pre"><span class="Identifier">tests</span><span class="Operator">/</span><span class="Identifier">t</span><span class="Operator">*.</span><span class="Identifier">nim</span></span></tt> and compiles each with <tt class="docutils literal"><span class="pre"><span class="Identifier">nim</span> <span class="Operator">&lt;</span><span class="Identifier">backend</span><span class="Operator">&gt;</span> <span class="Operator">-</span><span class="Identifier">r</span></span></tt>. With <tt class="docutils literal"><span class="pre"><span class="Identifier">clue</span> <span class="Identifier">test</span> <span class="Operator">&lt;</span><span class="Identifier">name</span><span class="Operator">&gt;</span></span></tt> / <tt class="docutils literal"><span class="pre"><span class="Identifier">clue</span> <span class="Identifier">test</span> <span class="StringLit">&quot;a, b&quot;</span></span></tt> only the given <tt class="docutils literal"><span class="pre"><span class="Identifier">tests</span><span class="Operator">/*.</span><span class="Identifier">nim</span></span></tt> modules are compiled and run.
+    
+  </dd>
+</div>
+
+</div>
+<div id="tryLockedFlags-procs-all">
+  <div id="tryLockedFlags,string,NimbleFile,seq[string],string,bool">
+  <dt><pre><span class="Keyword">proc</span> <a href="#tryLockedFlags%2Cstring%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cbool"><span class="Identifier">tryLockedFlags</span></a><span class="Other">(</span><span class="Identifier">projectDir</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">nimble</span><span class="Other">:</span> <a href="../pkgmanager/nimbleparser.html#NimbleFile"><span class="Identifier">NimbleFile</span></a><span class="Other">;</span>
+                    <span class="Identifier">activeRootFeatures</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">pkgName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
+                    <span class="Identifier">verbose</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span><span class="Other">:</span> <span class="Keyword">tuple</span><span class="Other">[</span><span class="Identifier">hit</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">,</span> <span class="Identifier">pathFlags</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">featureDefines</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
+    <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Fast path: reuse <tt class="docutils literal"><span class="pre"><span class="Identifier">clue</span><span class="Operator">.</span><span class="Identifier">lock</span></span></tt> when it matches the current fingerprint and every recorded path is still on disk. No Boogie DB, no git, no resolver.
     
   </dd>
 </div>
@@ -180,7 +301,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-11 07:14:32 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-19 16:53:06 UTC</small>
       </div>
     </div>
   </div>

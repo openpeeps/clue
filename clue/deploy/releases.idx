@@ -1,0 +1,9 @@
+nimTitle	releases	clue/deploy/releases.html	module clue/deploy/releases		0
+nim	latestDownloadUrl	clue/deploy/releases.html#latestDownloadUrl,string,string	proc latestDownloadUrl(repo, asset: string): string		21
+nim	isArchiveAsset	clue/deploy/releases.html#isArchiveAsset,string	proc isArchiveAsset(name: string): bool		27
+nim	extractArchive	clue/deploy/releases.html#extractArchive,string,string	proc extractArchive(workDir, archive: string): bool		32
+nim	downloadFile	clue/deploy/releases.html#downloadFile,string,string	proc downloadFile(url, dest: string): bool		49
+nim	findReleaseBinary	clue/deploy/releases.html#findReleaseBinary,string,string	proc findReleaseBinary(dir, binary: string): string		55
+nim	stageReleaseAsset	clue/deploy/releases.html#stageReleaseAsset,string,string,string,string,bool	proc stageReleaseAsset(repo, asset, binary, workDir: string; verbose: bool): tuple[\n    stageDir: string, ok: bool]		62
+nim	shq	clue/deploy/releases.html#shq,string	proc shq(s: string): string		111
+nim	deployRemoteRelease	clue/deploy/releases.html#deployRemoteRelease,DirProfile,RemoteAuth,bool,bool,bool	proc deployRemoteRelease(prof: DirProfile; auth: RemoteAuth;\n                    dryRun, yes, verbose: bool): int		116

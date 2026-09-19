@@ -1,0 +1,16 @@
+nimTitle	lockfile	clue/pkgmanager/lockfile.html	module clue/pkgmanager/lockfile		0
+nim	LockFileName	clue/pkgmanager/lockfile.html#LockFileName	const LockFileName		26
+nim	LockVersion	clue/pkgmanager/lockfile.html#LockVersion	const LockVersion		27
+nim	LockEntry	clue/pkgmanager/lockfile.html#LockEntry	object LockEntry		30
+nim	LockFile	clue/pkgmanager/lockfile.html#LockFile	object LockFile		40
+nim	renameHook	clue/pkgmanager/lockfile.html#renameHook,LockFile,string	proc renameHook(v: LockFile; fieldName: var string)		48
+nim	renameHook	clue/pkgmanager/lockfile.html#renameHook,LockEntry,string	proc renameHook(v: LockEntry; fieldName: var string)		55
+nim	lockPathFor	clue/pkgmanager/lockfile.html#lockPathFor,string	proc lockPathFor(pkgDir: string): string		61
+nim	computeNimbleHash	clue/pkgmanager/lockfile.html#computeNimbleHash,NimbleFile,seq[string],string	proc computeNimbleHash(nimble: NimbleFile; activeRootFeatures: seq[string];\n                  nimVersion: string): string		71
+nim	newLockFile	clue/pkgmanager/lockfile.html#newLockFile,string,string,string,seq[string],seq[LockEntry]	proc newLockFile(root, nimbleHash, nimVersion: string; activeFeatures: seq[string];\n            packages: seq[LockEntry]): LockFile		99
+nim	writeLock	clue/pkgmanager/lockfile.html#writeLock,string,LockFile	proc writeLock(pkgDir: string; lock: LockFile)		104
+nim	readLock	clue/pkgmanager/lockfile.html#readLock,string	proc readLock(pkgDir: string): tuple[ok: bool, lock: LockFile]		114
+nim	validateLock	clue/pkgmanager/lockfile.html#validateLock,LockFile,NimbleFile,seq[string],string,string	proc validateLock(lock: LockFile; nimble: NimbleFile;\n             activeRootFeatures: seq[string]; nimVersion: string;\n             developDir: string): bool		143
+nim	lockToFlags	clue/pkgmanager/lockfile.html#lockToFlags,LockFile,string,seq[string]	proc lockToFlags(lock: LockFile; pkgName: string; activeRootFeatures: seq[string]): tuple[\n    pathFlags: seq[string], featureDefines: string]		198
+nim	invalidateLock	clue/pkgmanager/lockfile.html#invalidateLock,string	proc invalidateLock(pkgDir: string)		227
+nimgrp	renamehook	clue/pkgmanager/lockfile.html#renameHook-procs-all	proc		48

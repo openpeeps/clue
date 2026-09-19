@@ -62,25 +62,32 @@
   path*: string
   project*: string
   version*: string
-  github*: GithubConfig
+  web*: WebConfig
+  dir*: DirConfig">DeployConfig</a></li>
+<li><a class="reference" href="#DirConfig" title="DirConfig = object
+  profiles*: OrderedTableRef[string, DirProfile]">DirConfig</a></li>
+<li><a class="reference" href="#DirProfile" title="DirProfile = object
+  name*: string
+  to*: string
+  host*: string
+  user*: string
+  port*: int
+  sshKey*: string
+  exclude*: seq[string]
+  delete*: bool
+  checksum*: bool
+  compress*: Option[bool]
+  timeout*: int
   release*: ReleaseConfig
-  web*: WebConfig">DeployConfig</a></li>
-<li><a class="reference" href="#GithubConfig" title="GithubConfig = object
-  repo*: string">GithubConfig</a></li>
+  steps*: seq[RunStep]">DirProfile</a></li>
 <li><a class="reference" href="#ReleaseConfig" title="ReleaseConfig = object
   repo*: string
-  tagPrefix*: string
-  notes*: string
-  notesFile*: string
-  draft*: bool
-  prerelease*: bool
-  assets*: seq[string]
-  workflow*: string
-  targets*: seq[ReleaseTarget]
-  artifactName*: string">ReleaseConfig</a></li>
-<li><a class="reference" href="#ReleaseTarget" title="ReleaseTarget = object
-  os*: string
-  arch*: string">ReleaseTarget</a></li>
+  asset*: string
+  mode*: string
+  binary*: string">ReleaseConfig</a></li>
+<li><a class="reference" href="#RunStep" title="RunStep = object
+  name*: string
+  run*: string">RunStep</a></li>
 <li><a class="reference" href="#SystemdConfig" title="SystemdConfig = object
   service*: string
   unitFile*: string
@@ -108,6 +115,7 @@
   timeout*: int
   preBuild*: seq[string]
   postDeploy*: seq[string]
+  steps*: seq[RunStep]
   systemd*: SystemdConfig">WebProfile</a></li>
 
     </ul>
@@ -174,49 +182,63 @@
   <span class="Identifier">path</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
   <span class="Identifier">project</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
   <span class="Identifier">version</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">github</span><span class="Operator">*</span><span class="Other">:</span> <a href="#GithubConfig"><span class="Identifier">GithubConfig</span></a>
-  <span class="Identifier">release</span><span class="Operator">*</span><span class="Other">:</span> <a href="#ReleaseConfig"><span class="Identifier">ReleaseConfig</span></a>
-  <span class="Identifier">web</span><span class="Operator">*</span><span class="Other">:</span> <a href="#WebConfig"><span class="Identifier">WebConfig</span></a></pre></dt>
+  <span class="Identifier">web</span><span class="Operator">*</span><span class="Other">:</span> <a href="#WebConfig"><span class="Identifier">WebConfig</span></a>
+  <span class="Identifier">dir</span><span class="Operator">*</span><span class="Other">:</span> <a href="#DirConfig"><span class="Identifier">DirConfig</span></a></pre></dt>
   <dd>
     
     
     
   </dd>
 </div>
-<div id="GithubConfig">
-  <dt><pre><a href="#GithubConfig"><span class="Identifier">GithubConfig</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
-  <span class="Identifier">repo</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+<div id="DirConfig">
+  <dt><pre><a href="#DirConfig"><span class="Identifier">DirConfig</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
+  <span class="Identifier">profiles</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">OrderedTableRef</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">,</span> <a href="#DirProfile"><span class="Identifier">DirProfile</span></a><span class="Other">]</span></pre></dt>
   <dd>
     
     
+    
+  </dd>
+</div>
+<div id="DirProfile">
+  <dt><pre><a href="#DirProfile"><span class="Identifier">DirProfile</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
+  <span class="Identifier">name</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">to</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">host</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">user</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">port</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
+  <span class="Identifier">sshKey</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">exclude</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
+  <span class="Identifier">delete</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>
+  <span class="Identifier">checksum</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>
+  <span class="Identifier">compress</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">Option</span><span class="Other">[</span><span class="Identifier">bool</span><span class="Other">]</span>
+  <span class="Identifier">timeout</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
+  <span class="Identifier">release</span><span class="Operator">*</span><span class="Other">:</span> <a href="#ReleaseConfig"><span class="Identifier">ReleaseConfig</span></a>
+  <span class="Identifier">steps</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="#RunStep"><span class="Identifier">RunStep</span></a><span class="Other">]</span></pre></dt>
+  <dd>
+    
+    A directory placement profile: sync <tt class="docutils literal"><span class="pre"><span class="Keyword">from</span></span></tt> to <tt class="docutils literal"><span class="pre"><span class="Identifier">to</span></span></tt>. <tt class="docutils literal"><span class="pre"><span class="Identifier">to</span></span></tt> is a local path, unless <tt class="docutils literal"><span class="pre"><span class="Identifier">host</span></span></tt> is set — then it is a remote path on <tt class="docutils literal"><span class="pre"><span class="Identifier">user</span><span class="Operator">@</span><span class="Identifier">host</span></span></tt> reached over ssh. There is intentionally no <tt class="docutils literal"><span class="pre"><span class="Identifier">password</span></span></tt> field: when no <tt class="docutils literal"><span class="pre"><span class="Identifier">sshKey</span></span></tt> is configured, clue prompts for the password at deploy time and keeps it only in process memory.
     
   </dd>
 </div>
 <div id="ReleaseConfig">
   <dt><pre><a href="#ReleaseConfig"><span class="Identifier">ReleaseConfig</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
   <span class="Identifier">repo</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">tagPrefix</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">notes</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">notesFile</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">draft</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>
-  <span class="Identifier">prerelease</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">bool</span>
-  <span class="Identifier">assets</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
-  <span class="Identifier">workflow</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">targets</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="#ReleaseTarget"><span class="Identifier">ReleaseTarget</span></a><span class="Other">]</span>
-  <span class="Identifier">artifactName</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+  <span class="Identifier">asset</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">mode</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">binary</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
   <dd>
     
-    
+    Optional GitHub release sourcing for a <tt class="docutils literal"><span class="pre"><span class="Identifier">dir</span></span></tt> profile: when <tt class="docutils literal"><span class="pre"><span class="Identifier">repo</span></span></tt> is set, the deployed binary comes from the latest release of the public <tt class="docutils literal"><span class="pre"><span class="Identifier">owner</span><span class="Operator">/</span><span class="Identifier">name</span></span></tt> repo instead of the local <tt class="docutils literal"><span class="pre"><span class="Keyword">from</span></span></tt> dir. <tt class="docutils literal"><span class="pre"><span class="Identifier">mode</span></span></tt> is <tt class="docutils literal"><span class="pre"><span class="Identifier">local</span></span></tt> (download and extract on this machine into a staging dir, then rsync as usual) or <tt class="docutils literal"><span class="pre"><span class="Identifier">remote</span></span></tt> (curl and extract directly on the target host). <tt class="docutils literal"><span class="pre"><span class="Identifier">binary</span></span></tt> names the binary inside archive assets (required there) and renames raw assets.
     
   </dd>
 </div>
-<div id="ReleaseTarget">
-  <dt><pre><a href="#ReleaseTarget"><span class="Identifier">ReleaseTarget</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
-  <span class="Identifier">os</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
-  <span class="Identifier">arch</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
+<div id="RunStep">
+  <dt><pre><a href="#RunStep"><span class="Identifier">RunStep</span></a> <span class="Other">=</span> <span class="Keyword">object</span>
+  <span class="Identifier">name</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span>
+  <span class="Identifier">run</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">string</span></pre></dt>
   <dd>
     
-    
+    One script step executed on the host, GH-runner style: <tt class="docutils literal"><span class="pre"><span class="Operator">-</span> <span class="Identifier">run</span><span class="Punctuation">:</span> <span class="Identifier">whoami</span></span></tt>. <tt class="docutils literal"><span class="pre"><span class="Identifier">name</span></span></tt> is an optional label shown in the output.
     
   </dd>
 </div>
@@ -262,6 +284,7 @@
   <span class="Identifier">timeout</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">int</span>
   <span class="Identifier">preBuild</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
   <span class="Identifier">postDeploy</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span>
+  <span class="Identifier">steps</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><a href="#RunStep"><span class="Identifier">RunStep</span></a><span class="Other">]</span>
   <span class="Identifier">systemd</span><span class="Operator">*</span><span class="Other">:</span> <a href="#SystemdConfig"><span class="Identifier">SystemdConfig</span></a></pre></dt>
   <dd>
     
@@ -389,7 +412,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-11 07:14:32 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-19 16:53:06 UTC</small>
       </div>
     </div>
   </div>

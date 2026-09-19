@@ -5,7 +5,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>clue/deploy/web</title>
+<title>clue/deploy/dir</title>
 
 <!-- Google fonts -->
 <link href='https://fonts.googleapis.com/css?family=Lato:400,600,900' rel='stylesheet' type='text/css'/>
@@ -27,7 +27,7 @@
     <label for="nav-toggle" id="nav-burger">&#9776;</label>
     <label for="nav-toggle" id="nav-overlay"></label>
     <div class="container">
-      <h1 class="title">clue/deploy/web</h1>
+      <h1 class="title">clue/deploy/dir</h1>
       <div class="row">
   <div class="three columns">
     <div class="theme-select-wrapper">
@@ -61,10 +61,10 @@
   <details open>
     <summary><a class="reference reference-toplevel" href="#12" id="62">Procs</a></summary>
     <ul class="simple simple-toc-section">
-      <ul class="simple nested-toc-section">deployWeb
-  <li><a class="reference" href="#deployWeb%2CDeployConfig%2Cstring%2Cstring" title="deployWeb(cfg: DeployConfig; profileName, keyOverride: string; dryRun = false;
-          yes = false; verbose = false; statusOnly = false): int">deployWeb(cfg: DeployConfig; profileName, keyOverride: string; dryRun = false;
-          yes = false; verbose = false; statusOnly = false): int</a></li>
+      <ul class="simple nested-toc-section">deployDir
+  <li><a class="reference" href="#deployDir%2CDeployConfig%2Cstring%2Cstring" title="deployDir(cfg: DeployConfig; profileName, keyOverride: string; dryRun = false;
+          yes = false; verbose = false): int">deployDir(cfg: DeployConfig; profileName, keyOverride: string; dryRun = false;
+          yes = false; verbose = false): int</a></li>
 
 </ul>
 
@@ -79,26 +79,29 @@
     
     <div id="tocRoot"></div>
     
-    <p class="module-desc"><tt class="docutils literal"><span class="pre"><span class="Identifier">clue</span> <span class="Identifier">deploy</span><span class="Operator">.</span><span class="Identifier">web</span></span></tt> — deploy a web target over rsync/ssh, with optional systemd service management (unit install, daemon-reload, enable, restart, is-active verification) and optional script <tt class="docutils literal"><span class="pre"><span class="Identifier">steps</span></span></tt> run on the host after the sync (GH-runner style <tt class="docutils literal"><span class="pre"><span class="Operator">-</span> <span class="Identifier">run</span><span class="Punctuation">:</span></span></tt> entries).</p>
+    <p class="module-desc"><p><tt class="docutils literal"><span class="pre"><span class="Identifier">clue</span> <span class="Identifier">deploy</span><span class="Operator">.</span><span class="Identifier">dir</span></span></tt> — sync a directory profile (<tt class="docutils literal"><span class="pre"><span class="Keyword">from</span></span></tt> to <tt class="docutils literal"><span class="pre"><span class="Identifier">to</span></span></tt>). The destination is a local path, unless <tt class="docutils literal"><span class="pre"><span class="Identifier">host</span></span></tt> is set — then it is a remote path on <tt class="docutils literal"><span class="pre"><span class="Identifier">user</span><span class="Operator">@</span><span class="Identifier">host</span></span></tt> reached over ssh (same transport as <tt class="docutils literal"><span class="pre"><span class="Identifier">deploy</span> <span class="Identifier">web</span></span></tt>, including the one-time password prompt when no ssh key is configured). Think static sites: build output placed where it is served from, locally or on a server.</p>
+<p>Profiles with a <tt class="docutils literal"><span class="pre"><span class="Identifier">release</span><span class="Punctuation">:</span></span></tt> block source the payload from a public GitHub release instead: <tt class="docutils literal"><span class="pre"><span class="Identifier">local</span></span></tt> mode downloads and extracts into a staging dir first (then the usual rsync), <tt class="docutils literal"><span class="pre"><span class="Identifier">remote</span></span></tt> mode curls and extracts directly on the target host.</p>
+<p>Profiles with a <tt class="docutils literal"><span class="pre"><span class="Identifier">steps</span><span class="Punctuation">:</span></span></tt> block run script steps after the sync (GH-runner style <tt class="docutils literal"><span class="pre"><span class="Operator">-</span> <span class="Identifier">run</span><span class="Punctuation">:</span></span></tt> entries): on the host over ssh when <tt class="docutils literal"><span class="pre"><span class="Identifier">host</span></span></tt> is set, in a local shell otherwise.</p>
+</p>
     <div class="section" id="6">
   <h1><a class="toc-backref" href="#6">Imports</a></h1>
   <dl class="item">
-    <a class="reference external" href="configs.html">configs</a>, <a class="reference external" href="remotes.html">remotes</a>
+    <a class="reference external" href="configs.html">configs</a>, <a class="reference external" href="remotes.html">remotes</a>, <a class="reference external" href="releases.html">releases</a>
   </dl>
 </div>
 <div class="section" id="12">
   <h1><a class="toc-backref" href="#12">Procs</a></h1>
   <dl class="item">
-    <div id="deployWeb-procs-all">
-  <div id="deployWeb,DeployConfig,string,string">
-  <dt><pre><span class="Keyword">proc</span> <a href="#deployWeb%2CDeployConfig%2Cstring%2Cstring"><span class="Identifier">deployWeb</span></a><span class="Other">(</span><span class="Identifier">cfg</span><span class="Other">:</span> <a href="configs.html#DeployConfig"><span class="Identifier">DeployConfig</span></a><span class="Other">;</span> <span class="Identifier">profileName</span><span class="Other">,</span> <span class="Identifier">keyOverride</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
-               <span class="Identifier">dryRun</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">;</span> <span class="Identifier">yes</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">;</span> <span class="Identifier">verbose</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">;</span> <span class="Identifier">statusOnly</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">int</span> {.
+    <div id="deployDir-procs-all">
+  <div id="deployDir,DeployConfig,string,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#deployDir%2CDeployConfig%2Cstring%2Cstring"><span class="Identifier">deployDir</span></a><span class="Other">(</span><span class="Identifier">cfg</span><span class="Other">:</span> <a href="configs.html#DeployConfig"><span class="Identifier">DeployConfig</span></a><span class="Other">;</span> <span class="Identifier">profileName</span><span class="Other">,</span> <span class="Identifier">keyOverride</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span>
+               <span class="Identifier">dryRun</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">;</span> <span class="Identifier">yes</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">;</span> <span class="Identifier">verbose</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">int</span> {.
     <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">EOFError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteEnvEffect</span><span class="Other">,</span>
-    <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">WriteEnvEffect</span><span class="Other">,</span>
+    <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Deploy the <tt class="docutils literal"><span class="pre"><span class="Identifier">web</span></span></tt> target. Returns a process exit code (0 on success).
+    Sync the <tt class="docutils literal"><span class="pre"><span class="Identifier">dir</span></span></tt> profile <tt class="docutils literal"><span class="pre"><span class="Identifier">profileName</span></span></tt>. Returns a process exit code (0 on success).
     
   </dd>
 </div>

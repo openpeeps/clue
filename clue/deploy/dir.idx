@@ -1,0 +1,2 @@
+nimTitle	dir	clue/deploy/dir.html	module clue/deploy/dir		0
+nim	deployDir	clue/deploy/dir.html#deployDir,DeployConfig,string,string	proc deployDir(cfg: DeployConfig; profileName, keyOverride: string; dryRun = false;\n          yes = false; verbose = false): int		29

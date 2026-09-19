@@ -1,0 +1,14 @@
+nimTitle	remotes	clue/deploy/remotes.html	module clue/deploy/remotes		0
+nim	RemoteAuth	clue/deploy/remotes.html#RemoteAuth	object RemoteAuth		23
+nim	isRemoteHost	clue/deploy/remotes.html#isRemoteHost,string	proc isRemoteHost(host: string): bool		28
+nim	ensureRemoteAuth	clue/deploy/remotes.html#ensureRemoteAuth,string,string,string	proc ensureRemoteAuth(user, host, key: string): tuple[auth: RemoteAuth, ok: bool]		32
+nim	applySshpassEnv	clue/deploy/remotes.html#applySshpassEnv,RemoteAuth	proc applySshpassEnv(auth: RemoteAuth)		48
+nim	sshTransportArgs	clue/deploy/remotes.html#sshTransportArgs,int,RemoteAuth,int	proc sshTransportArgs(port: int; auth: RemoteAuth; timeout: int): string		54
+nim	sshTransport	clue/deploy/remotes.html#sshTransport,string,string,int,RemoteAuth,int	proc sshTransport(user, host: string; port: int; auth: RemoteAuth; timeout: int): string		72
+nim	sshCmd	clue/deploy/remotes.html#sshCmd,string,string,int,RemoteAuth,int,string	proc sshCmd(user, host: string; port: int; auth: RemoteAuth; timeout: int;\n       remote: string): string		84
+nim	validateSteps	clue/deploy/remotes.html#validateSteps,seq[RunStep],string	proc validateSteps(steps: seq[RunStep]; profileName: string): bool		90
+nim	stepLabel	clue/deploy/remotes.html#stepLabel,RunStep	proc stepLabel(s: RunStep): string		99
+nim	runStepsRemote	clue/deploy/remotes.html#runStepsRemote,string,string,int,int,RemoteAuth,seq[RunStep],bool,bool	proc runStepsRemote(user, host: string; port, timeout: int; auth: RemoteAuth;\n               steps: seq[RunStep]; dryRun, verbose: bool): int		103
+nim	runStepsLocal	clue/deploy/remotes.html#runStepsLocal,seq[RunStep],bool,bool	proc runStepsLocal(steps: seq[RunStep]; dryRun, verbose: bool): int		122
+nim	toMsysPath	clue/deploy/remotes.html#toMsysPath,string	proc toMsysPath(path: string): string		139
+nim	rsyncCmd	clue/deploy/remotes.html#rsyncCmd,string,string,string,string,int,RemoteAuth,int,bool,bool,bool,bool,seq[string]	proc rsyncCmd(localSrc, dest, user, host: string; port: int; auth: RemoteAuth;\n         timeout: int; dryRun, delete, checksum, compress: bool;\n         exclude: seq[string]): string		151

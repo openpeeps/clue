@@ -28,14 +28,24 @@
     <label for="nav-toggle" id="nav-overlay"></label>
     <div class="container">
       <h1 class="title">Index</h1>
-      Modules: <a href="index.html">clue</a>, <a href="clue/cli/live.html">clue/cli/live</a>, <a href="clue/commands/build.html">clue/commands/build</a>, <a href="clue/commands/bump.html">clue/commands/bump</a>, <a href="clue/commands/dbcheck.html">clue/commands/dbcheck</a>, <a href="clue/commands/deploy.html">clue/commands/deploy</a>, <a href="clue/commands/docs.html">clue/commands/docs</a>, <a href="clue/commands/doctor.html">clue/commands/doctor</a>, <a href="clue/commands/init.html">clue/commands/init</a>, <a href="clue/commands/manager.html">clue/commands/manager</a>, <a href="clue/commands/nimscript.html">clue/commands/nimscript</a>, <a href="clue/commands/publish.html">clue/commands/publish</a>, <a href="clue/commands/sources.html">clue/commands/sources</a>, <a href="clue/commands/upgrade.html">clue/commands/upgrade</a>, <a href="clue/deploy/configs.html">clue/deploy/configs</a>, <a href="clue/deploy/init.html">clue/deploy/init</a>, <a href="clue/deploy/web.html">clue/deploy/web</a>, <a href="clue/docbuilder/builder.html">clue/docbuilder/builder</a>, <a href="clue/docbuilder/configs.html">clue/docbuilder/configs</a>, <a href="clue/docbuilder/httpserver.html">clue/docbuilder/httpserver</a>, <a href="clue/docbuilder/overviewgen.html">clue/docbuilder/overviewgen</a>, <a href="clue/pkgmanager/builder.html">clue/pkgmanager/builder</a>, <a href="clue/pkgmanager/configs.html">clue/pkgmanager/configs</a>, <a href="clue/pkgmanager/nimbleparser.html">clue/pkgmanager/nimbleparser</a>, <a href="clue/pkgmanager/resolver.html">clue/pkgmanager/resolver</a>, <a href="clue/pkgmanager/versions.html">clue/pkgmanager/versions</a>.<br/><p /><h2>API symbols</h2>
+      Modules: <a href="index.html">clue</a>, <a href="clue/cli/live.html">clue/cli/live</a>, <a href="clue/commands/build.html">clue/commands/build</a>, <a href="clue/commands/bump.html">clue/commands/bump</a>, <a href="clue/commands/dbcheck.html">clue/commands/dbcheck</a>, <a href="clue/commands/deploy.html">clue/commands/deploy</a>, <a href="clue/commands/docs.html">clue/commands/docs</a>, <a href="clue/commands/doctor.html">clue/commands/doctor</a>, <a href="clue/commands/init.html">clue/commands/init</a>, <a href="clue/commands/manager.html">clue/commands/manager</a>, <a href="clue/commands/nimscript.html">clue/commands/nimscript</a>, <a href="clue/commands/publish.html">clue/commands/publish</a>, <a href="clue/commands/sources.html">clue/commands/sources</a>, <a href="clue/commands/upgrade.html">clue/commands/upgrade</a>, <a href="clue/deploy/configs.html">clue/deploy/configs</a>, <a href="clue/deploy/dir.html">clue/deploy/dir</a>, <a href="clue/deploy/init.html">clue/deploy/init</a>, <a href="clue/deploy/releases.html">clue/deploy/releases</a>, <a href="clue/deploy/remotes.html">clue/deploy/remotes</a>, <a href="clue/deploy/web.html">clue/deploy/web</a>, <a href="clue/docbuilder/builder.html">clue/docbuilder/builder</a>, <a href="clue/docbuilder/configs.html">clue/docbuilder/configs</a>, <a href="clue/docbuilder/httpserver.html">clue/docbuilder/httpserver</a>, <a href="clue/docbuilder/overviewgen.html">clue/docbuilder/overviewgen</a>, <a href="clue/pkgmanager/builder.html">clue/pkgmanager/builder</a>, <a href="clue/pkgmanager/configs.html">clue/pkgmanager/configs</a>, <a href="clue/pkgmanager/lockfile.html">clue/pkgmanager/lockfile</a>, <a href="clue/pkgmanager/nimbleparser.html">clue/pkgmanager/nimbleparser</a>, <a href="clue/pkgmanager/resolver.html">clue/pkgmanager/resolver</a>, <a href="clue/pkgmanager/versions.html">clue/pkgmanager/versions</a>.<br/><p /><h2>API symbols</h2>
 <dl><dt><a name="allInstalledPaths" href="#allInstalledPaths"><span>allInstalledPaths:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="versions: proc allInstalledPaths(): seq[string]" href="clue/pkgmanager/versions.html#allInstalledPaths">versions: proc allInstalledPaths(): seq[string]</a></li>
           </ul></dd>
+<dt><a name="applySshpassEnv" href="#applySshpassEnv"><span>applySshpassEnv:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="remotes: proc applySshpassEnv(auth: RemoteAuth)" href="clue/deploy/remotes.html#applySshpassEnv%2CRemoteAuth">remotes: proc applySshpassEnv(auth: RemoteAuth)</a></li>
+          </ul></dd>
 <dt><a name="buildCommand" href="#buildCommand"><span>buildCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="build: proc buildCommand(v: Values)" href="clue/commands/build.html#buildCommand%2CValues">build: proc buildCommand(v: Values)</a></li>
+          </ul></dd>
+<dt><a name="buildDeployYaml" href="#buildDeployYaml"><span>buildDeployYaml:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="init: proc buildDeployYaml(project, deployType, version, host, user, remoteDir: string;
+                releaseRepo = &quot;&quot;): string" href="clue/deploy/init.html#buildDeployYaml%2Cstring%2Cstring%2Cstring%2Cstring%2Cstring%2Cstring%2Cstring">init: proc buildDeployYaml(project, deployType, version, host, user, remoteDir: string;
+                releaseRepo = &quot;&quot;): string</a></li>
           </ul></dd>
 <dt><a name="buildDocs" href="#buildDocs"><span>buildDocs:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -91,6 +101,10 @@
 <li><a class="reference external"
           data-doc-search-tag="versions: proc clonePackage(url, dest: string; refresh = false; nonInteractive = false): bool" href="clue/pkgmanager/versions.html#clonePackage%2Cstring%2Cstring">versions: proc clonePackage(url, dest: string; refresh = false; nonInteractive = false): bool</a></li>
           </ul></dd>
+<dt><a name="closureOnDisk" href="#closureOnDisk"><span>closureOnDisk:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="versions: proc closureOnDisk(name: string): bool" href="clue/pkgmanager/versions.html#closureOnDisk%2Cstring">versions: proc closureOnDisk(name: string): bool</a></li>
+          </ul></dd>
 <dt><a name="clueBasePath" href="#clueBasePath"><span>clueBasePath:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: let clueBasePath" href="clue/docbuilder/configs.html#clueBasePath">configs: let clueBasePath</a></li>
@@ -106,6 +120,10 @@
 <dt><a name="clueCfg" href="#clueCfg"><span>clueCfg:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: template clueCfg(): DatpkgrConfig" href="clue/pkgmanager/configs.html#clueCfg.t">configs: template clueCfg(): DatpkgrConfig</a></li>
+          </ul></dd>
+<dt><a name="clueCloneStart" href="#clueCloneStart"><span>clueCloneStart:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc clueCloneStart(name, url: string)" href="clue/pkgmanager/configs.html#clueCloneStart%2Cstring%2Cstring">configs: proc clueCloneStart(name, url: string)</a></li>
           </ul></dd>
 <dt><a name="clueDB" href="#clueDB"><span>clueDB:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -131,6 +149,14 @@
 <li><a class="reference external"
           data-doc-search-tag="configs: let clueDocsPath" href="clue/docbuilder/configs.html#clueDocsPath">configs: let clueDocsPath</a></li>
           </ul></dd>
+<dt><a name="clueFetchStart" href="#clueFetchStart"><span>clueFetchStart:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc clueFetchStart(name: string)" href="clue/pkgmanager/configs.html#clueFetchStart%2Cstring">configs: proc clueFetchStart(name: string)</a></li>
+          </ul></dd>
+<dt><a name="clueInstallStart" href="#clueInstallStart"><span>clueInstallStart:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc clueInstallStart(label: string)" href="clue/pkgmanager/configs.html#clueInstallStart%2Cstring">configs: proc clueInstallStart(label: string)</a></li>
+          </ul></dd>
 <dt><a name="clueLog" href="#clueLog"><span>clueLog:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: proc clueLog(level: LogLevel; msg: string)" href="clue/pkgmanager/configs.html#clueLog%2CLogLevel%2Cstring">configs: proc clueLog(level: LogLevel; msg: string)</a></li>
@@ -155,9 +181,23 @@
 <li><a class="reference external"
           data-doc-search-tag="configs: template clueSourcesPath(): string" href="clue/pkgmanager/configs.html#clueSourcesPath.t">configs: template clueSourcesPath(): string</a></li>
           </ul></dd>
+<dt><a name="clueSubmodules" href="#clueSubmodules"><span>clueSubmodules:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc clueSubmodules(name, dest: string)" href="clue/pkgmanager/configs.html#clueSubmodules%2Cstring%2Cstring">configs: proc clueSubmodules(name, dest: string)</a></li>
+          </ul></dd>
 <dt><a name="collectInstalledDepNames" href="#collectInstalledDepNames"><span>collectInstalledDepNames:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="versions: proc collectInstalledDepNames(rootNames: seq[string]): seq[string]" href="clue/pkgmanager/versions.html#collectInstalledDepNames%2Cseq%5Bstring%5D">versions: proc collectInstalledDepNames(rootNames: seq[string]): seq[string]</a></li>
+          </ul></dd>
+<dt><a name="collectPathsWithLock" href="#collectPathsWithLock"><span>collectPathsWithLock:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="build: proc collectPathsWithLock(projectDir: string; nimble: NimbleFile;
+                     activeRootFeatures: seq[string]; pkgName: string;
+                     verbose: bool): tuple[pathFlags: seq[string],
+    featureDefines: string]" href="clue/commands/build.html#collectPathsWithLock%2Cstring%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cbool">build: proc collectPathsWithLock(projectDir: string; nimble: NimbleFile;
+                     activeRootFeatures: seq[string]; pkgName: string;
+                     verbose: bool): tuple[pathFlags: seq[string],
+    featureDefines: string]</a></li>
           </ul></dd>
 <dt><a name="collectResolvedPaths" href="#collectResolvedPaths"><span>collectResolvedPaths:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -167,9 +207,25 @@
                      pkgName: string; verbose: bool): tuple[
     pathFlags: seq[string], featureDefines: string]</a></li>
           </ul></dd>
+<dt><a name="collectResolvedPathsDetailed" href="#collectResolvedPathsDetailed"><span>collectResolvedPathsDetailed:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="build: proc collectResolvedPathsDetailed(nimble: NimbleFile;
+                             activeRootFeatures: seq[string]; pkgName: string;
+                             verbose: bool): tuple[pathFlags: seq[string],
+    featureDefines: string, entries: seq[LockEntry]]" href="clue/commands/build.html#collectResolvedPathsDetailed%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cbool">build: proc collectResolvedPathsDetailed(nimble: NimbleFile;
+                             activeRootFeatures: seq[string]; pkgName: string;
+                             verbose: bool): tuple[pathFlags: seq[string],
+    featureDefines: string, entries: seq[LockEntry]]</a></li>
+          </ul></dd>
 <dt><a name="compressOn" href="#compressOn"><span>compressOn:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: proc compressOn(p: WebProfile): bool" href="clue/deploy/configs.html#compressOn%2CWebProfile">configs: proc compressOn(p: WebProfile): bool</a></li>
+          </ul></dd>
+<dt><a name="computeNimbleHash" href="#computeNimbleHash"><span>computeNimbleHash:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="lockfile: proc computeNimbleHash(nimble: NimbleFile; activeRootFeatures: seq[string];
+                  nimVersion: string): string" href="clue/pkgmanager/lockfile.html#computeNimbleHash%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring">lockfile: proc computeNimbleHash(nimble: NimbleFile; activeRootFeatures: seq[string];
+                  nimVersion: string): string</a></li>
           </ul></dd>
 <dt><a name="createPullRequest" href="#createPullRequest"><span>createPullRequest:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -207,15 +263,31 @@
 <li><a class="reference external"
           data-doc-search-tag="configs: object DeployConfig" href="clue/deploy/configs.html#DeployConfig">configs: object DeployConfig</a></li>
           </ul></dd>
+<dt><a name="deployDir" href="#deployDir"><span>deployDir:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="dir: proc deployDir(cfg: DeployConfig; profileName, keyOverride: string; dryRun = false;
+          yes = false; verbose = false): int" href="clue/deploy/dir.html#deployDir%2CDeployConfig%2Cstring%2Cstring">dir: proc deployDir(cfg: DeployConfig; profileName, keyOverride: string; dryRun = false;
+          yes = false; verbose = false): int</a></li>
+          </ul></dd>
+<dt><a name="deployDirCommand" href="#deployDirCommand"><span>deployDirCommand:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="deploy: proc deployDirCommand(v: Values)" href="clue/commands/deploy.html#deployDirCommand%2CValues">deploy: proc deployDirCommand(v: Values)</a></li>
+          </ul></dd>
 <dt><a name="deployInitCommand" href="#deployInitCommand"><span>deployInitCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="deploy: proc deployInitCommand(v: Values)" href="clue/commands/deploy.html#deployInitCommand%2CValues">deploy: proc deployInitCommand(v: Values)</a></li>
           </ul></dd>
+<dt><a name="deployRemoteRelease" href="#deployRemoteRelease"><span>deployRemoteRelease:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="releases: proc deployRemoteRelease(prof: DirProfile; auth: RemoteAuth;
+                    dryRun, yes, verbose: bool): int" href="clue/deploy/releases.html#deployRemoteRelease%2CDirProfile%2CRemoteAuth%2Cbool%2Cbool%2Cbool">releases: proc deployRemoteRelease(prof: DirProfile; auth: RemoteAuth;
+                    dryRun, yes, verbose: bool): int</a></li>
+          </ul></dd>
 <dt><a name="deployWeb" href="#deployWeb"><span>deployWeb:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="web: proc deployWeb(cfg: DeployConfig; profileName, keyOverride: string;
-          dryRun, yes, verbose, statusOnly: bool): int" href="clue/deploy/web.html#deployWeb%2CDeployConfig%2Cstring%2Cstring%2Cbool%2Cbool%2Cbool%2Cbool">web: proc deployWeb(cfg: DeployConfig; profileName, keyOverride: string;
-          dryRun, yes, verbose, statusOnly: bool): int</a></li>
+          data-doc-search-tag="web: proc deployWeb(cfg: DeployConfig; profileName, keyOverride: string; dryRun = false;
+          yes = false; verbose = false; statusOnly = false): int" href="clue/deploy/web.html#deployWeb%2CDeployConfig%2Cstring%2Cstring">web: proc deployWeb(cfg: DeployConfig; profileName, keyOverride: string; dryRun = false;
+          yes = false; verbose = false; statusOnly = false): int</a></li>
           </ul></dd>
 <dt><a name="deployWebCommand" href="#deployWebCommand"><span>deployWebCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -223,8 +295,6 @@
           </ul></dd>
 <dt><a name="detectNimVersion" href="#detectNimVersion"><span>detectNimVersion:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="init: proc detectNimVersion(): string" href="clue/deploy/init.html#detectNimVersion">init: proc detectNimVersion(): string</a></li>
-          <li><a class="reference external"
           data-doc-search-tag="configs: proc detectNimVersion(): string" href="clue/pkgmanager/configs.html#detectNimVersion">configs: proc detectNimVersion(): string</a></li>
           </ul></dd>
 <dt><a name="detectRepoUrl" href="#detectRepoUrl"><span>detectRepoUrl:</span></a></dt><dd><ul class="simple">
@@ -238,6 +308,14 @@
 <dt><a name="devShadowWarningsEnabled" href="#devShadowWarningsEnabled"><span>devShadowWarningsEnabled:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="versions: template devShadowWarningsEnabled(): var bool" href="clue/pkgmanager/versions.html#devShadowWarningsEnabled.t">versions: template devShadowWarningsEnabled(): var bool</a></li>
+          </ul></dd>
+<dt><a name="DirConfig" href="#DirConfig"><span>DirConfig:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: object DirConfig" href="clue/deploy/configs.html#DirConfig">configs: object DirConfig</a></li>
+          </ul></dd>
+<dt><a name="DirProfile" href="#DirProfile"><span>DirProfile:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: object DirProfile" href="clue/deploy/configs.html#DirProfile">configs: object DirProfile</a></li>
           </ul></dd>
 <dt><a name="discoverVersions" href="#discoverVersions"><span>discoverVersions:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -265,6 +343,10 @@
 <li><a class="reference external"
           data-doc-search-tag="doctor: proc doctorCommand(v: Values)" href="clue/commands/doctor.html#doctorCommand%2CValues">doctor: proc doctorCommand(v: Values)</a></li>
           </ul></dd>
+<dt><a name="downloadFile" href="#downloadFile"><span>downloadFile:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="releases: proc downloadFile(url, dest: string): bool" href="clue/deploy/releases.html#downloadFile%2Cstring%2Cstring">releases: proc downloadFile(url, dest: string): bool</a></li>
+          </ul></dd>
 <dt><a name="dumpCommand" href="#dumpCommand"><span>dumpCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="manager: proc dumpCommand(v: Values)" href="clue/commands/manager.html#dumpCommand%2CValues">manager: proc dumpCommand(v: Values)</a></li>
@@ -280,6 +362,10 @@
 <dt><a name="ensureNimscriptEnv" href="#ensureNimscriptEnv"><span>ensureNimscriptEnv:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="nimscript: proc ensureNimscriptEnv(nimblePath: string)" href="clue/commands/nimscript.html#ensureNimscriptEnv%2Cstring">nimscript: proc ensureNimscriptEnv(nimblePath: string)</a></li>
+          </ul></dd>
+<dt><a name="ensureRemoteAuth" href="#ensureRemoteAuth"><span>ensureRemoteAuth:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="remotes: proc ensureRemoteAuth(user, host, key: string): tuple[auth: RemoteAuth, ok: bool]" href="clue/deploy/remotes.html#ensureRemoteAuth%2Cstring%2Cstring%2Cstring">remotes: proc ensureRemoteAuth(user, host, key: string): tuple[auth: RemoteAuth, ok: bool]</a></li>
           </ul></dd>
 <dt><a name="ensureSourcesFile" href="#ensureSourcesFile"><span>ensureSourcesFile:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -323,6 +409,10 @@
 <li><a class="reference external"
           data-doc-search-tag="configs: proc expandPath(s: string): string" href="clue/deploy/configs.html#expandPath%2Cstring">configs: proc expandPath(s: string): string</a></li>
           </ul></dd>
+<dt><a name="extractArchive" href="#extractArchive"><span>extractArchive:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="releases: proc extractArchive(workDir, archive: string): bool" href="clue/deploy/releases.html#extractArchive%2Cstring%2Cstring">releases: proc extractArchive(workDir, archive: string): bool</a></li>
+          </ul></dd>
 <dt><a name="fetchAllPkgMetas" href="#fetchAllPkgMetas"><span>fetchAllPkgMetas:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: proc fetchAllPkgMetas(pkgName: string): seq[PkgRef]" href="clue/pkgmanager/configs.html#fetchAllPkgMetas%2Cstring">configs: proc fetchAllPkgMetas(pkgName: string): seq[PkgRef]</a></li>
@@ -344,6 +434,10 @@
           data-doc-search-tag="nimbleparser: proc findNimbleFile(dir: string; cfg: DatpkgrConfig = nil;
                projectFs: Filesystem = nil): string" href="clue/pkgmanager/nimbleparser.html#findNimbleFile%2Cstring%2CDatpkgrConfig%2CFilesystem">nimbleparser: proc findNimbleFile(dir: string; cfg: DatpkgrConfig = nil;
                projectFs: Filesystem = nil): string</a></li>
+          </ul></dd>
+<dt><a name="findReleaseBinary" href="#findReleaseBinary"><span>findReleaseBinary:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="releases: proc findReleaseBinary(dir, binary: string): string" href="clue/deploy/releases.html#findReleaseBinary%2Cstring%2Cstring">releases: proc findReleaseBinary(dir, binary: string): string</a></li>
           </ul></dd>
 <dt><a name="generateOverview" href="#generateOverview"><span>generateOverview:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -367,17 +461,9 @@
 <li><a class="reference external"
           data-doc-search-tag="versions: proc gitHeadInfo(name, url: string): Option[GitHeadInfo]" href="clue/pkgmanager/versions.html#gitHeadInfo%2Cstring%2Cstring">versions: proc gitHeadInfo(name, url: string): Option[GitHeadInfo]</a></li>
           </ul></dd>
-<dt><a name="GithubConfig" href="#GithubConfig"><span>GithubConfig:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="configs: object GithubConfig" href="clue/deploy/configs.html#GithubConfig">configs: object GithubConfig</a></li>
-          </ul></dd>
 <dt><a name="gitHubUser" href="#gitHubUser"><span>gitHubUser:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="publish: proc gitHubUser(token: string): string" href="clue/commands/publish.html#gitHubUser%2Cstring">publish: proc gitHubUser(token: string): string</a></li>
-          </ul></dd>
-<dt><a name="gitOriginRepo" href="#gitOriginRepo"><span>gitOriginRepo:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="init: proc gitOriginRepo(): string" href="clue/deploy/init.html#gitOriginRepo">init: proc gitOriginRepo(): string</a></li>
           </ul></dd>
 <dt><a name="headVersion" href="#headVersion"><span>headVersion:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -393,7 +479,7 @@
           </ul></dd>
 <dt><a name="initDeploy" href="#initDeploy"><span>initDeploy:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="init: proc initDeploy(deployType: string; writeWorkflow, yes, force: bool)" href="clue/deploy/init.html#initDeploy%2Cstring%2Cbool%2Cbool%2Cbool">init: proc initDeploy(deployType: string; writeWorkflow, yes, force: bool)</a></li>
+          data-doc-search-tag="init: proc initDeploy(deployType: string; yes, force: bool)" href="clue/deploy/init.html#initDeploy%2Cstring%2Cbool%2Cbool">init: proc initDeploy(deployType: string; yes, force: bool)</a></li>
           </ul></dd>
 <dt><a name="initDocsDB" href="#initDocsDB"><span>initDocsDB:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -427,6 +513,10 @@
 <li><a class="reference external"
           data-doc-search-tag="versions: proc installedRoots(): seq[string]" href="clue/pkgmanager/versions.html#installedRoots">versions: proc installedRoots(): seq[string]</a></li>
           </ul></dd>
+<dt><a name="installedVersionForReuse" href="#installedVersionForReuse"><span>installedVersionForReuse:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="versions: proc installedVersionForReuse(name, refStr: string): string" href="clue/pkgmanager/versions.html#installedVersionForReuse%2Cstring%2Cstring">versions: proc installedVersionForReuse(name, refStr: string): string</a></li>
+          </ul></dd>
 <dt><a name="installPackage" href="#installPackage"><span>installPackage:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="manager: proc installPackage(pkgName: string; pkgRef: string = &quot;&quot;; refresh = false;
@@ -443,9 +533,21 @@
                sourceFilter: string = &quot;&quot;; suppressSummary = false;
                depsOnly = false)</a></li>
           </ul></dd>
+<dt><a name="invalidateLock" href="#invalidateLock"><span>invalidateLock:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="lockfile: proc invalidateLock(pkgDir: string)" href="clue/pkgmanager/lockfile.html#invalidateLock%2Cstring">lockfile: proc invalidateLock(pkgDir: string)</a></li>
+          </ul></dd>
+<dt><a name="isArchiveAsset" href="#isArchiveAsset"><span>isArchiveAsset:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="releases: proc isArchiveAsset(name: string): bool" href="clue/deploy/releases.html#isArchiveAsset%2Cstring">releases: proc isArchiveAsset(name: string): bool</a></li>
+          </ul></dd>
 <dt><a name="isCruftName" href="#isCruftName"><span>isCruftName:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="nimbleparser: proc isCruftName(name: string; nimble: NimbleFile): bool" href="clue/pkgmanager/nimbleparser.html#isCruftName%2Cstring%2CNimbleFile">nimbleparser: proc isCruftName(name: string; nimble: NimbleFile): bool</a></li>
+          </ul></dd>
+<dt><a name="isDevelopAvailable" href="#isDevelopAvailable"><span>isDevelopAvailable:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="versions: proc isDevelopAvailable(name: string): bool" href="clue/pkgmanager/versions.html#isDevelopAvailable%2Cstring">versions: proc isDevelopAvailable(name: string): bool</a></li>
           </ul></dd>
 <dt><a name="isDevInstall" href="#isDevInstall"><span>isDevInstall:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -463,13 +565,25 @@
 <li><a class="reference external"
           data-doc-search-tag="configs: proc isInsidePkgs(dir: string): bool" href="clue/pkgmanager/configs.html#isInsidePkgs%2Cstring">configs: proc isInsidePkgs(dir: string): bool</a></li>
           </ul></dd>
+<dt><a name="isInstalledOnDisk" href="#isInstalledOnDisk"><span>isInstalledOnDisk:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="versions: proc isInstalledOnDisk(name: string): bool" href="clue/pkgmanager/versions.html#isInstalledOnDisk%2Cstring">versions: proc isInstalledOnDisk(name: string): bool</a></li>
+          </ul></dd>
 <dt><a name="isRegistryStale" href="#isRegistryStale"><span>isRegistryStale:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="sources: proc isRegistryStale(cachePath: string; ttlHours = registryTtlHours): bool" href="clue/commands/sources.html#isRegistryStale%2Cstring">sources: proc isRegistryStale(cachePath: string; ttlHours = registryTtlHours): bool</a></li>
           </ul></dd>
+<dt><a name="isRemoteHost" href="#isRemoteHost"><span>isRemoteHost:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="remotes: proc isRemoteHost(host: string): bool" href="clue/deploy/remotes.html#isRemoteHost%2Cstring">remotes: proc isRemoteHost(host: string): bool</a></li>
+          </ul></dd>
 <dt><a name="isValidSourceName" href="#isValidSourceName"><span>isValidSourceName:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: proc isValidSourceName(s: string): bool" href="clue/pkgmanager/configs.html#isValidSourceName%2Cstring">configs: proc isValidSourceName(s: string): bool</a></li>
+          </ul></dd>
+<dt><a name="latestDownloadUrl" href="#latestDownloadUrl"><span>latestDownloadUrl:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="releases: proc latestDownloadUrl(repo, asset: string): string" href="clue/deploy/releases.html#latestDownloadUrl%2Cstring%2Cstring">releases: proc latestDownloadUrl(repo, asset: string): string</a></li>
           </ul></dd>
 <dt><a name="listTasks" href="#listTasks"><span>listTasks:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -483,9 +597,45 @@
 <li><a class="reference external"
           data-doc-search-tag="configs: proc loadSources(): seq[Source]" href="clue/pkgmanager/configs.html#loadSources">configs: proc loadSources(): seq[Source]</a></li>
           </ul></dd>
+<dt><a name="LockEntry" href="#LockEntry"><span>LockEntry:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="lockfile: object LockEntry" href="clue/pkgmanager/lockfile.html#LockEntry">lockfile: object LockEntry</a></li>
+          </ul></dd>
+<dt><a name="LockFile" href="#LockFile"><span>LockFile:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="lockfile: object LockFile" href="clue/pkgmanager/lockfile.html#LockFile">lockfile: object LockFile</a></li>
+          </ul></dd>
+<dt><a name="LockFileName" href="#LockFileName"><span>LockFileName:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="lockfile: const LockFileName" href="clue/pkgmanager/lockfile.html#LockFileName">lockfile: const LockFileName</a></li>
+          </ul></dd>
+<dt><a name="lockPathFor" href="#lockPathFor"><span>lockPathFor:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="lockfile: proc lockPathFor(pkgDir: string): string" href="clue/pkgmanager/lockfile.html#lockPathFor%2Cstring">lockfile: proc lockPathFor(pkgDir: string): string</a></li>
+          </ul></dd>
+<dt><a name="lockToFlags" href="#lockToFlags"><span>lockToFlags:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="lockfile: proc lockToFlags(lock: LockFile; pkgName: string; activeRootFeatures: seq[string]): tuple[
+    pathFlags: seq[string], featureDefines: string]" href="clue/pkgmanager/lockfile.html#lockToFlags%2CLockFile%2Cstring%2Cseq%5Bstring%5D">lockfile: proc lockToFlags(lock: LockFile; pkgName: string; activeRootFeatures: seq[string]): tuple[
+    pathFlags: seq[string], featureDefines: string]</a></li>
+          </ul></dd>
+<dt><a name="LockVersion" href="#LockVersion"><span>LockVersion:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="lockfile: const LockVersion" href="clue/pkgmanager/lockfile.html#LockVersion">lockfile: const LockVersion</a></li>
+          </ul></dd>
+<dt><a name="markInstalledRoot" href="#markInstalledRoot"><span>markInstalledRoot:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="versions: proc markInstalledRoot(name, version: string)" href="clue/pkgmanager/versions.html#markInstalledRoot%2Cstring%2Cstring">versions: proc markInstalledRoot(name, version: string)</a></li>
+          </ul></dd>
 <dt><a name="newLive" href="#newLive"><span>newLive:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="live: proc newLive(text: string; time = true): Live" href="clue/cli/live.html#newLive%2Cstring">live: proc newLive(text: string; time = true): Live</a></li>
+          </ul></dd>
+<dt><a name="newLockFile" href="#newLockFile"><span>newLockFile:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="lockfile: proc newLockFile(root, nimbleHash, nimVersion: string; activeFeatures: seq[string];
+            packages: seq[LockEntry]): LockFile" href="clue/pkgmanager/lockfile.html#newLockFile%2Cstring%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cseq%5BLockEntry%5D">lockfile: proc newLockFile(root, nimbleHash, nimVersion: string; activeFeatures: seq[string];
+            packages: seq[LockEntry]): LockFile</a></li>
           </ul></dd>
 <dt><a name="newProjectDisk" href="#newProjectDisk"><span>newProjectDisk:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -523,6 +673,10 @@
 <li><a class="reference external"
           data-doc-search-tag="publish: proc normalizeRepoUrl(url: string): string" href="clue/commands/publish.html#normalizeRepoUrl%2Cstring">publish: proc normalizeRepoUrl(url: string): string</a></li>
           </ul></dd>
+<dt><a name="normalizeTestFilter" href="#normalizeTestFilter"><span>normalizeTestFilter:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="build: proc normalizeTestFilter(raw: string): string" href="clue/commands/build.html#normalizeTestFilter%2Cstring">build: proc normalizeTestFilter(raw: string): string</a></li>
+          </ul></dd>
 <dt><a name="packagesApiBase" href="#packagesApiBase"><span>packagesApiBase:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="publish: const packagesApiBase" href="clue/commands/publish.html#packagesApiBase">publish: const packagesApiBase</a></li>
@@ -550,10 +704,6 @@
 <dt><a name="parseFeatureFlags" href="#parseFeatureFlags"><span>parseFeatureFlags:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="manager: proc parseFeatureFlags(s: string): seq[string]" href="clue/commands/manager.html#parseFeatureFlags%2Cstring">manager: proc parseFeatureFlags(s: string): seq[string]</a></li>
-          </ul></dd>
-<dt><a name="parseGitRepo" href="#parseGitRepo"><span>parseGitRepo:</span></a></dt><dd><ul class="simple">
-<li><a class="reference external"
-          data-doc-search-tag="init: proc parseGitRepo(url: string): string" href="clue/deploy/init.html#parseGitRepo%2Cstring">init: proc parseGitRepo(url: string): string</a></li>
           </ul></dd>
 <dt><a name="parseNimbleFile" href="#parseNimbleFile"><span>parseNimbleFile:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -603,6 +753,10 @@
 <li><a class="reference external"
           data-doc-search-tag="publish: const publishTokenEnv" href="clue/commands/publish.html#publishTokenEnv">publish: const publishTokenEnv</a></li>
           </ul></dd>
+<dt><a name="readLock" href="#readLock"><span>readLock:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="lockfile: proc readLock(pkgDir: string): tuple[ok: bool, lock: LockFile]" href="clue/pkgmanager/lockfile.html#readLock%2Cstring">lockfile: proc readLock(pkgDir: string): tuple[ok: bool, lock: LockFile]</a></li>
+          </ul></dd>
 <dt><a name="readPublishToken" href="#readPublishToken"><span>readPublishToken:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="publish: proc readPublishToken(): string" href="clue/commands/publish.html#readPublishToken">publish: proc readPublishToken(): string</a></li>
@@ -637,9 +791,15 @@
 <li><a class="reference external"
           data-doc-search-tag="configs: object ReleaseConfig" href="clue/deploy/configs.html#ReleaseConfig">configs: object ReleaseConfig</a></li>
           </ul></dd>
-<dt><a name="ReleaseTarget" href="#ReleaseTarget"><span>ReleaseTarget:</span></a></dt><dd><ul class="simple">
+<dt><a name="RemoteAuth" href="#RemoteAuth"><span>RemoteAuth:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="configs: object ReleaseTarget" href="clue/deploy/configs.html#ReleaseTarget">configs: object ReleaseTarget</a></li>
+          data-doc-search-tag="remotes: object RemoteAuth" href="clue/deploy/remotes.html#RemoteAuth">remotes: object RemoteAuth</a></li>
+          </ul></dd>
+<dt><a name="renameHook" href="#renameHook"><span>renameHook:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="lockfile: proc renameHook(v: LockEntry; fieldName: var string)" href="clue/pkgmanager/lockfile.html#renameHook%2CLockEntry%2Cstring">lockfile: proc renameHook(v: LockEntry; fieldName: var string)</a></li>
+          <li><a class="reference external"
+          data-doc-search-tag="lockfile: proc renameHook(v: LockFile; fieldName: var string)" href="clue/pkgmanager/lockfile.html#renameHook%2CLockFile%2Cstring">lockfile: proc renameHook(v: LockFile; fieldName: var string)</a></li>
           </ul></dd>
 <dt><a name="resetClueForTests" href="#resetClueForTests"><span>resetClueForTests:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -657,9 +817,31 @@
 <li><a class="reference external"
           data-doc-search-tag="publish: proc resolveRepoUrl(input: string): string" href="clue/commands/publish.html#resolveRepoUrl%2Cstring">publish: proc resolveRepoUrl(input: string): string</a></li>
           </ul></dd>
+<dt><a name="rsyncCmd" href="#rsyncCmd"><span>rsyncCmd:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="remotes: proc rsyncCmd(localSrc, dest, user, host: string; port: int; auth: RemoteAuth;
+         timeout: int; dryRun, delete, checksum, compress: bool;
+         exclude: seq[string]): string" href="clue/deploy/remotes.html#rsyncCmd%2Cstring%2Cstring%2Cstring%2Cstring%2Cint%2CRemoteAuth%2Cint%2Cbool%2Cbool%2Cbool%2Cbool%2Cseq%5Bstring%5D">remotes: proc rsyncCmd(localSrc, dest, user, host: string; port: int; auth: RemoteAuth;
+         timeout: int; dryRun, delete, checksum, compress: bool;
+         exclude: seq[string]): string</a></li>
+          </ul></dd>
 <dt><a name="runNimscriptHook" href="#runNimscriptHook"><span>runNimscriptHook:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="nimscript: proc runNimscriptHook(nimblePath, action: string; before: bool): bool" href="clue/commands/nimscript.html#runNimscriptHook%2Cstring%2Cstring%2Cbool">nimscript: proc runNimscriptHook(nimblePath, action: string; before: bool): bool</a></li>
+          </ul></dd>
+<dt><a name="RunStep" href="#RunStep"><span>RunStep:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: object RunStep" href="clue/deploy/configs.html#RunStep">configs: object RunStep</a></li>
+          </ul></dd>
+<dt><a name="runStepsLocal" href="#runStepsLocal"><span>runStepsLocal:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="remotes: proc runStepsLocal(steps: seq[RunStep]; dryRun, verbose: bool): int" href="clue/deploy/remotes.html#runStepsLocal%2Cseq%5BRunStep%5D%2Cbool%2Cbool">remotes: proc runStepsLocal(steps: seq[RunStep]; dryRun, verbose: bool): int</a></li>
+          </ul></dd>
+<dt><a name="runStepsRemote" href="#runStepsRemote"><span>runStepsRemote:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="remotes: proc runStepsRemote(user, host: string; port, timeout: int; auth: RemoteAuth;
+               steps: seq[RunStep]; dryRun, verbose: bool): int" href="clue/deploy/remotes.html#runStepsRemote%2Cstring%2Cstring%2Cint%2Cint%2CRemoteAuth%2Cseq%5BRunStep%5D%2Cbool%2Cbool">remotes: proc runStepsRemote(user, host: string; port, timeout: int; auth: RemoteAuth;
+               steps: seq[RunStep]; dryRun, verbose: bool): int</a></li>
           </ul></dd>
 <dt><a name="safeRemoveDir" href="#safeRemoveDir"><span>safeRemoveDir:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -705,6 +887,10 @@
 <li><a class="reference external"
           data-doc-search-tag="live: proc setMain(live: Live; text: string)" href="clue/cli/live.html#setMain%2CLive%2Cstring">live: proc setMain(live: Live; text: string)</a></li>
           </ul></dd>
+<dt><a name="shq" href="#shq"><span>shq:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="releases: proc shq(s: string): string" href="clue/deploy/releases.html#shq%2Cstring">releases: proc shq(s: string): string</a></li>
+          </ul></dd>
 <dt><a name="sourceAddCommand" href="#sourceAddCommand"><span>sourceAddCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="sources: proc sourceAddCommand(v: Values)" href="clue/commands/sources.html#sourceAddCommand%2CValues">sources: proc sourceAddCommand(v: Values)</a></li>
@@ -733,9 +919,41 @@
 <li><a class="reference external"
           data-doc-search-tag="publish: proc splitPublishTags(s: string): seq[string]" href="clue/commands/publish.html#splitPublishTags%2Cstring">publish: proc splitPublishTags(s: string): seq[string]</a></li>
           </ul></dd>
+<dt><a name="sshCmd" href="#sshCmd"><span>sshCmd:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="remotes: proc sshCmd(user, host: string; port: int; auth: RemoteAuth; timeout: int;
+       remote: string): string" href="clue/deploy/remotes.html#sshCmd%2Cstring%2Cstring%2Cint%2CRemoteAuth%2Cint%2Cstring">remotes: proc sshCmd(user, host: string; port: int; auth: RemoteAuth; timeout: int;
+       remote: string): string</a></li>
+          </ul></dd>
+<dt><a name="sshTransport" href="#sshTransport"><span>sshTransport:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="remotes: proc sshTransport(user, host: string; port: int; auth: RemoteAuth; timeout: int): string" href="clue/deploy/remotes.html#sshTransport%2Cstring%2Cstring%2Cint%2CRemoteAuth%2Cint">remotes: proc sshTransport(user, host: string; port: int; auth: RemoteAuth; timeout: int): string</a></li>
+          </ul></dd>
+<dt><a name="sshTransportArgs" href="#sshTransportArgs"><span>sshTransportArgs:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="remotes: proc sshTransportArgs(port: int; auth: RemoteAuth; timeout: int): string" href="clue/deploy/remotes.html#sshTransportArgs%2Cint%2CRemoteAuth%2Cint">remotes: proc sshTransportArgs(port: int; auth: RemoteAuth; timeout: int): string</a></li>
+          </ul></dd>
+<dt><a name="stageReleaseAsset" href="#stageReleaseAsset"><span>stageReleaseAsset:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="releases: proc stageReleaseAsset(repo, asset, binary, workDir: string; verbose: bool): tuple[
+    stageDir: string, ok: bool]" href="clue/deploy/releases.html#stageReleaseAsset%2Cstring%2Cstring%2Cstring%2Cstring%2Cbool">releases: proc stageReleaseAsset(repo, asset, binary, workDir: string; verbose: bool): tuple[
+    stageDir: string, ok: bool]</a></li>
+          </ul></dd>
 <dt><a name="start" href="#start"><span>start:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="live: proc start(live: Live)" href="clue/cli/live.html#start%2CLive">live: proc start(live: Live)</a></li>
+          </ul></dd>
+<dt><a name="stepLabel" href="#stepLabel"><span>stepLabel:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="remotes: proc stepLabel(s: RunStep): string" href="clue/deploy/remotes.html#stepLabel%2CRunStep">remotes: proc stepLabel(s: RunStep): string</a></li>
+          </ul></dd>
+<dt><a name="storeLock" href="#storeLock"><span>storeLock:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="build: proc storeLock(projectDir: string; nimble: NimbleFile;
+          activeRootFeatures: seq[string]; pkgName: string;
+          entries: seq[LockEntry])" href="clue/commands/build.html#storeLock%2Cstring%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cseq%5BLockEntry%5D">build: proc storeLock(projectDir: string; nimble: NimbleFile;
+          activeRootFeatures: seq[string]; pkgName: string;
+          entries: seq[LockEntry])</a></li>
           </ul></dd>
 <dt><a name="success" href="#success"><span>success:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -761,6 +979,18 @@
 <li><a class="reference external"
           data-doc-search-tag="versions: proc toGitSshUrl(url: string): string" href="clue/pkgmanager/versions.html#toGitSshUrl%2Cstring">versions: proc toGitSshUrl(url: string): string</a></li>
           </ul></dd>
+<dt><a name="toMsysPath" href="#toMsysPath"><span>toMsysPath:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="remotes: proc toMsysPath(path: string): string" href="clue/deploy/remotes.html#toMsysPath%2Cstring">remotes: proc toMsysPath(path: string): string</a></li>
+          </ul></dd>
+<dt><a name="tryLockedFlags" href="#tryLockedFlags"><span>tryLockedFlags:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="build: proc tryLockedFlags(projectDir: string; nimble: NimbleFile;
+               activeRootFeatures: seq[string]; pkgName: string; verbose: bool): tuple[
+    hit: bool, pathFlags: seq[string], featureDefines: string]" href="clue/commands/build.html#tryLockedFlags%2Cstring%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cbool">build: proc tryLockedFlags(projectDir: string; nimble: NimbleFile;
+               activeRootFeatures: seq[string]; pkgName: string; verbose: bool): tuple[
+    hit: bool, pathFlags: seq[string], featureDefines: string]</a></li>
+          </ul></dd>
 <dt><a name="uninstallCommand" href="#uninstallCommand"><span>uninstallCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="manager: proc uninstallCommand(v: Values)" href="clue/commands/manager.html#uninstallCommand%2CValues">manager: proc uninstallCommand(v: Values)</a></li>
@@ -776,6 +1006,18 @@
 <dt><a name="upgradeCommand" href="#upgradeCommand"><span>upgradeCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="upgrade: proc upgradeCommand(v: Values)" href="clue/commands/upgrade.html#upgradeCommand%2CValues">upgrade: proc upgradeCommand(v: Values)</a></li>
+          </ul></dd>
+<dt><a name="validateLock" href="#validateLock"><span>validateLock:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="lockfile: proc validateLock(lock: LockFile; nimble: NimbleFile;
+             activeRootFeatures: seq[string]; nimVersion: string;
+             developDir: string): bool" href="clue/pkgmanager/lockfile.html#validateLock%2CLockFile%2CNimbleFile%2Cseq%5Bstring%5D%2Cstring%2Cstring">lockfile: proc validateLock(lock: LockFile; nimble: NimbleFile;
+             activeRootFeatures: seq[string]; nimVersion: string;
+             developDir: string): bool</a></li>
+          </ul></dd>
+<dt><a name="validateSteps" href="#validateSteps"><span>validateSteps:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="remotes: proc validateSteps(steps: seq[RunStep]; profileName: string): bool" href="clue/deploy/remotes.html#validateSteps%2Cseq%5BRunStep%5D%2Cstring">remotes: proc validateSteps(steps: seq[RunStep]; profileName: string): bool</a></li>
           </ul></dd>
 <dt><a name="venvCommand" href="#venvCommand"><span>venvCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -813,11 +1055,15 @@
 <li><a class="reference external"
           data-doc-search-tag="nimbleparser: proc withNimbleSupport(cfg: dc.DatpkgrConfig; parser: dt.ManifestParser)" href="clue/pkgmanager/nimbleparser.html#withNimbleSupport%2C%2C">nimbleparser: proc withNimbleSupport(cfg: dc.DatpkgrConfig; parser: dt.ManifestParser)</a></li>
           </ul></dd>
+<dt><a name="writeLock" href="#writeLock"><span>writeLock:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="lockfile: proc writeLock(pkgDir: string; lock: LockFile)" href="clue/pkgmanager/lockfile.html#writeLock%2Cstring%2CLockFile">lockfile: proc writeLock(pkgDir: string; lock: LockFile)</a></li>
+          </ul></dd>
 </dl>
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-11 07:14:33 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-19 16:53:07 UTC</small>
       </div>
     </div>
   </div>
