@@ -83,7 +83,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     doBuild = false, buildRelease = true, buildDebug = false,
     constraint: VersionConstraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0)),
     backend = "c", sourceFilter: string = "", suppressSummary = false,
-    depsOnly = false) =
+    depsOnly = false, showTree = true) =
   ## Thin wrapper around datpkgr/operations.installPackage.
   ## Builder (`builder.nim`) stays in clue and is injected via buildHook.
   ## With `depsOnly` only the dependency closure is installed, never the
@@ -99,7 +99,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
   let ok = datpkgrOps.installPackage(cfg, pkgName, pkgRef, refresh, features, verbose, url,
                                         doBuild, buildRelease, buildDebug, constraint,
                                         backend, sourceFilter, buildHook, suppressSummary,
-                                        depsOnly)
+                                        depsOnly, showTree)
   if not ok:
     # datpkgr already logged; keep CLI exit
     # semantics (original called quit(1) on fail)
@@ -289,7 +289,7 @@ proc installCommand*(v: Values) =
         emitLbl(fmtLbl(dep, reused), true)
         emitTransitives(dep)
         continue
-      installPackage(dep, refStr, false, d.features, verbose, constraint = d.constraint, url = d.url, suppressSummary = true)
+      installPackage(dep, refStr, false, d.features, verbose, constraint = d.constraint, url = d.url, suppressSummary = true, showTree = false)
       let depPath = resolveInstalledPath(dep, refStr)
       let verLabel = if depPath.len > 0: depPath.lastPathPart else: refStr
       emitLbl(fmtLbl(dep, verLabel), false)

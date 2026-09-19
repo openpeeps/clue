@@ -163,7 +163,7 @@ proc clueFetchStart*(name: string) {.gcsafe.} =
   ## Immediate mode: version discovery for `name` started.
   {.cast(gcsafe).}:
     withLock displayLock:
-      displayInfo("Resolving " & name & "...")
+      # displayInfo("Resolving " & name & "...")
       try: flushFile(stdout) except: discard
 
 proc clueCloneStart*(name, url: string) {.gcsafe.} =
