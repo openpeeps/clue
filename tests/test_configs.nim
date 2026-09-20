@@ -32,6 +32,8 @@ suite "configs — safeRemoveDir refuses outside the registry":
     check dirExists(dir)
 
   test "leaves a symlinked outside target untouched":
+    when defined(windows):
+      skip() # creating symlinks needs privileges CI runners lack
     let target = getTempDir() / "clue_configs_target" / $getCurrentProcessId()
     let link = getTempDir() / "clue_configs_link" / $getCurrentProcessId()
     createDir(target)
@@ -52,6 +54,8 @@ suite "configs — safeRemoveDir refuses outside the registry":
 
 suite "configs — safeRemoveSymlink refuses outside develop":
   test "leaves a symlink outside ~/.clue/develop untouched":
+    when defined(windows):
+      skip() # creating symlinks needs privileges CI runners lack
     let target = getTempDir() / "clue_configs_symtarget" / $getCurrentProcessId()
     let link = getTempDir() / "clue_configs_symlink" / $getCurrentProcessId()
     createDir(target)

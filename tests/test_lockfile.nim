@@ -140,7 +140,12 @@ suite "lockfile — validation":
     # no develop link yet — invalid
     check not validateLock(lock, nimble, @["dev"], "2.2.12", devDir)
     createDir(devDir)
-    createSymlink(dir / "src", devDir / "mylib")
+    when defined(windows):
+      # Symlinks need admin/Developer Mode on Windows (fails on CI runners
+      # with "Access is denied"); a plain dir satisfies validation too.
+      createDir(devDir / "mylib")
+    else:
+      createSymlink(dir / "src", devDir / "mylib")
     check validateLock(lock, nimble, @["dev"], "2.2.12", devDir)
 
 suite "lockfile — flags":
