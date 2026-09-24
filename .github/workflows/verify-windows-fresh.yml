@@ -1,0 +1,90 @@
+# TEMP-VERIFY: proves the fresh-DB SIGSEGV fix on Windows before release.
+# Builds clue from source, wipes to a fresh DB, then resolves + installs a
+# scratch project with real fetch waves using the source-built binary.
+# DELETE THIS FILE once it is green (the fix is covered by normal CI after).
+name: verify-windows-fresh
+on:
+  workflow_dispatch:
+  pull_request:
+jobs:
+  verify:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: nimbase/setup-nim-action@main
+        with:
+          nim-version: stable
+
+      - name: Install released clue (bootstrap to build from source)
+        run: |
+          set -eu
+          url="https://github.com/openpeeps/clue/releases/latest/download/clue_windows-x86_64.zip"
+          echo ">> downloading ${url}"
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          curl -fsSL "${url}" -o "${work}/clue.zip"
+          win_zip="$(cygpath -w "${work}/clue.zip")"
+          win_dest="$(cygpath -w "${work}")"
+          powershell -NoProfile -Command "Expand-Archive -Force -LiteralPath '${win_zip}' -DestinationPath '${win_dest}'"
+          bin="$(find "${work}" -type f -name 'clue.exe' | head -n 1)"
+          [[ -n "${bin}" ]] || { echo "ERROR: clue binary not found in archive"; exit 1; }
+          chmod +x "${bin}"
+          mkdir -p "$HOME/.clue/bin"
+          install -m 0755 "${bin}" "$HOME/.clue/bin/clue.exe"
+          echo "$(cygpath -w "$HOME/.clue/bin")" >> "$GITHUB_PATH"
+
+      - name: MSYS2 rsync (clue needs it for local-path handling on Windows)
+        run: |
+          set -eu
+          choco uninstall -y rsync || true
+          C:/msys64/usr/bin/pacman.exe -S --needed --noconfirm rsync
+          echo "C:\msys64\usr\bin" >> "$GITHUB_PATH"
+          export PATH="/c/msys64/usr/bin:$PATH"
+          rsync --version
+
+      - name: Build clue from source
+        run: |
+          set -eu
+          clue build -d:release --verbose
+          find . -maxdepth 2 -type f -name 'clue*' | head
+
+      - name: Fresh-DB install + build with source-built clue (x2)
+        run: |
+          set -eu
+          src_clue="$(find "$GITHUB_WORKSPACE" -maxdepth 2 -type f -name 'clue.exe' | head -n 1)"
+          [[ -n "${src_clue}" ]] || { echo "ERROR: source-built clue.exe not found"; exit 1; }
+          echo ">> source-built clue: ${src_clue}"
+          "${src_clue}" --version || true
+          for i in 1 2; do
+            echo ">> round $i: wiping to a fresh DB"
+            rm -rf "$HOME/.clue"
+            mkdir -p "$HOME/.clue"
+            scratch="$(mktemp -d)"
+            mkdir -p "${scratch}/src"
+            cat > "${scratch}/scratch.nimble" <<'EOF'
+          # Package
+          version       = "0.1.0"
+          author        = "CI"
+          description   = "fresh-DB verification scratch project"
+          license       = "MIT"
+          srcDir        = "src"
+          bin           = @["main"]
+          requires "nim >= 2.0.0"
+          requires "kapsis >= 0.4.8"
+          requires "semver >= 1.2.3"
+          requires "checksums >= 0.2.2"
+          EOF
+            echo 'echo "scratch ok"' > "${scratch}/src/main.nim"
+            cd "${scratch}"
+            echo ">> round $i: clue install --depsOnly"
+            "${src_clue}" install --depsOnly --verbose
+            echo ">> round $i: clue build --verbose"
+            "${src_clue}" build --verbose
+            cd "$GITHUB_WORKSPACE"
+            rm -rf "${scratch}"
+          done
+          echo ">> fresh-DB verification passed"
