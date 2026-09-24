@@ -1,7 +1,11 @@
 # TEMP-VERIFY: proves the fresh-DB SIGSEGV fix on Windows before release.
-# Builds clue from source, wipes to a fresh DB, then resolves + installs a
-# scratch project with real fetch waves using the source-built binary.
-# DELETE THIS FILE once it is green (the fix is covered by normal CI after).
+# Bootstrapping a fixed clue with the broken released clue is a dead end
+# (the old binary ignores clue.lock and crashes on full resolution), so this
+# compiles a minimal datpkgr harness from source instead: no clue binary,
+# no registry packages beyond git access. It drives installPackage over a
+# fresh root with real fetch waves + version-cache writes + install pool —
+# the exact crash window from `clue install` on an empty ~/.clue.
+# DELETE THIS FILE once it is green.
 name: verify-windows-fresh
 on:
   workflow_dispatch:
@@ -13,78 +17,62 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
-
       - uses: nimbase/setup-nim-action@main
         with:
           nim-version: stable
 
-      - name: Install released clue (bootstrap to build from source)
-        run: |
-          set -eu
-          url="https://github.com/openpeeps/clue/releases/latest/download/clue_windows-x86_64.zip"
-          echo ">> downloading ${url}"
-          work="$(mktemp -d)"
-          trap 'rm -rf "$work"' EXIT
-          curl -fsSL "${url}" -o "${work}/clue.zip"
-          win_zip="$(cygpath -w "${work}/clue.zip")"
-          win_dest="$(cygpath -w "${work}")"
-          powershell -NoProfile -Command "Expand-Archive -Force -LiteralPath '${win_zip}' -DestinationPath '${win_dest}'"
-          bin="$(find "${work}" -type f -name 'clue.exe' | head -n 1)"
-          [[ -n "${bin}" ]] || { echo "ERROR: clue binary not found in archive"; exit 1; }
-          chmod +x "${bin}"
-          mkdir -p "$HOME/.clue/bin"
-          install -m 0755 "${bin}" "$HOME/.clue/bin/clue.exe"
-          echo "$(cygpath -w "$HOME/.clue/bin")" >> "$GITHUB_PATH"
+      - name: Check out datpkgr fix branch
+        uses: actions/checkout@v4
+        with:
+          repository: openpeeps/datpkgr
+          ref: fix-fresh-db-segv
+          path: datpkgr
 
-      - name: MSYS2 rsync (clue needs it for local-path handling on Windows)
+      - name: Clone dependency sources
         run: |
           set -eu
-          choco uninstall -y rsync || true
-          C:/msys64/usr/bin/pacman.exe -S --needed --noconfirm rsync
-          echo "C:\msys64\usr\bin" >> "$GITHUB_PATH"
-          export PATH="/c/msys64/usr/bin:$PATH"
-          rsync --version
+          mkdir -p deps
+          cd deps
+          clone() { echo ">> cloning $1"; git clone --depth 1 "$1" "$2"; }
+          clone https://github.com/openpeeps/boogie boogie
+          clone https://github.com/openpeeps/openparser openparser
+          clone https://github.com/euantorano/semver.nim semver
+          clone https://github.com/nim-lang/threading threading
+          clone https://github.com/openpeeps/flysystem flysystem
+          clone https://github.com/openpeeps/mimedb mimedb
+          clone https://github.com/nim-lang/checksums checksums
+          clone https://github.com/narimiran/sorta sorta
+          clone https://github.com/openpeeps/vancode vancode
+          clone https://github.com/openpeeps/voodoo voodoo
+          clone https://github.com/nim-lang/db_connector db_connector
 
-      - name: Build clue from source
+      - name: Build verify harness from source
         run: |
           set -eu
-          clue build -d:release --verbose
-          find . -maxdepth 2 -type f -name 'clue*' | head
+          cd "$GITHUB_WORKSPACE"
+          nim c -d:release --stacktrace:on --linetrace:on --threads:on --mm:arc --hints:off \
+            --path:datpkgr/src \
+            --path:deps/boogie/src \
+            --path:deps/openparser/src \
+            --path:deps/semver \
+            --path:deps/threading \
+            --path:deps/flysystem \
+            --path:deps/mimedb \
+            --path:deps/checksums \
+            --path:deps/sorta \
+            --path:deps/vancode \
+            --path:deps/voodoo \
+            --path:deps/db_connector \
+            -o:verify.exe datpkgr/verify_fresh_db.nim
+          ls -la verify.exe
 
-      - name: Fresh-DB install + build with source-built clue (x2)
+      - name: Fresh-DB verify (x2)
         run: |
           set -eu
-          src_clue="$(find "$GITHUB_WORKSPACE" -maxdepth 2 -type f -name 'clue.exe' | head -n 1)"
-          [[ -n "${src_clue}" ]] || { echo "ERROR: source-built clue.exe not found"; exit 1; }
-          echo ">> source-built clue: ${src_clue}"
-          "${src_clue}" --version || true
+          cd "$GITHUB_WORKSPACE"
           for i in 1 2; do
-            echo ">> round $i: wiping to a fresh DB"
-            rm -rf "$HOME/.clue"
-            mkdir -p "$HOME/.clue"
-            scratch="$(mktemp -d)"
-            mkdir -p "${scratch}/src"
-            cat > "${scratch}/scratch.nimble" <<'EOF'
-          # Package
-          version       = "0.1.0"
-          author        = "CI"
-          description   = "fresh-DB verification scratch project"
-          license       = "MIT"
-          srcDir        = "src"
-          bin           = @["main"]
-          requires "nim >= 2.0.0"
-          requires "kapsis >= 0.4.8"
-          requires "semver >= 1.2.3"
-          requires "checksums >= 0.2.2"
-          EOF
-            echo 'echo "scratch ok"' > "${scratch}/src/main.nim"
-            cd "${scratch}"
-            echo ">> round $i: clue install --depsOnly"
-            "${src_clue}" install --depsOnly --verbose
-            echo ">> round $i: clue build --verbose"
-            "${src_clue}" build --verbose
-            cd "$GITHUB_WORKSPACE"
-            rm -rf "${scratch}"
+            echo ">> round $i: fresh root"
+            rm -rf verify_root
+            ./verify.exe verify_root
           done
           echo ">> fresh-DB verification passed"
