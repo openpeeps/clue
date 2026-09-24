@@ -2,27 +2,27 @@ name: test
 on: [push, pull_request]
 jobs:
   test:
-    uses: nimbase/setup-nim-action/.github/workflows/test_clue.yml@main
+    uses: nimbase/setup-nim-action/.github/workflows/test.yml@main
     with:
       cache: false
       os: '[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-14"},{"os":"macos-15-intel"}]'
       nim-version: stable
       test-flags: "-d:release"
-      pre-test-command: |
-        clue build -d:release --verbose
-        if [[ "$RUNNER_OS" == "Windows" ]]; then
-          # Windows has no built-in rsync, and Git for Windows does not
-          # bundle rsync.exe. Clue converts local paths to msys-posix
-          # form (/c/...), so it needs MSYS2 rsync, not native cwRsync
-          # (which fails with change_dir errors on /c/... paths).
-          # Remove a shadowing cwRsync shim if present, then install
-          # rsync into the preinstalled MSYS2 at C:\msys64.
-          choco uninstall -y rsync || true
-          C:/msys64/usr/bin/pacman.exe -S --needed --noconfirm rsync
-          echo "C:\msys64\usr\bin" >> "$GITHUB_PATH"
-          export PATH="/c/msys64/usr/bin:$PATH"
-          which rsync || where rsync
-          rsync --version
-          cmd.exe /c "rsync --version"
-          ls -l "/c/msys64/usr/bin/rsync.exe" || true
-        fi
+      # pre-test-command: |
+      #   clue build -d:release --verbose
+      #   if [[ "$RUNNER_OS" == "Windows" ]]; then
+      #     # Windows has no built-in rsync, and Git for Windows does not
+      #     # bundle rsync.exe. Clue converts local paths to msys-posix
+      #     # form (/c/...), so it needs MSYS2 rsync, not native cwRsync
+      #     # (which fails with change_dir errors on /c/... paths).
+      #     # Remove a shadowing cwRsync shim if present, then install
+      #     # rsync into the preinstalled MSYS2 at C:\msys64.
+      #     choco uninstall -y rsync || true
+      #     C:/msys64/usr/bin/pacman.exe -S --needed --noconfirm rsync
+      #     echo "C:\msys64\usr\bin" >> "$GITHUB_PATH"
+      #     export PATH="/c/msys64/usr/bin:$PATH"
+      #     which rsync || where rsync
+      #     rsync --version
+      #     cmd.exe /c "rsync --version"
+      #     ls -l "/c/msys64/usr/bin/rsync.exe" || true
+      #   fi
