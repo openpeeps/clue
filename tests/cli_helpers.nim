@@ -22,7 +22,7 @@ proc clueBin*(): string =
     if fileExists(cand): return cand
   let fallback = findExe("clue")
   if fallback.len > 0:
-    echo "using fallback " & fallback & " (no local bin/clue found)"
+    # echo "using fallback " & fallback & " (no local bin/clue found)"
     return fallback
   ""
 

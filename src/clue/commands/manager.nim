@@ -505,53 +505,65 @@ proc dumpCommand*(v: Values) =
     echo pretty(buildLocalNimbleInfo(nimblePath))
     return
 
-  # Registry dump.
-  withClueDB do:
-    whenPackageExists pkgName:
-      let res = clueDB.getTable("packages")
-                        .get()
-                        .where("name", newTextValue(pkgName))
-                        .toSeq()
-      if res.len > 0:
-        var pkgData = res[0]
-        var pkgInfo = %*{
-          "method": pkgData[1]["method"].strVal,
-          "name": pkgData[1]["name"].strVal,
-          "url": pkgData[1]["url"].strVal,
-          "description": pkgData[1]["description"].strVal,
-          "web": pkgData[1]["web"].strVal,
-          "license": pkgData[1]["license"].strVal,
-          "tags": fromJson(pkgData[1]["tags"].jsonVal)
-        }
-        # available versions (newest first)
-        let versions = discoverVersions(pkgName, pkgData[1]["url"].strVal,
-          v.has("--refresh"), cloneOnMiss = false)
-        var verArr = newJArray()
-        for dv in versions:
-          verArr.add(%($dv.version))
-        pkgInfo["versions"] = verArr
-        # Embed the dumped package's own .nimble details (from its installed
-        # registry copy) when available.
-        let pkgDir = resolveInstalledPath(pkgName, "")
-        if pkgDir.len > 0:
-          let pkgNimble = findNimbleFile(pkgDir, getClueCfg())
-          if pkgNimble.len > 0:
-            pkgInfo["nimble"] = buildLocalNimbleInfo(pkgNimble)
-        echo pretty(pkgInfo)
-      else:
-        # installed-only (e.g. direct URL before packages row existed) — dump from installed
-        let pkgDir = resolveInstalledPath(pkgName, "")
-        if pkgDir.len > 0:
-          let pkgNimble = findNimbleFile(pkgDir, getClueCfg())
-          var pkgInfo: JsonNode
-          if pkgNimble.len > 0:
-            pkgInfo = buildLocalNimbleInfo(pkgNimble)
-            pkgInfo["installedAt"] = %pkgDir
-          else:
-            pkgInfo = %*{"name": pkgName, "installedAt": pkgDir}
+  # Registry dump. JSON goes to stdout, so silence Info/Success logs for the
+  # duration (on a fresh ~/.clue `initDatpkgr` logs "Initializing database..."
+  # via displayInfo -> stdout, which breaks parseJson). Warn/Error stay on stderr.
+  let dumpCfg = getClueCfg()
+  let savedDumpLog = dumpCfg.callbacks.log
+  dumpCfg.callbacks.log = proc(level: datpkgrConfig.LogLevel, msg: string) {.gcsafe.} =
+    case level
+    of datpkgrConfig.lvlWarn, datpkgrConfig.lvlError:
+      try: stderr.writeLine(msg) except: discard
+    else: discard
+  try:
+    withClueDB do:
+      whenPackageExists pkgName:
+        let res = clueDB.getTable("packages")
+                          .get()
+                          .where("name", newTextValue(pkgName))
+                          .toSeq()
+        if res.len > 0:
+          var pkgData = res[0]
+          var pkgInfo = %*{
+            "method": pkgData[1]["method"].strVal,
+            "name": pkgData[1]["name"].strVal,
+            "url": pkgData[1]["url"].strVal,
+            "description": pkgData[1]["description"].strVal,
+            "web": pkgData[1]["web"].strVal,
+            "license": pkgData[1]["license"].strVal,
+            "tags": fromJson(pkgData[1]["tags"].jsonVal)
+          }
+          # available versions (newest first)
+          let versions = discoverVersions(pkgName, pkgData[1]["url"].strVal,
+            v.has("--refresh"), cloneOnMiss = false)
+          var verArr = newJArray()
+          for dv in versions:
+            verArr.add(%($dv.version))
+          pkgInfo["versions"] = verArr
+          # Embed the dumped package's own .nimble details (from its installed
+          # registry copy) when available.
+          let pkgDir = resolveInstalledPath(pkgName, "")
+          if pkgDir.len > 0:
+            let pkgNimble = findNimbleFile(pkgDir, getClueCfg())
+            if pkgNimble.len > 0:
+              pkgInfo["nimble"] = buildLocalNimbleInfo(pkgNimble)
           echo pretty(pkgInfo)
         else:
-          displayError("Package not found: " & cyan(pkgName), quitProcess = true)
+          # installed-only (e.g. direct URL before packages row existed) — dump from installed
+          let pkgDir = resolveInstalledPath(pkgName, "")
+          if pkgDir.len > 0:
+            let pkgNimble = findNimbleFile(pkgDir, getClueCfg())
+            var pkgInfo: JsonNode
+            if pkgNimble.len > 0:
+              pkgInfo = buildLocalNimbleInfo(pkgNimble)
+              pkgInfo["installedAt"] = %pkgDir
+            else:
+              pkgInfo = %*{"name": pkgName, "installedAt": pkgDir}
+            echo pretty(pkgInfo)
+          else:
+            displayError("Package not found: " & cyan(pkgName), quitProcess = true)
+  finally:
+    dumpCfg.callbacks.log = savedDumpLog
 
 
 type

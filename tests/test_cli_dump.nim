@@ -32,6 +32,14 @@ proc dumpFixture(name: string): string =
   writeFile(d / "demo.nimble", fixtureNimble)
   d
 
+proc extractJson(s: string): string =
+  ## `runClue` merges stdout+stderr, so first-run DB init lines may precede
+  ## the JSON payload. Slice from the first `{` so `parseJson` stays robust.
+  let clean = stripAnsi(s)
+  let i = clean.find("{")
+  if i >= 0: clean[i .. ^1]
+  else: clean
+
 suite "cli dump — local (no argument)":
   test "parses as JSON with named requires":
     let d = dumpFixture("local")
@@ -39,7 +47,7 @@ suite "cli dump — local (no argument)":
     let (code, outp) = runClue("dump", dir = d)
     checkpoint outp
     check code == 0
-    let j = parseJson(outp)
+    let j = parseJson(extractJson(outp))
     check j["name"].getStr == "demo"
     check j["version"].getStr == "0.3.0"
     check j["author"].getStr == "Test"
@@ -78,9 +86,8 @@ suite "cli dump — registry package":
       checkpoint "skipped: " & pkg & " is not installed in this environment"
       check true
     else:
-      echo code
-      echo outp
-      let j = parseJson(outp)
+      checkpoint extractJson(outp)
+      let j = parseJson(extractJson(outp))
       check j["name"].getStr == pkg
       # registry dump always has method/url; installed registry copy adds nimble
       if j.hasKey("nimble"):
