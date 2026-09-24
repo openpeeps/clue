@@ -28,41 +28,48 @@ jobs:
           ref: fix-fresh-db-segv
           path: datpkgr
 
-      - name: Clone dependency sources
+      - name: Clone dependency sources (nimble pkgs2 layout)
         run: |
           set -eu
-          mkdir -p deps
-          cd deps
-          clone() { echo ">> cloning $1"; git clone --depth 1 "$1" "$2"; }
-          clone https://github.com/openpeeps/boogie boogie
-          clone https://github.com/openpeeps/openparser openparser
-          clone https://github.com/euantorano/semver.nim semver
-          clone https://github.com/nim-lang/threading threading
-          clone https://github.com/openpeeps/flysystem flysystem
-          clone https://github.com/openpeeps/mimedb mimedb
-          clone https://github.com/nim-lang/checksums checksums
-          clone https://github.com/narimiran/sorta sorta
-          clone https://github.com/openpeeps/vancode vancode
-          clone https://github.com/openpeeps/voodoo voodoo
-          clone https://github.com/nim-lang/db_connector db_connector
+          mkdir -p nimble_pkgs
+          add() {
+            local name="$1" url="$2"
+            echo ">> cloning ${name}"
+            git clone --depth 1 "${url}" "nimble_pkgs/${name}"
+            local sha nimble ver
+            sha="$(git -C "nimble_pkgs/${name}" rev-parse HEAD)"
+            nimble="$(find "nimble_pkgs/${name}" -maxdepth 1 -name '*.nimble' | head -n 1)"
+            [[ -n "${nimble}" ]] || { echo "ERROR: no .nimble in ${name}"; exit 1; }
+            ver="$(sed -n 's/^version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "${nimble}" | head -n 1)"
+            [[ -n "${ver}" ]] || ver="0.0.0"
+            mv "nimble_pkgs/${name}" "nimble_pkgs/${name}-${ver}-${sha}"
+            echo ">> ${name} -> ${name}-${ver}-${sha}"
+          }
+          add boogie https://github.com/openpeeps/boogie
+          add openparser https://github.com/openpeeps/openparser
+          add semver https://github.com/euantorano/semver.nim
+          add threading https://github.com/nim-lang/threading
+          add flysystem https://github.com/openpeeps/flysystem
+          add mimedb https://github.com/openpeeps/mimedb
+          add checksums https://github.com/nim-lang/checksums
+          add sorta https://github.com/narimiran/sorta
+          add vancode https://github.com/openpeeps/vancode
+          add voodoo https://github.com/openpeeps/voodoo
+          add db_connector https://github.com/nim-lang/db_connector
 
       - name: Build verify harness from source
         run: |
           set -eu
           cd "$GITHUB_WORKSPACE"
+          flags="--path:datpkgr/src"
+          for p in boogie openparser semver threading flysystem mimedb checksums sorta vancode voodoo db_connector; do
+            match="$(echo nimble_pkgs/"$p"-*/)"
+            [[ -d "${match}" ]] || { echo "ERROR: no package dir for $p"; exit 1; }
+            flags="${flags} --path:${match%/}"
+          done
+          echo ">> ${flags}"
           nim c -d:release --stacktrace:on --linetrace:on --threads:on --mm:arc --hints:off \
-            --path:datpkgr/src \
-            --path:deps/boogie/src \
-            --path:deps/openparser/src \
-            --path:deps/semver \
-            --path:deps/threading \
-            --path:deps/flysystem \
-            --path:deps/mimedb \
-            --path:deps/checksums \
-            --path:deps/sorta \
-            --path:deps/vancode \
-            --path:deps/voodoo \
-            --path:deps/db_connector \
+            ${flags} \
             -o:verify.exe datpkgr/verify_fresh_db.nim
           ls -la verify.exe
 
