@@ -263,7 +263,10 @@ Full reference (`clue -h`): build 0.3.1. Every flag below mirrors that output.
   24h are re-fetched automatically before resolving (failures only warn).
 - `clue test <?files:string>` — Compile and run test modules in `tests/`
   (optional comma-separated filter, e.g. `clue test "foo, bar"`)
-  (`-b:c|cpp|objc|js`).
+  (`-b:c|cpp|objc|js`, `--parallel:bool`). `--parallel` runs the modules on a
+  worker pool sized to the CPU count and reports only the verdict per test
+  (`Success: <name>` / `Error: <name>`) as each one lands. Use it when the
+  tests are independent and the interleaved output is not useful.
 - `clue update <?pkg:string>` — Upgrade a package and its dependencies
   (`--verbose:bool`).
 - `clue uninstall <pkg:string>` — Remove a package.
@@ -316,7 +319,8 @@ Full reference with a worked example: [docs/deploy.md](docs/deploy.md).
 ## Agent recipes
 
 - Build a binary: `clue build src/<main>.nim` (add `--release` for production)
-- Run the test suite: `clue test`
+- Run the test suite: `clue test` (add `--parallel` to run the tests on a
+  worker pool, printing one verdict per test)
 - Add a dependency: `clue install <pkg>` (then `import pkg/<name>` in code)
 - Editable dev: `clue develop` then `import pkg/<name>` resolves to working tree
 - Registry source: `clue source.add myfork https://.../packages.json` then

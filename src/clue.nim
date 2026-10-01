@@ -36,8 +36,10 @@ when isMainModule:
               ?bool("--verbose"), ?bool("--build"), ?bool("--debug"),
               ?string("--source"), ?bool("--depsOnly"), ?any("-b" = ["c", "cpp", "objc", "js"]):
         ## Install a package from the registry (or local); --depsOnly installs only its dependencies
-      test ?string(files), ?any("-b" = ["c", "cpp", "objc", "js"]):
+      test ?string(files), ?bool("--parallel"),
+             ?any("-b" = ["c", "cpp", "objc", "js"]):
         ## Compile and run test modules in tests/ (optional comma-separated filter)
+        ## --parallel runs them on a worker pool and reports only pass/fail
       update ?string(pkg), ?bool("--verbose"):
         ## Upgrade a package and its dependencies
       uninstall string(pkg):

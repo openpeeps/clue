@@ -12,6 +12,8 @@ import ../pkgmanager/configs
 import ../pkgmanager/versions
 import ../pkgmanager/resolver
 import ../pkgmanager/lockfile
+import pkg/threading/channels
+import datpkgr/pool
 import ./manager
 import ./nimscript
 
@@ -176,6 +178,20 @@ proc collectResolvedPathsDetailed*(nimble: NimbleFile, activeRootFeatures: seq[s
       for d in nimble.features[f]:
         directDeps.add(d)
 
+  # Verbose dep lines: registry copies print plain, develop checkouts print one
+  # warning whose body carries the shadow detail `datpkgr` collected.
+  proc reportDep(name, depPath: string) =
+    if not verbose: return
+    if isInsidePkgs(depPath):
+      display("  dep " & name & " → " & depPath)
+    else:
+      displayWarning("dep " & name & " → " & depPath)
+      let notes = devShadowNotes()
+      if notes.hasKey(name):
+        let detail = notes[name]
+        displaySpans(span("  ", indentSize = 0),
+          span(detail.text, detail.fg, detail.bg, indentSize = 0))
+
   var pathFlags: seq[string]
   var processed = initHashSet[string]()
   var lockEntries: seq[LockEntry] = @[]
@@ -228,10 +244,10 @@ proc collectResolvedPathsDetailed*(nimble: NimbleFile, activeRootFeatures: seq[s
       if needsReinstall:
         installPackage(name, refStr, false, dep.features, verbose, constraint = dep.constraint, url = dep.url, suppressSummary = true, showTree = false)
         depPath = resolveDepPath(name, refStr)
-    if depPath.len == 0:
+    if depPath.len == 0 or not dirExists(depPath):
       installPackage(name, refStr, false, dep.features, verbose, constraint = dep.constraint, url = dep.url, suppressSummary = true, showTree = false)
       depPath = resolveDepPath(name, refStr)
-    if depPath.len > 0:
+    if depPath.len > 0 and dirExists(depPath):
       processed.incl(name)
       directNames.add(name)
       directFeats[name] = dep.features
@@ -241,12 +257,7 @@ proc collectResolvedPathsDetailed*(nimble: NimbleFile, activeRootFeatures: seq[s
       trackEntry(name, $dep.constraint, resolveDepVerDir(name, refStr),
         depPath, dep.url, refStr, dep.features)
       pathFlags.add("--path:" & depPath)
-      if verbose:
-        if isInsidePkgs(depPath):
-          display("  dep " & name & " → " & depPath)
-        else:
-          # Develop-mode checkout (live source outside the package registry).
-          displayWarning("dep " & name & " → " & depPath)
+      reportDep(name, depPath)
     else:
       displayWarning("Dependency not found: " & name)
 
@@ -261,20 +272,15 @@ proc collectResolvedPathsDetailed*(nimble: NimbleFile, activeRootFeatures: seq[s
         continue
       processed.incl(name)
       var depPath = resolveDepPath(name)
-      if depPath.len == 0:
+      if depPath.len == 0 or not dirExists(depPath):
         if verbose: displayInfo("Transitive dependency not installed, fetching: " & name)
         installPackage(name, "", false, @[], verbose, suppressSummary = true, showTree = false)
         depPath = resolveDepPath(name)
         changed = true
-      if depPath.len > 0:
+      if depPath.len > 0 and dirExists(depPath):
         trackEntry(name, "", resolveDepVerDir(name, ""), depPath, "", "", @[])
         pathFlags.add("--path:" & depPath)
-        if verbose:
-          if isInsidePkgs(depPath):
-            display("  dep " & name & " → " & depPath)
-          else:
-            # Develop-mode checkout (live source outside the package registry).
-            displayWarning("dep " & name & " → " & depPath)
+        reportDep(name, depPath)
       else:
         displayWarning("Transitive dependency not found: " & name)
 
@@ -404,6 +410,9 @@ proc buildCommand*(v: Values) =
   let isDebug = v.has("--debug")
   let verbose = v.has("--verbose")
   devShadowWarningsEnabled = verbose
+  # Fold the shadow warning into the per-dep warning line below instead of
+  # printing it as a separate warning of its own.
+  devShadowNotesOnly = verbose
   let outPath =
     if v.has("--out"): v.get("--out").getStr
     elif v.has("-o"): v.get("-o").getStr
@@ -532,35 +541,6 @@ proc buildCommand*(v: Values) =
   if buildFailed:
     quit(1)
 
-var testOutputLock: Lock
-testOutputLock.initLock()
-
-type
-  TestJob = object
-    file: string
-    base: string
-    flags: string
-
-proc printTestOutput(output: string) {.gcsafe.} =
-  if output.len == 0: return
-  withLock testOutputLock:
-    write(stdout, output)
-    if output[^1] != '\n':
-      write(stdout, "\n")
-    flushFile(stdout)
-
-proc runTest(job: TestJob): int {.gcsafe.} =
-  ## Compile and run a single test module, printing its output as soon as it
-  ## finishes. A dedicated `--nimcache` avoids concurrent `nim` processes racing
-  ## on a shared cache directory. Returns the test's exit code.
-  let outFile = getTempDir() / ("clue_test_" & job.base)
-  let ncDir = getTempDir() / ("clue_test_nc_" & job.base)
-  removeFile(outFile)
-  let cmd = &"nim c -r{job.flags} --nimcache:{ncDir} --out:{outFile} {job.file}"
-  let (output, exitCode) = execCmdEx(cmd)
-  printTestOutput(output)
-  exitCode
-
 proc normalizeTestFilter*(raw: string): string =
   ## `sometest`, `sometest.nim`, `tests/sometest` and `tests/sometest.nim`
   ## all resolve to `sometest`.
@@ -568,6 +548,107 @@ proc normalizeTestFilter*(raw: string): string =
   if s.toLowerAscii.endsWith(".nim"):
     s = s[0 ..< ^5]
   s.strip()
+
+type
+  TestJob = tuple
+    name: string
+      ## Module name without extension, used for reporting.
+    path: string
+      ## Absolute path to the test module.
+    projectRoot: string
+    backend: string
+    extraArgs: seq[string]
+      ## `--path:` entries plus feature defines, shared by every job.
+
+var runningTests: seq[Process]
+var runningTestsLock: Lock
+runningTestsLock.initLock()
+## Child compilers/tests currently alive, so Ctrl-C can reap them instead of
+## leaving a pool of `nim c` processes behind.
+
+proc trackTestProcess(p: Process) =
+  acquire(runningTestsLock)
+  runningTests.add(p)
+  release(runningTestsLock)
+
+proc untrackTestProcess(p: Process) =
+  ## Drop exactly this handle. The reap order does not match the spawn order,
+  ## so popping the last entry would strand the others on Ctrl-C.
+  acquire(runningTestsLock)
+  for i, t in runningTests:
+    if t == p:
+      runningTests.delete(i)
+      break
+  release(runningTestsLock)
+
+proc killRunningTests() {.noconv.} =
+  {.cast(gcsafe).}:
+    acquire(runningTestsLock)
+    for p in runningTests:
+      try: p.kill()
+      except CatchableError: discard
+    release(runningTestsLock)
+    quit(1)
+
+proc testJobArgs(job: TestJob): seq[string] =
+  ## The `nim` invocation for one test module.
+  ##
+  ## Each job gets a private `--nimcache` and `--out`. Without the first,
+  ## concurrent `nim` processes share a cache directory and corrupt each other's
+  ## artifacts. Child output is left unredirected: in parallel mode the only
+  ## per-test line is the pass/fail verdict, so compiler chatter is noise.
+  result = @[job.backend, "-r", "--path:" & job.projectRoot]
+  for a in job.extraArgs:
+    result.add(a)
+  result.add("--nimcache:" & (getTempDir() / ("clue_test_nc_" & job.name)))
+  result.add("--out:" & (getTempDir() / ("clue_test_" & job.name)))
+  result.add(job.path)
+
+proc reportTestResult(name: string, code: int): bool =
+  ## Print one verdict and return whether the test passed. Called on the main
+  ## thread as each job lands, so a long pool run shows progress.
+  if code == 0:
+    displaySuccess(name)
+    return true
+  displayError(name)
+  false
+
+var testNimBin: string
+  ## Resolved once by `runTestsParallel`: the pool workers may not close over
+  ## their state, so they read it from here.
+
+proc testWorker(job: TestJob, progress: Chan[ProgressEvent]): int {.gcsafe.} =
+  ## Pool worker: compile and run one test module, returning its exit code.
+  ## Must be total — `runPoolStreaming` has no way to recover a worker that
+  ## raises, so every failure maps to a non-zero code.
+  {.cast(gcsafe).}:
+    try:
+      let p = startProcess(testNimBin, args = testJobArgs(job),
+        workingDir = job.projectRoot)
+      trackTestProcess(p)
+      let code = p.waitForExit()
+      p.close()
+      untrackTestProcess(p)
+      return code
+    except CatchableError:
+      discard
+    1
+
+proc runTestsParallel(jobs: seq[TestJob]): seq[string] =
+  ## Run every test module on a bounded pool (`min(cpus, tests)`, see
+  ## `poolSizeFor`), drained from a queue: a new test starts as soon as a slot
+  ## frees up, so slow tests do not hold up the ones behind them. Prints one
+  ## verdict per test as it lands and returns the names that failed.
+  setControlCHook(killRunningTests)
+  testNimBin = resolveNimBin()
+  var failed: seq[string] = @[]
+  discard runPoolStreaming(jobs, testWorker,
+    proc (idx: int, code: int) =
+      if not reportTestResult(jobs[idx].name, code):
+        failed.add(jobs[idx].name))
+  # Report in module order regardless of the order they finished in.
+  failed.sort()
+  failed
 
 proc testCommand*(v: Values) =
   ## Compile and run test modules via nimscript. If the .nimble file defines
@@ -588,6 +669,7 @@ proc testCommand*(v: Values) =
   checkNimConstraint(parseNimbleFile(nimblePath))
   let backend = if v.has("-b"): v.get("-b").getAny else: "c"
   let nimFlags = extras
+  let parallel = v.has("--parallel")
 
   # Optional test filter: `clue test sometest` or
   # `clue test "test_one, test_two"`. Each entry accepts `name`,
@@ -622,6 +704,11 @@ proc testCommand*(v: Values) =
   let tasks = listTasks(nimblePath)
   for (name, _) in tasks:
     if name.toLowerAscii == "test":
+      if parallel:
+        # A custom task owns its own scheduling; there is no per-module work
+        # for the pool to hand out.
+        displayWarning("--parallel ignored: " & nimblePath.extractFilename() &
+          " defines its own task 'test'")
       if testFilters.len > 0:
         displayInfo("Running task 'test' from " & nimblePath.extractFilename() &
           " (filter: " & testFilters.join(", ") & ")...")
@@ -671,37 +758,51 @@ proc testCommand*(v: Values) =
     discard runNimscriptHook(nimblePath, "test", before=true)
     let singleDefines = getEnv("__CLUE_DEFINES")
     var failed: seq[string] = @[]
-    var passed = 0
-    for (name, raw, testPath) in found:
-      displayInfo("Compiling " & name & ".nim (" & backend & " backend)...")
-      let outFile = getTempDir() / ("clue_test_" & name)
-      var args = @[backend, "-r", "--path:" & projectRoot]
+    if parallel:
+      var sharedArgs: seq[string] = @[]
       for f in testPathParts:
-        args.add(f)
-      if singleDefines.strip().len > 0:
-        for f in singleDefines.split(" "):
-          if f.len > 0: args.add(f)
+        sharedArgs.add(f)
+      for f in singleDefines.split(" "):
+        if f.len > 0: sharedArgs.add(f)
       for f in nimFlags:
-        args.add(f)
-      args.add("--out:" & outFile)
-      args.add(testPath)
-      var singleProcess = startProcess(resolveNimBin(), args = args,
-        workingDir = projectRoot, options = {poParentStreams})
-      let singleCode = singleProcess.waitForExit()
-      singleProcess.close()
-      if singleCode != 0:
-        displayError("Test '" & name & "' failed (exit " & $singleCode & ")")
-        failed.add(name)
-      else:
-        displaySuccess("OK: " & name)
-        inc passed
+        sharedArgs.add(f)
+      var jobs: seq[TestJob]
+      for (name, raw, testPath) in found:
+        jobs.add((name: name, path: testPath, projectRoot: projectRoot,
+          backend: backend, extraArgs: sharedArgs))
+      failed = runTestsParallel(jobs)
+    else:
+      var passed = 0
+      for (name, raw, testPath) in found:
+        displayInfo("Compiling " & name & ".nim (" & backend & " backend)...")
+        let outFile = getTempDir() / ("clue_test_" & name)
+        var args = @[backend, "-r", "--path:" & projectRoot]
+        for f in testPathParts:
+          args.add(f)
+        if singleDefines.strip().len > 0:
+          for f in singleDefines.split(" "):
+            if f.len > 0: args.add(f)
+        for f in nimFlags:
+          args.add(f)
+        args.add("--out:" & outFile)
+        args.add(testPath)
+        var singleProcess = startProcess(resolveNimBin(), args = args,
+          workingDir = projectRoot, options = {poParentStreams})
+        let singleCode = singleProcess.waitForExit()
+        singleProcess.close()
+        if singleCode != 0:
+          displayError("Test '" & name & "' failed (exit " & $singleCode & ")")
+          failed.add(name)
+        else:
+          displaySuccess("OK: " & name)
+          inc passed
     discard runNimscriptHook(nimblePath, "test", before=false)
     if failed.len > 0:
       displayError($failed.len & " test(s) failed: " & failed.join(", "))
       quit(1)
     if missing.len > 0:
       quit(1)
-    displaySuccess("All " & $passed & " test(s) passed!")
+    displaySuccess("All " & $(found.len - failed.len) & " test(s) passed!")
     return
 
   # No custom task — run built-in default via a compiled test runner
@@ -709,6 +810,47 @@ proc testCommand*(v: Values) =
 
   # Before test hook
   discard runNimscriptHook(nimblePath, "test", before=true)
+
+  if parallel:
+    # The generated runner is a serial one-process-per-test loop, so the pool
+    # takes over here: discover the same `tests/t*.nim` set and hand each one
+    # to a worker. Same compile flags as the runner below, so the modules see
+    # an identical environment.
+    let testsDir = projectRoot / "tests"
+    if not dirExists(testsDir):
+      displayError("No tests directory in " & projectRoot)
+      quit(1)
+    var testFiles: seq[string] = @[]
+    for kind, path in walkDir(testsDir):
+      if kind == pcFile and path.endsWith(".nim") and
+          path.extractFilename.startsWith("t"):
+        testFiles.add(path)
+    testFiles.sort()
+    if testFiles.len == 0:
+      displayError("No test modules found in " & testsDir)
+      quit(1)
+    var sharedArgs: seq[string] = @[]
+    for f in testPathParts:
+      sharedArgs.add(f)
+    for f in getEnv("__CLUE_DEFINES").split(" "):
+      if f.len > 0: sharedArgs.add(f)
+    let colorFlag = defaultColorsFlag(nimFlags.join(" ")).strip()
+    if colorFlag.len > 0: sharedArgs.add(colorFlag)
+    for f in nimFlags:
+      sharedArgs.add(f)
+    var jobs: seq[TestJob]
+    for testPath in testFiles:
+      jobs.add((name: testPath.extractFilename.changeFileExt(""),
+        path: testPath, projectRoot: projectRoot, backend: backend,
+        extraArgs: sharedArgs))
+    let failed = runTestsParallel(jobs)
+    discard runNimscriptHook(nimblePath, "test", before=false)
+    if failed.len > 0:
+      displayError($failed.len & " test(s) failed: " & failed.join(", "))
+      quit(1)
+    displaySuccess("All " & $jobs.len & " test(s) passed!")
+    return
+
   let testRunnerCode = """import os, osproc, strutils, terminal, algorithm, json
 
 # Mirrors nimble's tester contract: compile and run every test binary with

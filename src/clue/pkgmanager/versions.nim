@@ -134,6 +134,14 @@ proc gitHeadInfo*(name, url: string): Option[dg.GitHeadInfo] =
 # Install bookkeeping (via datpkgr/install with clueCfg)
 # 
 
+# Re-exported so callers can name the type without importing
+# `datpkgr/install` directly (which would clash with the global-flag templates
+# re-exported below).
+type InstalledSnapshot* = di.InstalledSnapshot
+
+proc installedSnapshot*(): InstalledSnapshot =
+  di.installedSnapshot(clueConfigs.clueCfg)
+
 proc recordInstall*(
     name, version: string,
     deps: seq[types.DepEntry],
@@ -199,3 +207,11 @@ proc installedCount*(): int =
 # var so assignments in `manager` propagate to the shared kit.
 template devShadowWarningsEnabled*(): var bool =
   di.devShadowWarningsEnabled
+
+# Route the shadow warning through `devShadowNotes` instead of straight to
+# stderr, so the caller can fold it into the per-dependency warning it prints.
+template devShadowNotesOnly*(): var bool =
+  di.devShadowNotesOnly
+
+template devShadowNotes*(): Table[string, LogSpan] =
+  di.devShadowNotes

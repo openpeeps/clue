@@ -153,6 +153,37 @@ proc clueLog*(level: LogLevel, msg: string) {.gcsafe.} =
     withLock displayLock:
       clueLogImpl(level, msg)
 
+proc displaySpans*(spans: varargs[Span]) {.gcsafe.} =
+  ## Render styled slices as one line, exactly as composed, with no level
+  ## prefix. Every slice is written at indent 0 so only the caller's own
+  ## leading spaces affect the layout.
+  {.cast(gcsafe).}:
+    withLock displayLock:
+      var parts: seq[Span]
+      for s in spans:
+        parts.add(s)
+      display(parts)
+
+proc clueLogStyled(level: LogLevel, spans: seq[LogSpan]) {.gcsafe.} =
+  ## Styled counterpart of `clueLog`: datpkgr's span overloads send their
+  ## colors through here instead of flattening to a plain string. The level
+  ## only picks the prefix, so the composed slices keep their own colors.
+  {.cast(gcsafe).}:
+    withLock displayLock:
+      var parts: seq[Span]
+      case level
+      of lvlWarn:
+        parts.add(span("Warning:", terminal.fgYellow, indentSize = 0))
+        parts.add(span(" ", indentSize = 0))
+      of lvlError:
+        parts.add(span("Error:", terminal.fgRed, indentSize = 0))
+        parts.add(span(" ", indentSize = 0))
+      else: discard
+      for s in spans:
+        parts.add(span(s.text, s.fg, s.bg, indentSize = 0))
+      display(parts)
+      try: flushFile(stdout) except: discard
+
 proc clueSubmodules*(name, dest: string) {.gcsafe.} =
   ## Notice printed under a package line when it ships git submodules.
   {.cast(gcsafe).}:
@@ -160,11 +191,12 @@ proc clueSubmodules*(name, dest: string) {.gcsafe.} =
       display("→ Cloning submodules", indent = 4)
 
 proc clueFetchStart*(name: string) {.gcsafe.} =
-  ## Immediate mode: version discovery for `name` started.
+  ## Version discovery for `name` started on the *local* path — the package's
+  ## clone is already in `_cache` and no network is involved. Deliberately
+  ## silent: a line here reads as "going remote", which is exactly wrong.
+  ## `clueCloneStart` is the signal for real clone/fetch work.
   {.cast(gcsafe).}:
-    withLock displayLock:
-      # displayInfo("Resolving " & name & "...")
-      try: flushFile(stdout) except: discard
+    discard
 
 proc clueCloneStart*(name, url: string) {.gcsafe.} =
   ## Immediate mode: a `git clone`/`fetch` for `name` started.
@@ -184,7 +216,8 @@ proc clueInstallStart*(label: string) {.gcsafe.} =
 proc getClueCfg*(): DatpkgrConfig =
   if clueCfgImpl.isNil:
     clueCfgImpl = newDatpkgrConfig("clue",
-      callbacks = Callbacks(log: clueLog, onSubmodules: clueSubmodules,
+      callbacks = Callbacks(log: clueLog, logStyled: clueLogStyled,
+        onSubmodules: clueSubmodules,
         onFetchStart: clueFetchStart, onCloneStart: clueCloneStart,
         onInstallStart: clueInstallStart),
       allowSubmodules = true)

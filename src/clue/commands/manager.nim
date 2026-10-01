@@ -83,11 +83,14 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     doBuild = false, buildRelease = true, buildDebug = false,
     constraint: VersionConstraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0)),
     backend = "c", sourceFilter: string = "", suppressSummary = false,
-    depsOnly = false, showTree = true) =
+    depsOnly = false, showTree = true,
+    directRoots: seq[datpkgrOps.ClosureRoot] = @[]) =
   ## Thin wrapper around datpkgr/operations.installPackage.
   ## Builder (`builder.nim`) stays in clue and is injected via buildHook.
   ## With `depsOnly` only the dependency closure is installed, never the
   ## requested package itself.
+  ## With `directRoots` the whole closure of those dependencies is installed in
+  ## a single resolution pass; `pkgName` is then only a label.
   let cfg = getClueCfg()
   devShadowWarningsEnabled = verbose
   let buildHook =
@@ -99,7 +102,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
   let ok = datpkgrOps.installPackage(cfg, pkgName, pkgRef, refresh, features, verbose, url,
                                         doBuild, buildRelease, buildDebug, constraint,
                                         backend, sourceFilter, buildHook, suppressSummary,
-                                        depsOnly, showTree)
+                                        depsOnly, showTree, directRoots)
   if not ok:
     # datpkgr already logged; keep CLI exit
     # semantics (original called quit(1) on fail)
@@ -115,10 +118,14 @@ proc installCommand*(v: Values) =
   let buildRelease = not buildDebug
   let backend = if v.has("-b"): v.get("-b").getAny else: "c"
   let sourceFilter = if v.has("--source"): v.get("--source").getStr else: ""
+  # Registry auto-refresh is deliberately *not* done up front: fetching
+  # packages.json is a multi-megabyte GET, and a closure that already resolves
+  # from local state (develop checkouts, install records, the versions DB)
+  # needs none of it. Callers invoke this only once they know something is
+  # genuinely unresolvable locally. Failures only warn (see sources.nim).
+  proc ensureFreshRegistryIfStale() =
+    ensureFreshRegistry(sourceFilter)
   let depsOnly = v.has("--depsOnly")
-  # Auto-refresh: re-fetch any registry cache older than 24h so installs
-  # resolve against fresh metadata. Failures only warn (see sources.nim).
-  ensureFreshRegistry(sourceFilter)
   var features: seq[string]
   if v.has("--features"):
     features = parseFeatureFlags(v.get("--features").getStr)
@@ -166,7 +173,7 @@ proc installCommand*(v: Values) =
     var localHeaderEmitted = false
     proc ensureLocalHeader() =
       if not localHeaderEmitted:
-        displaySuccess("Installing packages...")
+        displayInfo("Installing packages...")
         localHeaderEmitted = true
     proc displayLbl(lbl: string, cached = false) =
       let msg = "  " & lbl
@@ -209,34 +216,93 @@ proc installCommand*(v: Values) =
         localDepLabels.add(lbl)
         ensureLocalHeader()
         displayLbl(lbl, cached)
-    proc isInstalledOnDisk(name: string): bool =
+    proc installedBitsPresent(dep, recVersion, recPath: string): bool =
+      ## True when an installed-manifest row's bits are usable as-is. A
+      ## develop checkout counts: the live source *is* the install, and its
+      ## recorded install dir (under the registry) deliberately holds no files.
+      if isDevelopAvailable(dep):
+        return true
+      let verDir = cluePkgsPath / dep / recVersion
+      dirExists(verDir) or (recPath.len > 0 and dirExists(recPath))
+    # One snapshot of the installed manifest drives the whole analysis below.
+    # Reading per package name instead re-opens the stores (exclusive
+    # cross-process lock + WAL replay) and fsyncs them on close, once per
+    # package per question — which is what made this loop crawl.
+    let snap = installedSnapshot()
+
+    proc isInstalledOnDisk(s: InstalledSnapshot, name: string): bool =
       ## Any installed-manifest row for `name` whose install dir exists on
       ## disk. Matches semver rows, `HEAD`/ref rows and develop rows alike —
       ## a db entry for an existing dir means the bits are reusable as-is.
-      for rec in installedRecords(name):
+      if isDevelopAvailable(name):
+        return true
+      for rec in s.records.getOrDefault(name, @[]):
         if rec.version.len == 0:
           continue
-        let verDir = cluePkgsPath / name / rec.version
-        if dirExists(verDir) or (rec.path.len > 0 and dirExists(rec.path)):
+        if installedBitsPresent(name, rec.version, rec.path):
           return true
       false
-    proc emitTransitives(dep: string) =
-      ## Display labels for `dep`'s recorded closure. Each label is marked
-      ## `(cached)` on its own merit (record + dir on disk), so markers don't
-      ## depend on which parent claimed the label first.
-      for tdep in collectInstalledDepNames(@[dep]):
-        if tdep notin localSeen:
-          let tp = resolveInstalledPath(tdep, "")
-          let tv = if tp.len > 0: tp.lastPathPart else: ""
-          emitLbl(fmtLbl(tdep, tv), isInstalledOnDisk(tdep))
-    proc installedVersionForReuse(dep: string, refStr: string,
+    proc labelVer(s: InstalledSnapshot, name: string): string =
+      ## Version to render in a label for `name`, from the snapshot. "" renders
+      ## as `name#HEAD`, which is what a develop checkout (no registry version)
+      ## and a tagless install both are.
+      if isDevelopAvailable(name):
+        return ""
+      var bestVer = newVersion(0, 0, 0)
+      var best = ""
+      var fallback = ""
+      for rec in s.records.getOrDefault(name, @[]):
+        if not installedBitsPresent(name, rec.version, rec.path):
+          continue
+        if fallback.len == 0:
+          fallback = rec.version
+        try:
+          let v = parseVersion(rec.version)
+          if v > bestVer:
+            bestVer = v
+            best = rec.version
+        except CatchableError:
+          discard
+      if best.len > 0: best else: fallback
+    proc closureNames(s: InstalledSnapshot, roots: seq[string]): seq[string] =
+      ## Reachable names in the recorded closure of `roots`, BFS'd over the
+      ## snapshot's dep edges — no extra store round-trips.
+      var visited = initHashSet[string]()
+      var queue = roots
+      while queue.len > 0:
+        let name = queue.pop()
+        if name in visited:
+          continue
+        visited.incl(name)
+        for d in s.depsOf.getOrDefault(name, @[]):
+          if d notin visited:
+            queue.add(d)
+      toSeq(visited)
+    proc emitTransitives(print: bool) =
+      ## Tally the recorded closure of every direct dep, and print its labels
+      ## when `print`. Re-reads the snapshot because the install pass may have
+      ## added versions.
+      ##
+      ## Always tallies even when silent: the `Installed N packages` summary is
+      ## derived from the tally, and on `--verbose` datpkgr's dependency tree
+      ## takes over the rendering.
+      let post = installedSnapshot()
+      for tdep in closureNames(post, localDirect):
+        let lbl = fmtLbl(tdep, labelVer(post, tdep))
+        if lbl notin localSeen:
+          localSeen.incl(lbl)
+          localDepLabels.add(lbl)
+          if print:
+            ensureLocalHeader()
+            displayLbl(lbl, isInstalledOnDisk(post, tdep))
+    proc installedVersionForReuse(s: InstalledSnapshot, dep: string, refStr: string,
         constraint: VersionConstraint): string =
       ## Installed version of `dep` reusable as-is (record exists and the
       ## install dir is on disk), else "". Ref-pinned deps (branch/tag, incl.
       ## HEAD installs recorded under their ref) match by ref; semver deps
       ## match the newest record satisfying the nimble constraint.
       var bestVer = newVersion(0, 0, 0)
-      for rec in installedRecords(dep):
+      for rec in s.records.getOrDefault(dep, @[]):
         if rec.version.len == 0:
           continue
         if refStr.len > 0:
@@ -251,49 +317,55 @@ proc installCommand*(v: Values) =
           if result.len > 0 and cmp(v, bestVer) <= 0:
             continue
           bestVer = v
-        let verDir = cluePkgsPath / dep / rec.version
-        if dirExists(verDir) or (rec.path.len > 0 and dirExists(rec.path)):
+        if installedBitsPresent(dep, rec.version, rec.path):
           if refStr.len > 0:
             return rec.version
           result = rec.version
-    proc closureOnDisk(dep: string): bool =
+    proc closureOnDisk(s: InstalledSnapshot, dep: string): bool =
       ## Every package in `dep`'s recorded closure has an installed-manifest
-      ## row with an existing dir (roots included — `collectInstalledDepNames`
-      ## returns them; `HEAD`/ref rows count, `resolveInstalledPath` can't
-      ## see those).
-      for name in collectInstalledDepNames(@[dep]):
-        if not isInstalledOnDisk(name):
+      ## row with an existing dir (roots included — `HEAD`/ref rows count).
+      for name in closureNames(s, @[dep]):
+        if not isInstalledOnDisk(s, name):
           return false
       true
+
+    # Label every direct dep *before* the work starts, so a slow resolve shows
+    # the package it is stuck on instead of a silent pause. `(cached)` means
+    # the local bits are already good — no clone, no fetch.
+    var directRoots: seq[datpkgrOps.ClosureRoot]
+    var anyNeedsRemote = false
     for d in nimble.requires:
       if d.isNim: continue
-      if not localHeaderEmitted:
-        displayInfo("Installing packages...")
-        localHeaderEmitted = true
       let dep = depName(d)
       if dep.len == 0:
         displayWarning("Cannot derive package name from URL: " & d.url & " - skipping")
         continue
-      if dep notin localDirect:
-        localDirect.add(dep)
+      if dep in localDirect: continue
+      localDirect.add(dep)
+      ensureLocalHeader()
       let refStr = if d.branch.len > 0: d.branch elif d.tag.len > 0: d.tag else: ""
+      directRoots.add(datpkgrOps.ClosureRoot(name: dep, constraint: d.constraint,
+        features: d.features, url: d.url, refStr: refStr))
       var reused = ""
-      if not refresh and d.features.len == 0 and
-          not isDevelopAvailable(dep):
-        reused = installedVersionForReuse(dep, refStr, d.constraint)
-        if reused.len > 0 and not closureOnDisk(dep):
+      if not refresh:
+        reused = installedVersionForReuse(snap, dep, refStr, d.constraint)
+        if reused.len > 0 and not closureOnDisk(snap, dep):
           reused = ""
-      if reused.len > 0:
-        # Already installed with a complete closure on disk: no resolve, no
-        # fetch — reuse the bits as-is.
-        emitLbl(fmtLbl(dep, reused), true)
-        emitTransitives(dep)
-        continue
-      installPackage(dep, refStr, false, d.features, verbose, constraint = d.constraint, url = d.url, suppressSummary = true, showTree = false)
-      let depPath = resolveInstalledPath(dep, refStr)
-      let verLabel = if depPath.len > 0: depPath.lastPathPart else: refStr
-      emitLbl(fmtLbl(dep, verLabel), false)
-      emitTransitives(dep)
+      if reused.len == 0:
+        anyNeedsRemote = true
+      let lblVer = if reused.len > 0: reused else: refStr
+      emitLbl(fmtLbl(dep, lblVer), reused.len > 0)
+    # One resolution + install pass for the whole closure. Reused deps ride
+    # along: the pass re-records them (cheap, local) and would otherwise risk
+    # pruning a closure whose roots were filtered out.
+    if directRoots.len > 0:
+      if anyNeedsRemote:
+        ensureFreshRegistryIfStale()
+      installPackage(pkgName, "", refresh, @[], verbose,
+        suppressSummary = true, showTree = verbose, directRoots = directRoots)
+    # The tree covers the closure on `--verbose`; otherwise print the flat
+    # labels. Either way the tally runs so the summary count stays right.
+    emitTransitives(not verbose)
     if localDepLabels.len > 0:
       displaySuccess("Installed " & $localDepLabels.len & " " & pluralize(localDepLabels.len, "package"))
     if doBuild and not depsOnly:
@@ -322,6 +394,9 @@ proc installCommand*(v: Values) =
     if name.len == 0:
       displayError("Could not derive a package name from: " & raw, quitProcess = true)
       return
+    # A URL install always goes to the network, so stale registry metadata is
+    # worth refreshing up front.
+    ensureFreshRegistryIfStale()
     installPackage(name, urlRef, refresh, features, verbose, url = url,
             doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
             backend = backend, sourceFilter = sourceFilter, depsOnly = depsOnly)
@@ -353,6 +428,7 @@ proc installCommand*(v: Values) =
               nimFlags = extras, backend = backend):
             return
         return
+    ensureFreshRegistryIfStale()
     installPackage(pkgName, pkgRef, refresh, features, verbose,
           doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
           backend = backend, sourceFilter = sourceFilter, depsOnly = depsOnly)

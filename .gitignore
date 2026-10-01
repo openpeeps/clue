@@ -8,3 +8,6 @@ testresults/
 !/tests/*.nims
 /bin/
 build
+nimble.develop
+nimble.paths
+nimbledeps
