@@ -607,11 +607,16 @@ proc testJobArgs(job: TestJob): seq[string] =
 proc reportTestResult(name: string, code: int): bool =
   ## Print one verdict and return whether the test passed. Called on the main
   ## thread as each job lands, so a long pool run shows progress.
+  ##
+  ## Flushed explicitly: `display` does not, and a redirected stdout is block
+  ## buffered, which would hold every verdict back until the end and make a
+  ## working pool look hung.
   if code == 0:
     displaySuccess(name)
-    return true
-  displayError(name)
-  false
+  else:
+    displayError(name)
+  try: flushFile(stdout) except: discard
+  code == 0
 
 var testNimBin: string
   ## Resolved once by `runTestsParallel`: the pool workers may not close over
