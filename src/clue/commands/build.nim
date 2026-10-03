@@ -24,25 +24,8 @@ proc writeRaw(s: string) =
   if s[^1] != '\n':
     write(stdout, "\n")
 
-proc pkgNameFromUrlLocal(url: string): string =
-  var u = url.strip()
-  for sep in ['#', '?']:
-    let pos = u.find(sep)
-    if pos >= 0:
-      u = u[0 ..< pos]
-  if u.startsWith("git+"):
-    u = u[4 .. ^1]
-  u = u.replace("://", "/")
-  u = u.replace("git@", "")
-  u = u.replace(":", "/")
-  for part in u.split('/'):
-    if part.len > 0:
-      result = part
-  if result.endsWith(".git"):
-    result = result[0 ..< ^4]
-
 proc depNameOf(d: NimbleDependency): string =
-  if d.name.len > 0: d.name elif d.url.len > 0: pkgNameFromUrlLocal(d.url) else: ""
+  if d.name.len > 0: d.name elif d.url.len > 0: pkgNameForUrl(d.url) else: ""
 
 proc installedVersionSatisfies(depPath: string, constraint: VersionConstraint): bool =
   ## True when the installed version extracted from `depPath` satisfies the

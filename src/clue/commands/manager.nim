@@ -21,6 +21,7 @@ import ./sources
 import datpkgr/operations as datpkgrOps
 import datpkgr/config as datpkgrConfig
 import datpkgr/types as datpkgrTypes
+import datpkgr/store as datpkgrStore
 
 proc pkgNameFromUrl*(url: string): string =
   ## Derive a package name from a git URL's repository basename.
@@ -40,16 +41,43 @@ proc pkgNameFromUrl*(url: string): string =
   if result.endsWith(".git"):
     result = result[0 ..< ^4]
 
+var pkgNameForUrlCache = initTable[string, string]()
+  ## `pkgNameForUrl` answers from the registry, which means a store open per
+  ## miss. Dependency lists repeat the same few URLs, so remember the misses
+  ## too — the answer cannot change within a process.
+
+proc pkgNameForUrl*(url: string): string =
+  ## The package name a repository URL provides.
+  ##
+  ## A repository and the package inside it need not share a name:
+  ## `github.com/supranim/tasks` ships `supranim_tasks.nimble`. So the registry
+  ## is asked first, and only an unknown URL falls back to the basename — a
+  ## private or unpublished repo, where the manifest is the only authority and
+  ## the install path reads it.
+  ##
+  ## Guessing wrong here fails late and confusingly. datpkgr installs under the
+  ## real name, so the guessed name is simply never recorded; the caller's
+  ## dependency list keeps holding it, and the next step looks *that* up in the
+  ## registry and reports the package as missing while it sits installed.
+  let key = datpkgrStore.normalizeRepoUrl(url)
+  if key.len == 0:
+    return ""
+  if pkgNameForUrlCache.hasKey(key):
+    return pkgNameForUrlCache[key]
+  let registered = datpkgrStore.pkgNameForUrl(getClueCfg(), url)
+  result = if registered.len > 0: registered else: pkgNameFromUrl(url)
+  pkgNameForUrlCache[key] = result
+
 proc depName(d: NimbleDependency): string =
   ## The registry name for a dependency. URL deps (no name, only a `url`) are
-  ## resolved to their repository basename so the registry can be consulted.
+  ## resolved against the registry, falling back to the repository basename.
   if d.name.len > 0: d.name
-  elif d.url.len > 0: pkgNameFromUrl(d.url)
+  elif d.url.len > 0: pkgNameForUrl(d.url)
   else: ""
 
 proc depName(d: PkgDependency): string =
   if d.name.len > 0: d.name
-  elif d.url.len > 0: pkgNameFromUrl(d.url)
+  elif d.url.len > 0: pkgNameForUrl(d.url)
   else: ""
 
 proc parseFeatureFlags*(s: string): seq[string] =
