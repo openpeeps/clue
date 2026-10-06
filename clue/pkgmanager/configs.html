@@ -101,6 +101,10 @@
   <li><a class="reference" href="#detectNimVersion" title="detectNimVersion(): string">detectNimVersion(): string</a></li>
 
 </ul>
+<ul class="simple nested-toc-section">displaySpans
+  <li><a class="reference" href="#displaySpans%2Cvarargs%5BSpan%5D" title="displaySpans(spans: varargs[Span])">displaySpans(spans: varargs[Span])</a></li>
+
+</ul>
 <ul class="simple nested-toc-section">ensureSourcesFile
   <li><a class="reference" href="#ensureSourcesFile" title="ensureSourcesFile()">ensureSourcesFile()</a></li>
 
@@ -307,11 +311,10 @@
 </div>
 <div id="clueFetchStart-procs-all">
   <div id="clueFetchStart,string">
-  <dt><pre><span class="Keyword">proc</span> <a href="#clueFetchStart%2Cstring"><span class="Identifier">clueFetchStart</span></a><span class="Other">(</span><span class="Identifier">name</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">gcsafe</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">]</span><span class="Other">,</span>
-                                    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dt><pre><span class="Keyword">proc</span> <a href="#clueFetchStart%2Cstring"><span class="Identifier">clueFetchStart</span></a><span class="Other">(</span><span class="Identifier">name</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">gcsafe</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Immediate mode: version discovery for <tt class="docutils literal"><span class="pre"><span class="Identifier">name</span></span></tt> started.
+    Version discovery for <tt class="docutils literal"><span class="pre"><span class="Identifier">name</span></span></tt> started on the <em>local</em> path — the package's clone is already in <tt class="docutils literal"><span class="pre"><span class="Identifier">_cache</span></span></tt> and no network is involved. Deliberately silent: a line here reads as &quot;going remote&quot;, which is exactly wrong. <tt class="docutils literal"><span class="pre"><span class="Identifier">clueCloneStart</span></span></tt> is the signal for real clone/fetch work.
     
   </dd>
 </div>
@@ -398,6 +401,18 @@
   <dd>
     
     
+    
+  </dd>
+</div>
+
+</div>
+<div id="displaySpans-procs-all">
+  <div id="displaySpans,varargs[Span]">
+  <dt><pre><span class="Keyword">proc</span> <a href="#displaySpans%2Cvarargs%5BSpan%5D"><span class="Identifier">displaySpans</span></a><span class="Other">(</span><span class="Identifier">spans</span><span class="Other">:</span> <span class="Identifier">varargs</span><span class="Other">[</span><span class="Identifier">Span</span><span class="Other">]</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">gcsafe</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Render styled slices as one line, exactly as composed, with no level prefix. Every slice is written at indent 0 so only the caller's own leading spaces affect the layout.
     
   </dd>
 </div>
@@ -869,7 +884,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-25 17:27:50 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-10-06 11:30:31 UTC</small>
       </div>
     </div>
   </div>

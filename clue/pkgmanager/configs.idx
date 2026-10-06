@@ -1,48 +1,49 @@
 nimTitle	configs	clue/pkgmanager/configs.html	module clue/pkgmanager/configs		0
 nim	clueLog	clue/pkgmanager/configs.html#clueLog,LogLevel,string	proc clueLog(level: LogLevel; msg: string)		151
-nim	clueSubmodules	clue/pkgmanager/configs.html#clueSubmodules,string,string	proc clueSubmodules(name, dest: string)		156
-nim	clueFetchStart	clue/pkgmanager/configs.html#clueFetchStart,string	proc clueFetchStart(name: string)		162
-nim	clueCloneStart	clue/pkgmanager/configs.html#clueCloneStart,string,string	proc clueCloneStart(name, url: string)		169
-nim	clueInstallStart	clue/pkgmanager/configs.html#clueInstallStart,string	proc clueInstallStart(label: string)		176
-nim	getClueCfg	clue/pkgmanager/configs.html#getClueCfg	proc getClueCfg(): DatpkgrConfig		184
-nim	clueCfg	clue/pkgmanager/configs.html#clueCfg.t	template clueCfg(): DatpkgrConfig		194
-nim	newProjectDisk	clue/pkgmanager/configs.html#newProjectDisk	proc newProjectDisk(dir = getCurrentDir()): Filesystem		196
-nim	cluePath	clue/pkgmanager/configs.html#cluePath.t	template cluePath(): string		204
-nim	clueDBPath	clue/pkgmanager/configs.html#clueDBPath.t	template clueDBPath(): string		205
-nim	versionsDBPath	clue/pkgmanager/configs.html#versionsDBPath.t	template versionsDBPath(): string		206
-nim	cluePkgsPath	clue/pkgmanager/configs.html#cluePkgsPath.t	template cluePkgsPath(): string		207
-nim	cluePkgsCachePath	clue/pkgmanager/configs.html#cluePkgsCachePath.t	template cluePkgsCachePath(): string		208
-nim	clueBinPath	clue/pkgmanager/configs.html#clueBinPath.t	template clueBinPath(): string		209
-nim	clueBuildTempPath	clue/pkgmanager/configs.html#clueBuildTempPath.t	template clueBuildTempPath(): string		210
-nim	clueDevelopPath	clue/pkgmanager/configs.html#clueDevelopPath.t	template clueDevelopPath(): string		211
-nim	clueSourcesPath	clue/pkgmanager/configs.html#clueSourcesPath.t	template clueSourcesPath(): string		212
-nim	clueRegistriesDir	clue/pkgmanager/configs.html#clueRegistriesDir.t	template clueRegistriesDir(): string		213
-nim	nimbleLocalPackages	clue/pkgmanager/configs.html#nimbleLocalPackages.t	template nimbleLocalPackages(): string		214
-nim	nimblePackagesUrl	clue/pkgmanager/configs.html#nimblePackagesUrl.t	template nimblePackagesUrl(): string		215
-nim	defaultSourceName	clue/pkgmanager/configs.html#defaultSourceName.t	template defaultSourceName(): string		216
-nim	clueDB	clue/pkgmanager/configs.html#clueDB.t	template clueDB(): Store		219
-nim	versionsDB	clue/pkgmanager/configs.html#versionsDB.t	template versionsDB(): Store		220
-nim	debugEnabled	clue/pkgmanager/configs.html#debugEnabled.t	template debugEnabled(): untyped		222
-nim	debugLog	clue/pkgmanager/configs.html#debugLog,string	proc debugLog(msg: string)		224
-nim	isInsidePkgs	clue/pkgmanager/configs.html#isInsidePkgs,string	proc isInsidePkgs(dir: string): bool		229
-nim	safeRemoveDir	clue/pkgmanager/configs.html#safeRemoveDir,string	proc safeRemoveDir(dir: string)		230
-nim	safeRemoveSymlink	clue/pkgmanager/configs.html#safeRemoveSymlink,string	proc safeRemoveSymlink(p: string)		231
-nim	isValidSourceName	clue/pkgmanager/configs.html#isValidSourceName,string	proc isValidSourceName(s: string): bool		233
-nim	sourceCachePath	clue/pkgmanager/configs.html#sourceCachePath,string	proc sourceCachePath(name: string): string		234
-nim	ensureSourcesFile	clue/pkgmanager/configs.html#ensureSourcesFile	proc ensureSourcesFile()		235
-nim	loadSources	clue/pkgmanager/configs.html#loadSources	proc loadSources(): seq[Source]		236
-nim	saveSources	clue/pkgmanager/configs.html#saveSources,seq[Source]	proc saveSources(sources: seq[Source])		237
-nim	resetClueForTests	clue/pkgmanager/configs.html#resetClueForTests	proc resetClueForTests()		239
-nim	seedPackagesTable	clue/pkgmanager/configs.html#seedPackagesTable,JsonNode,string	proc seedPackagesTable(nimblePackages: JsonNode; source: string = defaultSourceName): int		240
-nim	initClue	clue/pkgmanager/configs.html#initClue	proc initClue()		243
-nim	refreshSource	clue/pkgmanager/configs.html#refreshSource,string	proc refreshSource(sourceName: string): bool		245
-nim	refreshAllSources	clue/pkgmanager/configs.html#refreshAllSources	proc refreshAllSources(): bool		246
-nim	refreshRegistry	clue/pkgmanager/configs.html#refreshRegistry	proc refreshRegistry(): bool		247
-nim	withClueDB	clue/pkgmanager/configs.html#withClueDB.t,untyped	template withClueDB(body: untyped)		249
-nim	fetchPkgMeta	clue/pkgmanager/configs.html#fetchPkgMeta,string,string	proc fetchPkgMeta(pkgName: string; sourceFilter: string = ""): Option[PkgRef]		253
-nim	fetchAllPkgMetas	clue/pkgmanager/configs.html#fetchAllPkgMetas,string	proc fetchAllPkgMetas(pkgName: string): seq[PkgRef]		256
-nim	resolveNimBin	clue/pkgmanager/configs.html#resolveNimBin	proc resolveNimBin(): string		260
-nim	defaultToolchainFlags	clue/pkgmanager/configs.html#defaultToolchainFlags,string	proc defaultToolchainFlags(userFlags = ""): string		280
-nim	defaultColorsFlag	clue/pkgmanager/configs.html#defaultColorsFlag,string	proc defaultColorsFlag(userFlags = ""): string		298
-nim	detectNimVersion	clue/pkgmanager/configs.html#detectNimVersion	proc detectNimVersion(): string		301
-nim	checkNimConstraint	clue/pkgmanager/configs.html#checkNimConstraint	proc checkNimConstraint(nimble: clueNimbleParser.NimbleFile)		315
+nim	displaySpans	clue/pkgmanager/configs.html#displaySpans,varargs[Span]	proc displaySpans(spans: varargs[Span])		156
+nim	clueSubmodules	clue/pkgmanager/configs.html#clueSubmodules,string,string	proc clueSubmodules(name, dest: string)		187
+nim	clueFetchStart	clue/pkgmanager/configs.html#clueFetchStart,string	proc clueFetchStart(name: string)		193
+nim	clueCloneStart	clue/pkgmanager/configs.html#clueCloneStart,string,string	proc clueCloneStart(name, url: string)		201
+nim	clueInstallStart	clue/pkgmanager/configs.html#clueInstallStart,string	proc clueInstallStart(label: string)		208
+nim	getClueCfg	clue/pkgmanager/configs.html#getClueCfg	proc getClueCfg(): DatpkgrConfig		216
+nim	clueCfg	clue/pkgmanager/configs.html#clueCfg.t	template clueCfg(): DatpkgrConfig		227
+nim	newProjectDisk	clue/pkgmanager/configs.html#newProjectDisk	proc newProjectDisk(dir = getCurrentDir()): Filesystem		229
+nim	cluePath	clue/pkgmanager/configs.html#cluePath.t	template cluePath(): string		237
+nim	clueDBPath	clue/pkgmanager/configs.html#clueDBPath.t	template clueDBPath(): string		238
+nim	versionsDBPath	clue/pkgmanager/configs.html#versionsDBPath.t	template versionsDBPath(): string		239
+nim	cluePkgsPath	clue/pkgmanager/configs.html#cluePkgsPath.t	template cluePkgsPath(): string		240
+nim	cluePkgsCachePath	clue/pkgmanager/configs.html#cluePkgsCachePath.t	template cluePkgsCachePath(): string		241
+nim	clueBinPath	clue/pkgmanager/configs.html#clueBinPath.t	template clueBinPath(): string		242
+nim	clueBuildTempPath	clue/pkgmanager/configs.html#clueBuildTempPath.t	template clueBuildTempPath(): string		243
+nim	clueDevelopPath	clue/pkgmanager/configs.html#clueDevelopPath.t	template clueDevelopPath(): string		244
+nim	clueSourcesPath	clue/pkgmanager/configs.html#clueSourcesPath.t	template clueSourcesPath(): string		245
+nim	clueRegistriesDir	clue/pkgmanager/configs.html#clueRegistriesDir.t	template clueRegistriesDir(): string		246
+nim	nimbleLocalPackages	clue/pkgmanager/configs.html#nimbleLocalPackages.t	template nimbleLocalPackages(): string		247
+nim	nimblePackagesUrl	clue/pkgmanager/configs.html#nimblePackagesUrl.t	template nimblePackagesUrl(): string		248
+nim	defaultSourceName	clue/pkgmanager/configs.html#defaultSourceName.t	template defaultSourceName(): string		249
+nim	clueDB	clue/pkgmanager/configs.html#clueDB.t	template clueDB(): Store		252
+nim	versionsDB	clue/pkgmanager/configs.html#versionsDB.t	template versionsDB(): Store		253
+nim	debugEnabled	clue/pkgmanager/configs.html#debugEnabled.t	template debugEnabled(): untyped		255
+nim	debugLog	clue/pkgmanager/configs.html#debugLog,string	proc debugLog(msg: string)		257
+nim	isInsidePkgs	clue/pkgmanager/configs.html#isInsidePkgs,string	proc isInsidePkgs(dir: string): bool		262
+nim	safeRemoveDir	clue/pkgmanager/configs.html#safeRemoveDir,string	proc safeRemoveDir(dir: string)		263
+nim	safeRemoveSymlink	clue/pkgmanager/configs.html#safeRemoveSymlink,string	proc safeRemoveSymlink(p: string)		264
+nim	isValidSourceName	clue/pkgmanager/configs.html#isValidSourceName,string	proc isValidSourceName(s: string): bool		266
+nim	sourceCachePath	clue/pkgmanager/configs.html#sourceCachePath,string	proc sourceCachePath(name: string): string		267
+nim	ensureSourcesFile	clue/pkgmanager/configs.html#ensureSourcesFile	proc ensureSourcesFile()		268
+nim	loadSources	clue/pkgmanager/configs.html#loadSources	proc loadSources(): seq[Source]		269
+nim	saveSources	clue/pkgmanager/configs.html#saveSources,seq[Source]	proc saveSources(sources: seq[Source])		270
+nim	resetClueForTests	clue/pkgmanager/configs.html#resetClueForTests	proc resetClueForTests()		272
+nim	seedPackagesTable	clue/pkgmanager/configs.html#seedPackagesTable,JsonNode,string	proc seedPackagesTable(nimblePackages: JsonNode; source: string = defaultSourceName): int		273
+nim	initClue	clue/pkgmanager/configs.html#initClue	proc initClue()		276
+nim	refreshSource	clue/pkgmanager/configs.html#refreshSource,string	proc refreshSource(sourceName: string): bool		278
+nim	refreshAllSources	clue/pkgmanager/configs.html#refreshAllSources	proc refreshAllSources(): bool		279
+nim	refreshRegistry	clue/pkgmanager/configs.html#refreshRegistry	proc refreshRegistry(): bool		280
+nim	withClueDB	clue/pkgmanager/configs.html#withClueDB.t,untyped	template withClueDB(body: untyped)		282
+nim	fetchPkgMeta	clue/pkgmanager/configs.html#fetchPkgMeta,string,string	proc fetchPkgMeta(pkgName: string; sourceFilter: string = ""): Option[PkgRef]		286
+nim	fetchAllPkgMetas	clue/pkgmanager/configs.html#fetchAllPkgMetas,string	proc fetchAllPkgMetas(pkgName: string): seq[PkgRef]		289
+nim	resolveNimBin	clue/pkgmanager/configs.html#resolveNimBin	proc resolveNimBin(): string		293
+nim	defaultToolchainFlags	clue/pkgmanager/configs.html#defaultToolchainFlags,string	proc defaultToolchainFlags(userFlags = ""): string		313
+nim	defaultColorsFlag	clue/pkgmanager/configs.html#defaultColorsFlag,string	proc defaultColorsFlag(userFlags = ""): string		331
+nim	detectNimVersion	clue/pkgmanager/configs.html#detectNimVersion	proc detectNimVersion(): string		334
+nim	checkNimConstraint	clue/pkgmanager/configs.html#checkNimConstraint	proc checkNimConstraint(nimble: clueNimbleParser.NimbleFile)		348

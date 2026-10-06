@@ -78,19 +78,21 @@
 
 </ul>
 <ul class="simple nested-toc-section">installPackage
-  <li><a class="reference" href="#installPackage%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cstring%2CVersionConstraint%2Cstring%2Cstring" title="installPackage(pkgName: string; pkgRef: string = &quot;&quot;; refresh = false;
+  <li><a class="reference" href="#installPackage%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cstring%2CVersionConstraint%2Cstring%2Cstring%2Cseq%5B%5D" title="installPackage(pkgName: string; pkgRef: string = &quot;&quot;; refresh = false;
                features: seq[string] = @[]; verbose = true; url = &quot;&quot;;
                doBuild = false; buildRelease = true; buildDebug = false;
     constraint: VersionConstraint = VersionConstraint(kind: vcAny,
     version: newVersion(0, 0, 0, &quot;&quot;, &quot;&quot;)); backend = &quot;c&quot;;
                sourceFilter: string = &quot;&quot;; suppressSummary = false;
-               depsOnly = false; showTree = true)">installPackage(pkgName: string; pkgRef: string = &quot;&quot;; refresh = false;
+               depsOnly = false; showTree = true;
+               directRoots: seq[datpkgrOps.ClosureRoot] = @[])">installPackage(pkgName: string; pkgRef: string = &quot;&quot;; refresh = false;
                features: seq[string] = @[]; verbose = true; url = &quot;&quot;;
                doBuild = false; buildRelease = true; buildDebug = false;
     constraint: VersionConstraint = VersionConstraint(kind: vcAny,
     version: newVersion(0, 0, 0, &quot;&quot;, &quot;&quot;)); backend = &quot;c&quot;;
                sourceFilter: string = &quot;&quot;; suppressSummary = false;
-               depsOnly = false; showTree = true)</a></li>
+               depsOnly = false; showTree = true;
+               directRoots: seq[datpkgrOps.ClosureRoot] = @[])</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">isGitUrl
@@ -99,6 +101,10 @@
 </ul>
 <ul class="simple nested-toc-section">parseFeatureFlags
   <li><a class="reference" href="#parseFeatureFlags%2Cstring" title="parseFeatureFlags(s: string): seq[string]">parseFeatureFlags(s: string): seq[string]</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">pkgNameForUrl
+  <li><a class="reference" href="#pkgNameForUrl%2Cstring" title="pkgNameForUrl(url: string): string">pkgNameForUrl(url: string): string</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">pkgNameFromUrl
@@ -203,10 +209,10 @@
 <div id="installCommand-procs-all">
   <div id="installCommand,Values">
   <dt><pre><span class="Keyword">proc</span> <a href="#installCommand%2CValues"><span class="Identifier">installCommand</span></a><span class="Other">(</span><span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">Values</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span>
-    <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">CatchableError</span><span class="Other">,</span>
-    <span class="Identifier">JsonParsingError</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">ResourceExhaustedError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span>
-    <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+    <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">CatchableError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span>
+    <span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">ResourceExhaustedError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span>
+    <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteEnvEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
@@ -216,22 +222,23 @@
 
 </div>
 <div id="installPackage-procs-all">
-  <div id="installPackage,string,string,seq[string],string,VersionConstraint,string,string">
-  <dt><pre><span class="Keyword">proc</span> <a href="#installPackage%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cstring%2CVersionConstraint%2Cstring%2Cstring"><span class="Identifier">installPackage</span></a><span class="Other">(</span><span class="Identifier">pkgName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">pkgRef</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="StringLit">&quot;&quot;</span><span class="Other">;</span> <span class="Identifier">refresh</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">;</span>
+  <div id="installPackage,string,string,seq[string],string,VersionConstraint,string,string,seq[]">
+  <dt><pre><span class="Keyword">proc</span> <a href="#installPackage%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cstring%2CVersionConstraint%2Cstring%2Cstring%2Cseq%5B%5D"><span class="Identifier">installPackage</span></a><span class="Other">(</span><span class="Identifier">pkgName</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">pkgRef</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="StringLit">&quot;&quot;</span><span class="Other">;</span> <span class="Identifier">refresh</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">;</span>
                     <span class="Identifier">features</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">string</span><span class="Other">]</span> <span class="Other">=</span> <span class="Operator">@</span><span class="Other">[</span><span class="Other">]</span><span class="Other">;</span> <span class="Identifier">verbose</span> <span class="Other">=</span> <span class="Identifier">true</span><span class="Other">;</span> <span class="Identifier">url</span> <span class="Other">=</span> <span class="StringLit">&quot;&quot;</span><span class="Other">;</span>
                     <span class="Identifier">doBuild</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">;</span> <span class="Identifier">buildRelease</span> <span class="Other">=</span> <span class="Identifier">true</span><span class="Other">;</span> <span class="Identifier">buildDebug</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">;</span>
     <span class="Identifier">constraint</span><span class="Other">:</span> <span class="Identifier">VersionConstraint</span> <span class="Other">=</span> <span class="Identifier">VersionConstraint</span><span class="Other">(</span><span class="Identifier">kind</span><span class="Other">:</span> <span class="Identifier">vcAny</span><span class="Other">,</span>
     <span class="Identifier">version</span><span class="Other">:</span> <span class="Identifier">newVersion</span><span class="Other">(</span><span class="DecNumber">0</span><span class="Other">,</span> <span class="DecNumber">0</span><span class="Other">,</span> <span class="DecNumber">0</span><span class="Other">,</span> <span class="StringLit">&quot;&quot;</span><span class="Other">,</span> <span class="StringLit">&quot;&quot;</span><span class="Other">)</span><span class="Other">)</span><span class="Other">;</span> <span class="Identifier">backend</span> <span class="Other">=</span> <span class="StringLit">&quot;c&quot;</span><span class="Other">;</span>
                     <span class="Identifier">sourceFilter</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="StringLit">&quot;&quot;</span><span class="Other">;</span> <span class="Identifier">suppressSummary</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">;</span>
-                    <span class="Identifier">depsOnly</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">;</span> <span class="Identifier">showTree</span> <span class="Other">=</span> <span class="Identifier">true</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ValueError</span><span class="Other">,</span>
-    <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span> <span class="Identifier">InvalidVersionError</span><span class="Other">,</span>
-    <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">CatchableError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span>
+                    <span class="Identifier">depsOnly</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">;</span> <span class="Identifier">showTree</span> <span class="Other">=</span> <span class="Identifier">true</span><span class="Other">;</span>
+                    <span class="Identifier">directRoots</span><span class="Other">:</span> <span class="Identifier">seq</span><span class="Other">[</span><span class="Identifier">datpkgrOps</span><span class="Other">.</span><span class="Identifier">ClosureRoot</span><span class="Other">]</span> <span class="Other">=</span> <span class="Operator">@</span><span class="Other">[</span><span class="Other">]</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">StorageError</span><span class="Other">,</span>
+    <span class="Identifier">InvalidVersionError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span> <span class="Identifier">CatchableError</span><span class="Other">,</span> <span class="Identifier">JsonParsingError</span><span class="Other">,</span>
     <span class="Identifier">ResourceExhaustedError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span>
                                     <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
                                     <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Thin wrapper around datpkgr/operations.installPackage. Builder (<tt class="docutils literal"><span class="pre"><span class="Identifier">builder</span><span class="Operator">.</span><span class="Identifier">nim</span></span></tt>) stays in clue and is injected via buildHook. With <tt class="docutils literal"><span class="pre"><span class="Identifier">depsOnly</span></span></tt> only the dependency closure is installed, never the requested package itself.
+    Thin wrapper around datpkgr/operations.installPackage. Builder (<tt class="docutils literal"><span class="pre"><span class="Identifier">builder</span><span class="Operator">.</span><span class="Identifier">nim</span></span></tt>) stays in clue and is injected via buildHook. With <tt class="docutils literal"><span class="pre"><span class="Identifier">depsOnly</span></span></tt> only the dependency closure is installed, never the requested package itself. With <tt class="docutils literal"><span class="pre"><span class="Identifier">directRoots</span></span></tt> the whole closure of those dependencies is installed in a single resolution pass; <tt class="docutils literal"><span class="pre"><span class="Identifier">pkgName</span></span></tt> is then only a label.
     
   </dd>
 </div>
@@ -255,6 +262,23 @@
   <dd>
     
     
+    
+  </dd>
+</div>
+
+</div>
+<div id="pkgNameForUrl-procs-all">
+  <div id="pkgNameForUrl,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#pkgNameForUrl%2Cstring"><span class="Identifier">pkgNameForUrl</span></a><span class="Other">(</span><span class="Identifier">url</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span>
+    <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    <p>The package name a repository URL provides.</p>
+<p>A repository and the package inside it need not share a name: <tt class="docutils literal"><span class="pre"><span class="Identifier">github</span><span class="Operator">.</span><span class="Identifier">com</span><span class="Operator">/</span><span class="Identifier">supranim</span><span class="Operator">/</span><span class="Identifier">tasks</span></span></tt> ships <tt class="docutils literal"><span class="pre"><span class="Identifier">supranim_tasks</span><span class="Operator">.</span><span class="Identifier">nimble</span></span></tt>. So the registry is asked first, and only an unknown URL falls back to the basename — a private or unpublished repo, where the manifest is the only authority and the install path reads it.</p>
+<p>Guessing wrong here fails late and confusingly. datpkgr installs under the real name, so the guessed name is simply never recorded; the caller's dependency list keeps holding it, and the next step looks <em>that</em> up in the registry and reports the package as missing while it sits installed.</p>
+
     
   </dd>
 </div>
@@ -288,7 +312,7 @@
   <dt><pre><span class="Keyword">proc</span> <a href="#pruneCommand%2CValues"><span class="Identifier">pruneCommand</span></a><span class="Other">(</span><span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">Values</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">Exception</span><span class="Other">,</span> <span class="Identifier">KeyError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">,</span>
                                         <span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">StoreError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">,</span> <span class="Identifier">WalError</span><span class="Other">,</span>
                                         <span class="Identifier">CatchableError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">,</span>
-    <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span>
+    <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteDirEffect</span><span class="Other">,</span> <span class="Identifier">TimeEffect</span><span class="Other">,</span>
     <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
@@ -366,7 +390,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-25 17:27:51 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-10-06 11:30:31 UTC</small>
       </div>
     </div>
   </div>

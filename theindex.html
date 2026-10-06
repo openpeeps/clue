@@ -305,6 +305,14 @@
 <li><a class="reference external"
           data-doc-search-tag="manager: proc developCommand(v: Values)" href="clue/commands/manager.html#developCommand%2CValues">manager: proc developCommand(v: Values)</a></li>
           </ul></dd>
+<dt><a name="devShadowNotes" href="#devShadowNotes"><span>devShadowNotes:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="versions: template devShadowNotes(): Table[string, LogSpan]" href="clue/pkgmanager/versions.html#devShadowNotes.t">versions: template devShadowNotes(): Table[string, LogSpan]</a></li>
+          </ul></dd>
+<dt><a name="devShadowNotesOnly" href="#devShadowNotesOnly"><span>devShadowNotesOnly:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="versions: template devShadowNotesOnly(): var bool" href="clue/pkgmanager/versions.html#devShadowNotesOnly.t">versions: template devShadowNotesOnly(): var bool</a></li>
+          </ul></dd>
 <dt><a name="devShadowWarningsEnabled" href="#devShadowWarningsEnabled"><span>devShadowWarningsEnabled:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="versions: template devShadowWarningsEnabled(): var bool" href="clue/pkgmanager/versions.html#devShadowWarningsEnabled.t">versions: template devShadowWarningsEnabled(): var bool</a></li>
@@ -330,6 +338,10 @@
     seq[DiscoveredVersion]]" href="clue/pkgmanager/versions.html#discoverVersionsBatch%2CopenArray%5BPkgRef%5D%2Cproc%28string%2Cint%2Cbool%29">versions: proc discoverVersionsBatch(pkgs: openArray[PkgRef]; refresh = false; onDone: proc (
     name: string; versions: int; cached: bool) = nil): Table[string,
     seq[DiscoveredVersion]]</a></li>
+          </ul></dd>
+<dt><a name="displaySpans" href="#displaySpans"><span>displaySpans:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="configs: proc displaySpans(spans: varargs[Span])" href="clue/pkgmanager/configs.html#displaySpans%2Cvarargs%5BSpan%5D">configs: proc displaySpans(spans: varargs[Span])</a></li>
           </ul></dd>
 <dt><a name="docsGenCommand" href="#docsGenCommand"><span>docsGenCommand:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -513,6 +525,14 @@
 <li><a class="reference external"
           data-doc-search-tag="versions: proc installedRoots(): seq[string]" href="clue/pkgmanager/versions.html#installedRoots">versions: proc installedRoots(): seq[string]</a></li>
           </ul></dd>
+<dt><a name="InstalledSnapshot" href="#InstalledSnapshot"><span>InstalledSnapshot:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="versions: type InstalledSnapshot" href="clue/pkgmanager/versions.html#InstalledSnapshot">versions: type InstalledSnapshot</a></li>
+          </ul></dd>
+<dt><a name="installedSnapshot" href="#installedSnapshot"><span>installedSnapshot:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="versions: proc installedSnapshot(): InstalledSnapshot" href="clue/pkgmanager/versions.html#installedSnapshot_2">versions: proc installedSnapshot(): InstalledSnapshot</a></li>
+          </ul></dd>
 <dt><a name="installedVersionForReuse" href="#installedVersionForReuse"><span>installedVersionForReuse:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="versions: proc installedVersionForReuse(name, refStr: string): string" href="clue/pkgmanager/versions.html#installedVersionForReuse%2Cstring%2Cstring">versions: proc installedVersionForReuse(name, refStr: string): string</a></li>
@@ -525,13 +545,15 @@
     constraint: VersionConstraint = VersionConstraint(kind: vcAny,
     version: newVersion(0, 0, 0, &quot;&quot;, &quot;&quot;)); backend = &quot;c&quot;;
                sourceFilter: string = &quot;&quot;; suppressSummary = false;
-               depsOnly = false; showTree = true)" href="clue/commands/manager.html#installPackage%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cstring%2CVersionConstraint%2Cstring%2Cstring">manager: proc installPackage(pkgName: string; pkgRef: string = &quot;&quot;; refresh = false;
+               depsOnly = false; showTree = true;
+               directRoots: seq[datpkgrOps.ClosureRoot] = @[])" href="clue/commands/manager.html#installPackage%2Cstring%2Cstring%2Cseq%5Bstring%5D%2Cstring%2CVersionConstraint%2Cstring%2Cstring%2Cseq%5B%5D">manager: proc installPackage(pkgName: string; pkgRef: string = &quot;&quot;; refresh = false;
                features: seq[string] = @[]; verbose = true; url = &quot;&quot;;
                doBuild = false; buildRelease = true; buildDebug = false;
     constraint: VersionConstraint = VersionConstraint(kind: vcAny,
     version: newVersion(0, 0, 0, &quot;&quot;, &quot;&quot;)); backend = &quot;c&quot;;
                sourceFilter: string = &quot;&quot;; suppressSummary = false;
-               depsOnly = false; showTree = true)</a></li>
+               depsOnly = false; showTree = true;
+               directRoots: seq[datpkgrOps.ClosureRoot] = @[])</a></li>
           </ul></dd>
 <dt><a name="invalidateLock" href="#invalidateLock"><span>invalidateLock:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -724,6 +746,10 @@
 <dt><a name="partialOn" href="#partialOn"><span>partialOn:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: proc partialOn(p: WebProfile): bool" href="clue/deploy/configs.html#partialOn%2CWebProfile">configs: proc partialOn(p: WebProfile): bool</a></li>
+          </ul></dd>
+<dt><a name="pkgNameForUrl" href="#pkgNameForUrl"><span>pkgNameForUrl:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="manager: proc pkgNameForUrl(url: string): string" href="clue/commands/manager.html#pkgNameForUrl%2Cstring">manager: proc pkgNameForUrl(url: string): string</a></li>
           </ul></dd>
 <dt><a name="pkgNameFromUrl" href="#pkgNameFromUrl"><span>pkgNameFromUrl:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -1063,7 +1089,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-09-25 17:27:52 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-10-06 11:30:32 UTC</small>
       </div>
     </div>
   </div>
