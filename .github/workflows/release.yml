@@ -11,3 +11,4 @@ jobs:
     with:
       nim-version: '2.2.10'
       app-name: clue
+      target-matrix: '[{"os":"ubuntu-latest","arch":"x86_64"},{"os":"ubuntu-24.04-arm","arch":"arm64"},{"os":"macos-14","arch":"arm64"},{"os":"macos-15-intel","arch":"x86_64"},{"os":"windows-latest","arch":"x86_64"},{"os":"windows-11-arm","arch":"arm64"}]'
