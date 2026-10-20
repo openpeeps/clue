@@ -213,13 +213,29 @@ proc clueInstallStart*(label: string) {.gcsafe.} =
       display("  " & label)
       try: flushFile(stdout) except: discard
 
+const checkSpinFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+
+proc clueCheckProgress*(done, total: int, name: string) {.gcsafe.} =
+  ## Single-line `done/total packages checked` counter for `clue update`'s
+  ## check phase. Wired only when stdout is a tty (see `getClueCfg`); one
+  ## animated frame per finished package. The line is cleared once the check
+  ## completes so the `Updating...` summary starts on a fresh line.
+  {.cast(gcsafe).}:
+    withLock displayLock:
+      stdout.write("\r\x1b[2K")
+      if done < total:
+        let frame = checkSpinFrames[done mod checkSpinFrames.len]
+        stdout.write(frame & " " & $done & "/" & $total & " packages checked")
+      try: flushFile(stdout) except: discard
+
 proc getClueCfg*(): DatpkgrConfig =
   if clueCfgImpl.isNil:
     clueCfgImpl = newDatpkgrConfig("clue",
       callbacks = Callbacks(log: clueLog, logStyled: clueLogStyled,
         onSubmodules: clueSubmodules,
         onFetchStart: clueFetchStart, onCloneStart: clueCloneStart,
-        onInstallStart: clueInstallStart),
+        onInstallStart: clueInstallStart,
+        onCheckProgress: (if isatty(stdout): clueCheckProgress else: nil)),
       allowSubmodules = true)
     clueCfgImpl.withNimbleSupport(clueNimbleParser.nimbleManifestParser)
   clueCfgImpl

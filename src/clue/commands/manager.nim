@@ -470,7 +470,8 @@ proc installCommand*(v: Values) =
   #   quit(1)
 
 proc updateCommand*(v: Values) =
-  ## Wrapper around datpkgr/operations.updateAllPackages / updatePackage.
+  ## Single package (`clue update <pkg>`), the cwd project's dependency tree
+  ## (bare `clue update` with a .nimble in cwd), or all installed roots.
   ## Parallelism (install-time thread pool) lives in datpkgr/pool.
   let verbose = v.has("--verbose")
   let cfg = getClueCfg()
@@ -478,9 +479,33 @@ proc updateCommand*(v: Values) =
     let ok = datpkgrOps.updatePackage(cfg, v.get("pkg").getStr, verbose)
     if not ok: quit(1)
   else:
-    let exe = getAppFilename()
-    let ok = datpkgrOps.updateAllPackages(cfg, verbose, exe)
-    if not ok: quit(1)
+    let projectFs = newProjectDisk()
+    let nimblePath = findNimbleFile(getCurrentDir(), getClueCfg(), projectFs)
+    if nimblePath.len > 0:
+      # Project scope: direct deps from the .nimble plus their recorded
+      # transitive closure — nothing outside the project's tree is touched.
+      let nimble = parseNimbleFile(nimblePath)
+      let pkgName = nimblePath.extractFilename.changeFileExt("")
+      var direct: seq[string]
+      for d in nimble.requires:
+        if d.isNim: continue
+        let dep = depName(d)
+        if dep.len == 0:
+          displayWarning("Cannot derive package name from URL: " & d.url & " - skipping")
+          continue
+        if dep notin direct: direct.add(dep)
+      if direct.len == 0:
+        displayInfo("No dependencies to update")
+      else:
+        displayInfo("Updating project dependencies for " & pkgName & " (" &
+          $direct.len & " direct " & pluralize(direct.len, "package") & ")...")
+        let ok = datpkgrOps.updatePackages(cfg,
+          datpkgrOps.updateScopeNames(cfg, direct), verbose)
+        if not ok: quit(1)
+    else:
+      let exe = getAppFilename()
+      let ok = datpkgrOps.updateAllPackages(cfg, verbose, exe)
+      if not ok: quit(1)
   # Installed versions moved — drop the project lock so the next build
   # re-resolves instead of reusing the previous pins.
   try: invalidateLock(getCurrentDir())

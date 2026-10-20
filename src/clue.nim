@@ -41,7 +41,8 @@ when isMainModule:
         ## Compile and run test modules in tests/ (optional comma-separated filter)
         ## --parallel runs them on a worker pool and reports only pass/fail
       update ?string(pkg), ?bool("--verbose"):
-        ## Upgrade a package and its dependencies
+        ## Upgrade a package and its dependencies (bare: the cwd project's
+        ## deps with a .nimble present, else everything installed)
       uninstall string(pkg):
         ## Uninstall a package
       versions string(pkg), ?bool("--refresh"):
