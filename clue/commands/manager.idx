@@ -7,10 +7,10 @@ nim	pluralize	clue/commands/manager.html#pluralize,int,string	proc pluralize(n: 
 nim	installPackage	clue/commands/manager.html#installPackage,string,string,seq[string],string,VersionConstraint,string,string,seq[]	proc installPackage(pkgName: string; pkgRef: string = ""; refresh = false;\n               features: seq[string] = @[]; verbose = true; url = "";\n               doBuild = false; buildRelease = true; buildDebug = false;\n    constraint: VersionConstraint = VersionConstraint(kind: vcAny,\n    version: newVersion(0, 0, 0, "", "")); backend = "c";\n               sourceFilter: string = ""; suppressSummary = false;\n               depsOnly = false; showTree = true;\n               directRoots: seq[datpkgrOps.ClosureRoot] = @[])		109
 nim	installCommand	clue/commands/manager.html#installCommand,Values	proc installCommand(v: Values)		139
 nim	updateCommand	clue/commands/manager.html#updateCommand,Values	proc updateCommand(v: Values)		472
-nim	developCommand	clue/commands/manager.html#developCommand,Values	proc developCommand(v: Values)		489
-nim	versionsCommand	clue/commands/manager.html#versionsCommand,Values	proc versionsCommand(v: Values)		500
-nim	pruneCommand	clue/commands/manager.html#pruneCommand,Values	proc pruneCommand(v: Values)		517
-nim	fetchCommand	clue/commands/manager.html#fetchCommand,Values	proc fetchCommand(v: Values)		521
-nim	uninstallCommand	clue/commands/manager.html#uninstallCommand,Values	proc uninstallCommand(v: Values)		550
-nim	dumpCommand	clue/commands/manager.html#dumpCommand,Values	proc dumpCommand(v: Values)		594
-nim	venvCommand	clue/commands/manager.html#venvCommand,Values	proc venvCommand(v: Values)		731
+nim	developCommand	clue/commands/manager.html#developCommand,Values	proc developCommand(v: Values)		514
+nim	versionsCommand	clue/commands/manager.html#versionsCommand,Values	proc versionsCommand(v: Values)		525
+nim	pruneCommand	clue/commands/manager.html#pruneCommand,Values	proc pruneCommand(v: Values)		542
+nim	fetchCommand	clue/commands/manager.html#fetchCommand,Values	proc fetchCommand(v: Values)		546
+nim	uninstallCommand	clue/commands/manager.html#uninstallCommand,Values	proc uninstallCommand(v: Values)		575
+nim	dumpCommand	clue/commands/manager.html#dumpCommand,Values	proc dumpCommand(v: Values)		619
+nim	venvCommand	clue/commands/manager.html#venvCommand,Values	proc venvCommand(v: Values)		756
