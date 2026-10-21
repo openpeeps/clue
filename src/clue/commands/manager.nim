@@ -46,38 +46,81 @@ var pkgNameForUrlCache = initTable[string, string]()
   ## miss. Dependency lists repeat the same few URLs, so remember the misses
   ## too — the answer cannot change within a process.
 
-proc pkgNameForUrl*(url: string): string =
+proc pkgNameForUrl*(url: string, refStr = ""): string =
   ## The package name a repository URL provides.
   ##
   ## A repository and the package inside it need not share a name:
   ## `github.com/supranim/tasks` ships `supranim_tasks.nimble`. So the registry
-  ## is asked first, and only an unknown URL falls back to the basename — a
-  ## private or unpublished repo, where the manifest is the only authority and
-  ## the install path reads it.
+  ## is asked first; when it misses (private, unpublished, or stale registry)
+  ## the cloned manifest is authoritative, and only a clone failure falls back
+  ## to the repository basename.
   ##
+  ## `refStr` (branch/tag from `requires "<url>#<ref>"` or `clue install
+  ## <url>#<ref>`) is honoured when reading the manifest: the checkout is
+  ## asked for that ref so a branch-specific manifest yields its own name.
   ## Guessing wrong here fails late and confusingly. datpkgr installs under the
   ## real name, so the guessed name is simply never recorded; the caller's
   ## dependency list keeps holding it, and the next step looks *that* up in the
   ## registry and reports the package as missing while it sits installed.
-  let key = datpkgrStore.normalizeRepoUrl(url)
+  var cleanUrl = url.strip()
+  let hashPos = cleanUrl.find('#')
+  var refFromUrl = refStr
+  if hashPos >= 0:
+    if refFromUrl.len == 0:
+      refFromUrl = cleanUrl[hashPos+1 .. ^1].strip()
+    cleanUrl = cleanUrl[0 ..< hashPos].strip()
+  let qPos = cleanUrl.find('?')
+  if qPos >= 0:
+    cleanUrl = cleanUrl[0 ..< qPos]
+  let key = datpkgrStore.normalizeRepoUrl(cleanUrl)
   if key.len == 0:
     return ""
-  if pkgNameForUrlCache.hasKey(key):
-    return pkgNameForUrlCache[key]
-  let registered = datpkgrStore.pkgNameForUrl(getClueCfg(), url)
-  result = if registered.len > 0: registered else: pkgNameFromUrl(url)
-  pkgNameForUrlCache[key] = result
+  let cacheKey =
+    if refFromUrl.len > 0: key & "#" & refFromUrl
+    else: key
+  if pkgNameForUrlCache.hasKey(cacheKey):
+    return pkgNameForUrlCache[cacheKey]
+  let registered = datpkgrStore.pkgNameForUrl(getClueCfg(), cleanUrl)
+  if registered.len > 0:
+    pkgNameForUrlCache[cacheKey] = registered
+    return registered
+  # Registry missed — the manifest is authoritative. Reuse datpkgr's
+  # canonicalization (clones to `_cache/<basename>` when absent, reads the
+  # manifest, moves the checkout to `_cache/<canonical>`). The package name
+  # rarely differs across branches, so the default-branch manifest is enough
+  # to canonicalize a `#ref` pin; the ref itself is preserved in `refStr`
+  # and checked out during install.
+  let guessed = pkgNameFromUrl(cleanUrl)
+  if guessed.len > 0:
+    try:
+      let canon = datpkgrOps.canonicalNameForUrl(getClueCfg(), guessed, cleanUrl)
+      if canon.len > 0 and canon != guessed:
+        pkgNameForUrlCache[cacheKey] = canon
+        return canon
+      if canon.len > 0:
+        pkgNameForUrlCache[cacheKey] = canon
+        return canon
+    except CatchableError:
+      discard
+  result = guessed
+  pkgNameForUrlCache[cacheKey] = result
 
 proc depName(d: NimbleDependency): string =
   ## The registry name for a dependency. URL deps (no name, only a `url`) are
-  ## resolved against the registry, falling back to the repository basename.
+  ## resolved against the registry, then the cloned manifest, falling back to
+  ## the repository basename. The `#ref` (branch/tag) rides along so a
+  ## branch-specific manifest is honoured.
   if d.name.len > 0: d.name
-  elif d.url.len > 0: pkgNameForUrl(d.url)
+  elif d.url.len > 0:
+    let refStr = if d.branch.len > 0: d.branch elif d.tag.len > 0: d.tag else: ""
+    pkgNameForUrl(d.url, refStr)
   else: ""
 
 proc depName(d: PkgDependency): string =
   if d.name.len > 0: d.name
-  elif d.url.len > 0: pkgNameForUrl(d.url)
+  elif d.url.len > 0:
+    let refStr = if d.branch.len > 0: d.branch elif d.tag.len > 0: d.tag else: ""
+    pkgNameForUrl(d.url, refStr)
   else: ""
 
 proc parseFeatureFlags*(s: string): seq[string] =
@@ -89,7 +132,7 @@ proc parseFeatureFlags*(s: string): seq[string] =
 proc isGitUrl*(s: string): bool =
   s.startsWith("https://") or s.startsWith("http://") or
   s.startsWith("git@") or s.startsWith("git+") or
-  s.startsWith("ssh://")
+  s.startsWith("ssh://") or s.startsWith("file://")
 
 proc pluralize*(n: int, singular: string): string =
   ## `pluralize(1, "version")` → "version"; `pluralize(2, "version")` → "versions".
@@ -237,7 +280,9 @@ proc installCommand*(v: Values) =
         discard parseVersion(ver)
         return name & "@" & ver
       except CatchableError:
-        return name & "#HEAD"
+        if ver.toLowerAscii == "head":
+          return name & "#HEAD"
+        return name & "#" & ver
     proc emitLbl(lbl: string, cached: bool) =
       if lbl notin localSeen:
         localSeen.incl(lbl)
@@ -389,6 +434,12 @@ proc installCommand*(v: Values) =
     if directRoots.len > 0:
       if anyNeedsRemote:
         ensureFreshRegistryIfStale()
+        # Registry just refreshed — drop cached URL→name misses so later
+        # lookups (transitives, build paths) re-ask the fresh registry
+        # instead of reusing a stale basename guess. Canonical names already
+        # resolved via the cloned manifest are unaffected; datpkgr
+        # re-canonicalizes every URL root during the pass below.
+        pkgNameForUrlCache.clear()
       installPackage(pkgName, "", refresh, @[], verbose,
         suppressSummary = true, showTree = verbose, directRoots = directRoots)
     # The tree covers the closure on `--verbose`; otherwise print the flat
@@ -412,13 +463,20 @@ proc installCommand*(v: Values) =
   if isGitUrl(raw):
     # `https://host/owner/repo[#ref]` installs straight from git.
     # cloneRepo will try SSH first (for private repos) then fall back to HTTPS.
+    # A `#ref` suffix pins a branch/tag; a `@version` suffix is not used for
+    # URLs (use `requires "<url> >= x.y"` or `#<tag>` instead).
     var url = raw
     var urlRef = ""
     let hashPos = url.find('#')
     if hashPos >= 0:
       urlRef = url[hashPos + 1 .. ^1]
       url = url[0 ..< hashPos]
-    let name = pkgNameFromUrl(url)
+    # Registry first, then the cloned manifest, then the repo basename — so a
+    # mismatched manifest (`tasks` → `supranim_tasks`) installs under its real
+    # name even for private or newly-published repos.
+    var name = pkgNameForUrl(url, urlRef)
+    if name.len == 0:
+      name = pkgNameFromUrl(url)
     if name.len == 0:
       displayError("Could not derive a package name from: " & raw, quitProcess = true)
       return
