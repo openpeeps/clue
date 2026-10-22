@@ -45,7 +45,7 @@ proc bumpVersion(current, versionArg, level: string): string =
   else: $newVersion(v.major, v.minor, v.patch + 1)
 
 type
-  DepBumpResult = tuple[found: bool, hasConstraint: bool,
+  DepBumpResult* = tuple[found: bool, hasConstraint: bool,
                         oldVer, newVer, newContent: string]
 
 proc opNeedle(line, verStr: string, kind: VersionConstraintKind): string =
@@ -68,7 +68,7 @@ proc opNeedle(line, verStr: string, kind: VersionConstraintKind): string =
       return op & verStr
   verStr
 
-proc bumpDepConstraint(content, depName, targetVer, level: string): DepBumpResult =
+proc bumpDepConstraint*(content, depName, targetVer, level: string): DepBumpResult =
   ## Locate the root-level `requires` entry for `depName` and rewrite its
   ## version constraint in place (operator preserved). Root-level only:
   ## feature/dev blocks are indented and therefore skipped.
@@ -103,7 +103,7 @@ proc bumpDepConstraint(content, depName, targetVer, level: string): DepBumpResul
       return (true, true, verStr, newV, lines.join("\n"))
   (false, false, "", "", "")
 
-proc writeNimbleContent(nimblePath, content: string): bool =
+proc writeNimbleContent*(nimblePath, content: string): bool =
   try:
     writeFile(nimblePath, content)
     true

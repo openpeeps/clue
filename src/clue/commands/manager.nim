@@ -18,6 +18,7 @@ import ../pkgmanager/builder
 import ../pkgmanager/lockfile
 import ./nimscript
 import ./sources
+import ./bump
 import datpkgr/operations as datpkgrOps
 import datpkgr/config as datpkgrConfig
 import datpkgr/types as datpkgrTypes
@@ -527,15 +528,64 @@ proc installCommand*(v: Values) =
   #   echo getStackTrace(e)
   #   quit(1)
 
+proc bumpUpdatedProjectDeps(nimblePath: string,
+    updated: seq[datpkgrOps.UpdateItem]) =
+  ## Rewrite version constraints in the project .nimble for every updated
+  ## package that is a direct dependency with a semver constraint.
+  ## Transitive deps are not listed in the manifest, and `*`, URL and
+  ## ref-pinned entries carry nothing to rewrite, so those are skipped
+  ## silently. Operators are preserved (`>= 1.0` becomes `>= 1.2`, not `1.2`).
+  if updated.len == 0:
+    return
+  var content: string
+  try:
+    content = readFile(nimblePath)
+  except CatchableError as e:
+    displayWarning("Could not read " & nimblePath & " to bump constraints: " & e.msg)
+    return
+  var bumped: seq[string] = @[]
+  for item in updated:
+    if item.newVer.len == 0:
+      continue
+    try:
+      discard parseVersion(item.newVer)
+    except CatchableError:
+      continue # HEAD/ref pin, no semver to write
+    let r =
+      try: bumpDepConstraint(content, item.name, item.newVer, "patch")
+      except CatchableError: continue
+    if not r.found or not r.hasConstraint:
+      continue # transitive, `*`, URL or ref-pinned entry
+    content = r.newContent
+    bumped.add(item.name & ": " & r.oldVer & " -> " & r.newVer)
+  if bumped.len == 0:
+    return
+  try:
+    writeFile(nimblePath, content)
+  except CatchableError as e:
+    displayWarning("Failed to write updated constraints to " & nimblePath & ": " & e.msg)
+    return
+  for b in bumped:
+    displaySuccess("Bumped " & b & " in " & nimblePath.extractFilename)
+
 proc updateCommand*(v: Values) =
   ## Single package (`clue update <pkg>`), the cwd project's dependency tree
   ## (bare `clue update` with a .nimble in cwd), or all installed roots.
-  ## Parallelism (install-time thread pool) lives in datpkgr/pool.
+  ## Inside a project the .nimble constraints of updated direct dependencies
+  ## are bumped to the installed versions. Parallelism (install-time thread
+  ## pool) lives in datpkgr/pool.
   let verbose = v.has("--verbose")
   let cfg = getClueCfg()
   if v.has("pkg"):
-    let ok = datpkgrOps.updatePackage(cfg, v.get("pkg").getStr, verbose)
-    if not ok: quit(1)
+    let pkgArg = v.get("pkg").getStr
+    let res = datpkgrOps.updatePackageDetailed(cfg, pkgArg, verbose)
+    if not res.ok: quit(1)
+    # Bump the project constraint when updating from inside a project and
+    # the target is one of its direct dependencies.
+    let projectFs = newProjectDisk()
+    let nimblePath = findNimbleFile(getCurrentDir(), getClueCfg(), projectFs)
+    if nimblePath.len > 0:
+      bumpUpdatedProjectDeps(nimblePath, res.updated)
   else:
     let projectFs = newProjectDisk()
     let nimblePath = findNimbleFile(getCurrentDir(), getClueCfg(), projectFs)
@@ -557,9 +607,10 @@ proc updateCommand*(v: Values) =
       else:
         displayInfo("Updating project dependencies for " & pkgName & " (" &
           $direct.len & " direct " & pluralize(direct.len, "package") & ")...")
-        let ok = datpkgrOps.updatePackages(cfg,
+        let res = datpkgrOps.updatePackagesDetailed(cfg,
           datpkgrOps.updateScopeNames(cfg, direct), verbose)
-        if not ok: quit(1)
+        if not res.ok: quit(1)
+        bumpUpdatedProjectDeps(nimblePath, res.updated)
     else:
       let exe = getAppFilename()
       let ok = datpkgrOps.updateAllPackages(cfg, verbose, exe)
