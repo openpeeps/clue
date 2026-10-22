@@ -1,2 +1,5 @@
 nimTitle	bump	clue/commands/bump.html	module clue/commands/bump		0
+nim	DepBumpResult	clue/commands/bump.html#DepBumpResult	tuple DepBumpResult		48
+nim	bumpDepConstraint	clue/commands/bump.html#bumpDepConstraint,string,string,string,string	proc bumpDepConstraint(content, depName, targetVer, level: string): DepBumpResult		71
+nim	writeNimbleContent	clue/commands/bump.html#writeNimbleContent,string,string	proc writeNimbleContent(nimblePath, content: string): bool		106
 nim	bumpCommand	clue/commands/bump.html#bumpCommand,Values	proc bumpCommand(v: Values)		114

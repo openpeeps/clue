@@ -61,6 +61,10 @@
 <li><a class="reference external"
           data-doc-search-tag="bump: proc bumpCommand(v: Values)" href="clue/commands/bump.html#bumpCommand%2CValues">bump: proc bumpCommand(v: Values)</a></li>
           </ul></dd>
+<dt><a name="bumpDepConstraint" href="#bumpDepConstraint"><span>bumpDepConstraint:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="bump: proc bumpDepConstraint(content, depName, targetVer, level: string): DepBumpResult" href="clue/commands/bump.html#bumpDepConstraint%2Cstring%2Cstring%2Cstring%2Cstring">bump: proc bumpDepConstraint(content, depName, targetVer, level: string): DepBumpResult</a></li>
+          </ul></dd>
 <dt><a name="cachedVersions" href="#cachedVersions"><span>cachedVersions:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="versions: proc cachedVersions(name: string): seq[DiscoveredVersion]" href="clue/pkgmanager/versions.html#cachedVersions%2Cstring">versions: proc cachedVersions(name: string): seq[DiscoveredVersion]</a></li>
@@ -262,6 +266,10 @@
 <dt><a name="defaultToolchainFlags" href="#defaultToolchainFlags"><span>defaultToolchainFlags:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="configs: proc defaultToolchainFlags(userFlags = &quot;&quot;): string" href="clue/pkgmanager/configs.html#defaultToolchainFlags%2Cstring">configs: proc defaultToolchainFlags(userFlags = &quot;&quot;): string</a></li>
+          </ul></dd>
+<dt><a name="DepBumpResult" href="#DepBumpResult"><span>DepBumpResult:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="bump: tuple DepBumpResult" href="clue/commands/bump.html#DepBumpResult">bump: tuple DepBumpResult</a></li>
           </ul></dd>
 <dt><a name="DeployConfig" href="#DeployConfig"><span>DeployConfig:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -753,7 +761,7 @@
           </ul></dd>
 <dt><a name="pkgNameForUrl" href="#pkgNameForUrl"><span>pkgNameForUrl:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="manager: proc pkgNameForUrl(url: string): string" href="clue/commands/manager.html#pkgNameForUrl%2Cstring">manager: proc pkgNameForUrl(url: string): string</a></li>
+          data-doc-search-tag="manager: proc pkgNameForUrl(url: string; refStr = &quot;&quot;): string" href="clue/commands/manager.html#pkgNameForUrl%2Cstring%2Cstring">manager: proc pkgNameForUrl(url: string; refStr = &quot;&quot;): string</a></li>
           </ul></dd>
 <dt><a name="pkgNameFromUrl" href="#pkgNameFromUrl"><span>pkgNameFromUrl:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -1089,11 +1097,15 @@
 <li><a class="reference external"
           data-doc-search-tag="lockfile: proc writeLock(pkgDir: string; lock: LockFile)" href="clue/pkgmanager/lockfile.html#writeLock%2Cstring%2CLockFile">lockfile: proc writeLock(pkgDir: string; lock: LockFile)</a></li>
           </ul></dd>
+<dt><a name="writeNimbleContent" href="#writeNimbleContent"><span>writeNimbleContent:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="bump: proc writeNimbleContent(nimblePath, content: string): bool" href="clue/commands/bump.html#writeNimbleContent%2Cstring%2Cstring">bump: proc writeNimbleContent(nimblePath, content: string): bool</a></li>
+          </ul></dd>
 </dl>
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-10-20 14:19:53 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-10-22 14:21:29 UTC</small>
       </div>
     </div>
   </div>
