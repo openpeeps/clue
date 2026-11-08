@@ -21,6 +21,7 @@ import pkg/semver
 import pkg/openparser/json
 import ./resolver
 import ./nimbleparser except findNimbleFile, parseNimbleFile
+import datpkgr/store as dstore
 
 const
   LockFileName* = "clue.lock"
@@ -168,6 +169,11 @@ proc validateLock*(lock: LockFile, nimble: NimbleFile,
     if e.name in seen:
       return false
     seen.incl(e.name)
+    if dstore.isForgeAliasShape(e.name):
+      # Stale lock recorded before shorthand expansion (`gh:user/repo`
+      # stored as the name): force a re-resolve instead of building
+      # `packages/<alias>` paths that can never exist.
+      return false
     if e.path.len == 0 or not dirExists(e.path):
       return false
     if e.develop:

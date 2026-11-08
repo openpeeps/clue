@@ -181,7 +181,13 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     quit(1)
 
 proc installCommand*(v: Values) =
-  let raw = if v.has("pkg"): v.get("pkg").getStr else: ""
+  var raw = if v.has("pkg"): v.get("pkg").getStr else: ""
+  # `gh:user/repo` (+ `gl:`/`cb:`/`srht:`) installs straight from git, the
+  # same as a written-out https URL. Unknown `x:y` shapes keep the legacy
+  # behavior (looked up as a registry name) instead of raising here.
+  if raw.len > 0 and datpkgrStore.isForgeAliasShape(raw):
+    try: raw = datpkgrStore.expandForgeAlias(raw)
+    except ValueError: discard
   let refresh = v.has("--refresh")
   let verbose = v.has("--verbose")
   devShadowWarningsEnabled = verbose
@@ -498,18 +504,13 @@ proc installCommand*(v: Values) =
       let reused = installedVersionForReuse(pkgName, pkgRef)
       if reused.len > 0 and closureOnDisk(pkgName):
         markInstalledRoot(pkgName, reused)
-        displaySuccess("Installing packages...")
         var isSemver = true
         try: discard parseVersion(reused)
         except CatchableError: isSemver = false
         if isSemver:
-          display(@[span("  " & pkgName & "@", DefaultTextFg, indentSize = 0),
-                    span(reused, indentSize = 0),
-                    span(" (cached)", fgCyan, indentSize = 0)])
+          displayInfo(pkgName & "@" & reused & " is already installed")
         else:
-          display(@[span("  " & pkgName & "#" & reused, DefaultTextFg, indentSize = 0),
-                    span(" (cached)", fgCyan, indentSize = 0)])
-        displaySuccess("Installed 1 package")
+          displayInfo(pkgName & "#" & reused & " is already installed")
         if doBuild:
           if not buildInstalled(pkgName, buildRelease, buildDebug, verbose,
               nimFlags = extras, backend = backend):

@@ -12,6 +12,7 @@ import pkg/sweetsyntax/engine/[ast, parser]
 import pkg/sweetsyntax/languages/nim as nimHandlersMod
 import datpkgr/types as dt
 import datpkgr/config as dc
+import datpkgr/store as dstore
 import ./resolver
 
 type
@@ -94,6 +95,19 @@ proc parseFeaturesFrom(arg: var string): seq[string] =
 proc parseRequiresArg*(arg: string): NimbleDependency =
   var arg = arg.strip()
   result.features = parseFeaturesFrom(arg)
+
+  # Forge shorthand (`gh:user/repo`, `gl:…`, `cb:…`, `srht:…`, with an
+  # optional `#ref` or version constraint) expands to a plain https URL so
+  # the URL branch below handles it exactly like a written-out URL —
+  # registry lookup, manifest canonicalization, clone. Unknown `x:y`
+  # shapes keep the legacy behavior (parsed as a name) instead of
+  # raising here.
+  let toks = arg.splitWhitespace()
+  if toks.len > 0 and dstore.isForgeAliasShape(toks[0]):
+    try:
+      arg = (dstore.expandForgeAlias(toks[0]) & " " & arg.substr(toks[0].len)).strip()
+    except ValueError:
+      discard
 
   # URL deps: `https://...#ref`
   if arg.contains("://"):

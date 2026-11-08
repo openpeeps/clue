@@ -28,7 +28,7 @@ proc depNameOf(d: NimbleDependency): string =
   if d.name.len > 0: d.name
   elif d.url.len > 0:
     let refStr = if d.branch.len > 0: d.branch elif d.tag.len > 0: d.tag else: ""
-    pkgNameForUrl(d.url, refStr)
+    manager.pkgNameForUrl(d.url, refStr)
   else: ""
 
 proc installedVersionSatisfies(depPath: string, constraint: VersionConstraint): bool =

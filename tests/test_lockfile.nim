@@ -109,6 +109,21 @@ suite "lockfile — validation":
     check not validateLock(lock, nimble, @["dev"], "2.2.12",
       dir / "develop")
 
+  test "forge-shorthand entry names fail (stale pre-expansion lock)":
+    let dir = getTempDir() / "clue_lock_alias" / $getCurrentProcessId()
+    createDir(dir)
+    defer: removeDir(dir)
+    let nimble = sampleNimble()
+    let h = computeNimbleHash(nimble, @["dev"], "2.2.12")
+    let pkgDir = dir / "pkgs" / "gh_alias"
+    createDir(pkgDir)
+    let lock = newLockFile("myapp", h, "2.2.12", @["dev"],
+      @[LockEntry(name: "gh:elcritch/sigils", version: "0.32.1",
+        constraint: ">= 0.32.1", features: @[], path: pkgDir,
+        develop: false, url: "", refStr: "")])
+    check not validateLock(lock, nimble, @["dev"], "2.2.12",
+      dir / "develop")
+
   test "stale fingerprint fails":
     let dir = getTempDir() / "clue_lock_stale" / $getCurrentProcessId()
     createDir(dir)

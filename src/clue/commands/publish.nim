@@ -25,6 +25,7 @@ import pkg/openparser/json
 
 import ../pkgmanager/configs
 import ../pkgmanager/nimbleparser
+import datpkgr/store as dstore
 
 const
   packagesUpstream* = "nim-lang/packages"
@@ -96,46 +97,16 @@ proc normalizeRepoUrl*(url: string): string =
 
 proc expandForgeAlias*(s: string): string =
   ## Expand `alias:user/repo` shorthand to a canonical https URL.
-  ## Known aliases: `github`/`gh`, `gitlab`/`gl`, `codeberg`/`cb`/`cberg`,
-  ## `sourcehut`/`srht` (a missing `~` is auto-prefixed for sourcehut, as in
-  ## nimble). Raises ValueError on unknown aliases or malformed input.
-  let input = s.strip()
-  let colonPos = input.find(':')
-  if colonPos <= 0:
-    raise newException(ValueError,
-      "Invalid forge alias (expected alias:user/repo): " & s)
-  let alias = input[0 ..< colonPos].toLowerAscii()
-  var rest = input[colonPos + 1 .. ^1].strip(chars = {'/'})
-  let host =
-    case alias
-    of "github", "gh": "github.com"
-    of "gitlab", "gl": "gitlab.com"
-    of "codeberg", "cb", "cberg": "codeberg.org"
-    of "sourcehut", "srht": "git.sr.ht"
-    else: raise newException(ValueError, "Unknown forge alias '" & alias &
-      "'. Known aliases: github (gh), gitlab (gl), codeberg (cb), sourcehut (srht).")
-  if rest.len == 0 or '/' notin rest:
-    raise newException(ValueError,
-      "Invalid forge alias (expected alias:user/repo): " & s)
-  if host == "git.sr.ht" and not rest.startsWith('~'):
-    rest = '~' & rest
-  "https://" & host & "/" & rest
+  ## Implemented in datpkgr/store (single source of truth);
+  ## kept here so `publish.expandForgeAlias` keeps working.
+  dstore.expandForgeAlias(s)
 
 proc isForgeAliasShape*(s: string): bool =
   ## True when `s` looks like `alias:path` shorthand: exactly one colon, no
   ## `://`, and no `@` before the colon (scp-like `user@host:path` is a URL,
   ## not an alias — this ordering guard is what keeps the two apart).
-  let input = s.strip()
-  if "://" in input:
-    return false
-  let colonPos = input.find(':')
-  if colonPos <= 0:
-    return false
-  if ':' in input[colonPos + 1 .. ^1]:
-    return false
-  if '@' in input[0 ..< colonPos]:
-    return false
-  true
+  ## Implemented in datpkgr/store; kept here for compatibility.
+  dstore.isForgeAliasShape(s)
 
 proc resolveRepoUrl*(input: string): string =
   ## Resolve human-typed repo input: forge-alias shorthand expands first,
@@ -172,6 +143,12 @@ proc entryExists*(packagesJson: JsonNode, name: string): bool =
         entry["name"].getStr == name:
       return true
   false
+
+proc formatPackagesJson*(packagesJson: JsonNode): string =
+  ## Serialize `packages.json` with exactly one trailing newline. `pretty`
+  ## emits no trailing newline, so writing it verbatim strips the file's
+  ## final newline on every publish PR — keep it there.
+  result = pretty(packagesJson).strip(chars = {'\r', '\n', ' ', '\t'}) & "\n"
 
 proc readPublishToken*(): string =
   ## The GitHub API token for publishing: env var first, then the first
@@ -416,7 +393,7 @@ proc publishCommand*(v: Values) =
       displayError("Package '" & pkgName & "' is already listed in packages.json.", quitProcess = true)
       return
     packagesJson.add(entry)
-    writeFile(pkgsFile, pretty(packagesJson))
+    writeFile(pkgsFile, formatPackagesJson(packagesJson))
     if not runGit(workdir, "checkout -q -B " & branchName): return
     if not runGit(workdir, "commit -q packages.json -m " &
         quoteShell("Added package " & pkgName)): return

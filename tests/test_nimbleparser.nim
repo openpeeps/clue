@@ -67,6 +67,34 @@ suite "nimbleparser — parseRequiresArg":
     let d = parseRequiresArg("https://github.com/openpeeps/spry")
     check d.url == "https://github.com/openpeeps/spry"
 
+  test "gh: shorthand expands to a URL dep":
+    let d = parseRequiresArg("gh:Araq/iconbundler")
+    check d.name == ""
+    check d.url == "https://github.com/Araq/iconbundler"
+
+  test "gh: shorthand with ref":
+    let d = parseRequiresArg("gh:elcritch/sigils#head")
+    check d.url == "https://github.com/elcritch/sigils"
+    check d.tag == "head"
+
+  test "gh: shorthand with constraint":
+    let d = parseRequiresArg("gh:Araq/iconbundler >= 1.2.0")
+    check d.url == "https://github.com/Araq/iconbundler"
+    check $d.constraint == ">= 1.2.0"
+
+  test "gl: shorthand expands to gitlab URL":
+    let d = parseRequiresArg("gl:group/sub/repo")
+    check d.url == "https://gitlab.com/group/sub/repo"
+
+  test "alias is case-insensitive, path case preserved":
+    let d = parseRequiresArg("GH:Araq/iconbundler")
+    check d.url == "https://github.com/Araq/iconbundler"
+
+  test "unknown alias keeps legacy name behavior":
+    let d = parseRequiresArg("gitea:user/repo")
+    check d.name == "gitea:user/repo"
+    check d.url == ""
+
   test "=< raises ResolverError (not a valid operator)":
     expect ResolverError:
       discard parseRequiresArg("spry =< 1.2.0")

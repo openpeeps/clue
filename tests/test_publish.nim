@@ -3,7 +3,7 @@
 # entry building and duplicate detection. Network/git flows are covered
 # by `--dry-run` only, never by live fixtures here.
 
-import std/[unittest, json]
+import std/[unittest, json, strutils]
 import clue/commands/publish
 
 suite "publish — splitPublishTags":
@@ -153,3 +153,11 @@ suite "publish — entryExists":
     check not entryExists(arr, "kapsis")
     check not entryExists(newJArray(), "kapsis")
     check not entryExists(%*{"name": "tim"}, "other")
+
+suite "publish — formatPackagesJson":
+  test "keeps exactly one final newline":
+    let arr = %*[ {"name": "tim", "url": "https://github.com/tim-engine/tim"} ]
+    let s = formatPackagesJson(arr)
+    check s.endsWith("\n")
+    check not s.endsWith("\n\n")
+    check parseJson(s) == arr
