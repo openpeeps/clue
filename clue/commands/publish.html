@@ -16,10 +16,10 @@
 <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAA3XAAAN1wFCKJt4AAAAB3RJTUUH4QQQEwksSS9ZWwAAAk1JREFUWMPtll2ITVEUx39nn/O7Y5qR8f05wtCUUr6ZIS++8pEnkZInPImneaCQ5METNdOkeFBKUhMPRIkHKfEuUZSUlGlKPN2TrgfncpvmnntnmlEyq1Z7t89/rf9a6+y99oZxGZf/XeIq61EdtgKXgdXA0xrYAvBjOIF1AI9zvjcC74BSpndrJPkBWDScTF8Aa4E3wDlgHbASaANmVqlcCnwHvgDvgVfAJ+AikAAvgfVZwLnSVZHZaOuKoQi3ZOMi4NkYkpe1p4J7A8BpYAD49hfIy/oqG0+hLomiKP2L5L+1ubn5115S+3OAn4EnwBlgMzCjyt6ZAnQCJ4A7wOs88iRJHvw50HoujuPBoCKwHWiosy8MdfZnAdcHk8dxXFJ3VQbQlCTJvRBCGdRbD4M6uc5glpY3eAihpN5S5w12diSEcCCEcKUO4ljdr15T76ur1FDDLIQQ3qv71EdDOe3Kxj3leRXyk+pxdWnFWod6Wt2bY3de3aSuUHcPBVimHs7mK9WrmeOF6lR1o9qnzskh2ar2qm1qizpfXaPeVGdlmGN5pb09qMxz1Xb1kLqgzn1RyH7JUXW52lr5e/Kqi9qpto7V1atuUzfnARrV7jEib1T76gG2qxdGmXyiekkt1GswPTtek0aBfJp6YySGBfWg2tPQ0FAYgf1stUfdmdcjarbYJEniKIq6gY/Aw+zWHAC+p2labGpqiorFYgGYCEzN7oQdQClN07O1/EfDyGgC0ALMBdYAi4FyK+4H3gLPsxfR1zRNi+NP7nH5J+QntnXe5B5mpfQAAAAASUVORK5CYII=">
 
 <!-- CSS -->
-<link rel="stylesheet" type="text/css" href="../../nimdoc.out.css?v=2.2.12">
+<link rel="stylesheet" type="text/css" href="../../nimdoc.out.css?v=2.4.0">
 
 <!-- JS -->
-<script type="text/javascript" src="../../dochack.js?v=2.2.12"></script>
+<script type="text/javascript" src="../../dochack.js?v=2.4.0"></script>
 </head>
 <body>
   <div class="document" id="documentId">
@@ -31,28 +31,34 @@
       <div class="row">
   <div class="three columns">
     <div class="theme-select-wrapper">
-      <label for="theme-select">Theme:&nbsp;</label>
-      <select id="theme-select" onchange="setTheme(this.value)">
-        <option value="auto">🌗 Match OS</option>
-        <option value="dark">🌑 Dark</option>
-        <option value="light">🌕 Light</option>
-      </select>
-    </div>
+  <label for="theme-select">Theme:&nbsp;</label>
+  <select id="theme-select" onchange="setTheme(this.value)">
+    <option value="auto">🌗 Match OS</option>
+    <option value="dark">🌑 Dark</option>
+    <option value="light">🌕 Light</option>
+  </select>
+</div>
+
     <div id="global-links">
-      <ul class="simple">
-        <li><a id="indexLink" href="../../theindex.html">Index</a></li>
-      </ul>
-    </div>
-    <div id="searchInputDiv">
-      Search: <input type="search" id="searchInput" oninput="search()"/>
-    </div>
-    <div>
-      Group by:
-      <select onchange="groupBy(this.value)">
-        <option value="section">Section</option>
-        <option value="type">Type</option>
-      </select>
-    </div>
+  
+  <ul class="simple">
+  <li><a id="indexLink" href="../../theindex.html">Index</a></li>
+</ul>
+
+</div>
+
+      <div id="searchInputDiv">
+  Search: <input type="search" id="searchInput" oninput="search()"/>
+</div>
+
+    <div class="search-groupby">
+  Group by:
+  <select onchange="groupBy(this.value)">
+    <option value="section">Section</option>
+    <option value="type">Type</option>
+  </select>
+</div>
+
     <ul class="simple simple-toc" id="toc-list">
   <li>
   <a class="reference reference-toplevel" href="#6" id="56">Imports</a>
@@ -93,6 +99,10 @@
 </ul>
 <ul class="simple nested-toc-section">expandForgeAlias
   <li><a class="reference" href="#expandForgeAlias%2Cstring" title="expandForgeAlias(s: string): string">expandForgeAlias(s: string): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">formatPackagesJson
+  <li><a class="reference" href="#formatPackagesJson%2CJsonNode" title="formatPackagesJson(packagesJson: JsonNode): string">formatPackagesJson(packagesJson: JsonNode): string</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">gitHubUser
@@ -266,7 +276,19 @@
     <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    Expand <tt class="docutils literal"><span class="pre"><span class="Identifier">alias</span><span class="Punctuation">:</span><span class="Identifier">user</span><span class="Operator">/</span><span class="Identifier">repo</span></span></tt> shorthand to a canonical https URL. Known aliases: <tt class="docutils literal"><span class="pre"><span class="Identifier">github</span></span></tt>/<tt class="docutils literal"><span class="pre"><span class="Identifier">gh</span></span></tt>, <tt class="docutils literal"><span class="pre"><span class="Identifier">gitlab</span></span></tt>/<tt class="docutils literal"><span class="pre"><span class="Identifier">gl</span></span></tt>, <tt class="docutils literal"><span class="pre"><span class="Identifier">codeberg</span></span></tt>/<tt class="docutils literal"><span class="pre"><span class="Identifier">cb</span></span></tt>/<tt class="docutils literal"><span class="pre"><span class="Identifier">cberg</span></span></tt>, <tt class="docutils literal"><span class="pre"><span class="Identifier">sourcehut</span></span></tt>/<tt class="docutils literal"><span class="pre"><span class="Identifier">srht</span></span></tt> (a missing <tt class="docutils literal"><span class="pre"><span class="Operator">~</span></span></tt> is auto-prefixed for sourcehut, as in nimble). Raises ValueError on unknown aliases or malformed input.
+    Expand <tt class="docutils literal"><span class="pre"><span class="Identifier">alias</span><span class="Punctuation">:</span><span class="Identifier">user</span><span class="Operator">/</span><span class="Identifier">repo</span></span></tt> shorthand to a canonical https URL. Implemented in datpkgr/store (single source of truth); kept here so <tt class="docutils literal"><span class="pre"><span class="Identifier">publish</span><span class="Operator">.</span><span class="Identifier">expandForgeAlias</span></span></tt> keeps working.
+    
+  </dd>
+</div>
+
+</div>
+<div id="formatPackagesJson-procs-all">
+  <div id="formatPackagesJson,JsonNode">
+  <dt><pre><span class="Keyword">proc</span> <a href="#formatPackagesJson%2CJsonNode"><span class="Identifier">formatPackagesJson</span></a><span class="Other">(</span><span class="Identifier">packagesJson</span><span class="Other">:</span> <span class="Identifier">JsonNode</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Serialize <tt class="docutils literal"><span class="pre"><span class="Identifier">packages</span><span class="Operator">.</span><span class="Identifier">json</span></span></tt> with exactly one trailing newline. <tt class="docutils literal"><span class="pre"><span class="Identifier">pretty</span></span></tt> emits no trailing newline, so writing it verbatim strips the file's final newline on every publish PR — keep it there.
     
   </dd>
 </div>
@@ -289,7 +311,7 @@
   <dt><pre><span class="Keyword">proc</span> <a href="#isForgeAliasShape%2Cstring"><span class="Identifier">isForgeAliasShape</span></a><span class="Other">(</span><span class="Identifier">s</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    True when <tt class="docutils literal"><span class="pre"><span class="Identifier">s</span></span></tt> looks like <tt class="docutils literal"><span class="pre"><span class="Identifier">alias</span><span class="Punctuation">:</span><span class="Identifier">path</span></span></tt> shorthand: exactly one colon, no <tt class="docutils literal"><span class="pre"><span class="Punctuation">:</span><span class="Operator">//</span></span></tt>, and no <tt class="docutils literal"><span class="pre"><span class="Operator">@</span></span></tt> before the colon (scp-like <tt class="docutils literal"><span class="pre"><span class="Identifier">user</span><span class="Operator">@</span><span class="Identifier">host</span><span class="Punctuation">:</span><span class="Identifier">path</span></span></tt> is a URL, not an alias — this ordering guard is what keeps the two apart).
+    True when <tt class="docutils literal"><span class="pre"><span class="Identifier">s</span></span></tt> looks like <tt class="docutils literal"><span class="pre"><span class="Identifier">alias</span><span class="Punctuation">:</span><span class="Identifier">path</span></span></tt> shorthand: exactly one colon, no <tt class="docutils literal"><span class="pre"><span class="Punctuation">:</span><span class="Operator">//</span></span></tt>, and no <tt class="docutils literal"><span class="pre"><span class="Operator">@</span></span></tt> before the colon (scp-like <tt class="docutils literal"><span class="pre"><span class="Identifier">user</span><span class="Operator">@</span><span class="Identifier">host</span><span class="Punctuation">:</span><span class="Identifier">path</span></span></tt> is a URL, not an alias — this ordering guard is what keeps the two apart). Implemented in datpkgr/store; kept here for compatibility.
     
   </dd>
 </div>
@@ -396,7 +418,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-10-22 14:21:29 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-11-08 13:20:54 UTC</small>
       </div>
     </div>
   </div>
