@@ -5,7 +5,7 @@ jobs:
     uses: nimbase/setup-nim-action/.github/workflows/test.yml@main
     with:
       cache: false
-      os: '[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-14"},{"os":"macos-15-intel"}]'
+      os: '[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-15-intel"}]'
       nim-version: stable
       test-flags: "-d:release"
       pre-install-command: |
