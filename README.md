@@ -242,13 +242,17 @@ Full reference (`clue -h`): build 0.3.1. Every flag below mirrors that output.
   - `--release:bool` / `--debug:bool` — optimization mode
   - `--features:string` — enable nimble features
   - `--verbose:bool` — verbose output
+  - `--useNimony:bool` — compile with the Nimony toolchain (`nimony c`,
+    the Nim 3 compiler) instead of `nim`. Only the `c` backend maps cleanly;
+    nim-only flags (`--colors`, `--debugger:native`) are dropped and nimble
+    `requires nim` constraints are demoted to warnings.
   - `-b:c|cpp|objc|js` — target backend
   - Example: `clue build src/meowmail.nim --out:bin/meowmail`
 - `clue bump <?pkgOrVersion:string> <?version:string>` — Bump version in the
   current `.nimble` file, or a root dependency's constraint
   (`clue bump 1.3.0`, `clue bump nim 2.2.0` with `--level:major|minor|patch`).
 - `clue check <?file:string>` — Check project for syntax and semantics
-  (`--features:string`).
+  (`--features:string`, `--useNimony:bool` to check with the Nimony toolchain).
 - `clue develop` — Editable install for live library discovery (symlink under
   `~/.clue/develop`, never copied).
 - `clue dump <?pkg:string>` — Dump package info in JSON format
@@ -259,11 +263,13 @@ Full reference (`clue -h`): build 0.3.1. Every flag below mirrors that output.
   (`pkg@version`, `pkg#branch`, `https://...`). Flags: `--refresh:bool`,
   `--features:string`, `--verbose:bool`, `--build:bool`, `--debug:bool`,
   `--source:string`, `--depsOnly:bool` (install only the dependency closure,
-  never the package itself), `-b:c|cpp|objc|js`. Registry caches older than
+  never the package itself), `--useNimony:bool` (build with the Nimony
+  toolchain when `--build` is set), `-b:c|cpp|objc|js`. Registry caches older than
   24h are re-fetched automatically before resolving (failures only warn).
 - `clue test <?files:string>` — Compile and run test modules in `tests/`
   (optional comma-separated filter, e.g. `clue test "foo, bar"`)
-  (`-b:c|cpp|objc|js`, `--parallel:bool`). `--parallel` runs the modules on a
+  (`-b:c|cpp|objc|js`, `--parallel:bool`, `--useNimony:bool` to compile and
+  run the modules with the Nimony toolchain). `--parallel` runs the modules on a
   worker pool sized to the CPU count and reports only the verdict per test
   (`Success: <name>` / `Error: <name>`) as each one lands. Use it when the
   tests are independent and the interleaved output is not useful.

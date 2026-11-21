@@ -21,17 +21,19 @@ import ./configs
 import ./versions
 import ./nimbleparser
 
-proc buildFlags(release, debug: bool, userNimFlags = ""): string =
-  result = defaultColorsFlag(userNimFlags)
+proc buildFlags(release, debug: bool, userNimFlags = "", useNimony = false): string =
+  result = defaultColorsFlag(userNimFlags, useNimony)
   if release:
     result.add(" -d:release --opt:size")
-  elif debug:
+  elif debug and not useNimony:
+    # nimony has no `--debugger:native` (unknown flags print usage and
+    # exit 0); a nimony debug build is just the default debug build.
     result.add(" --debugger:native")
 
 proc buildPackageBinaries(pkgName: string, flags: string,
     seenBins: var HashSet[string], outDir: string,
     progress: proc (msg: string), fail: proc (msg: string),
-    preferRef = "", backend = "c"): bool =
+    preferRef = "", backend = "c", nimBin = ""): bool =
   let pkgDir = resolveInstalledPath(pkgName, preferRef)
   if pkgDir.len == 0:
     fail("No installed package found for " & pkgName)
@@ -61,7 +63,8 @@ proc buildPackageBinaries(pkgName: string, flags: string,
     if bin in seenBins:
       displayWarning("binary name collision, overwriting: " & bin)
     seenBins.incl(bin)
-    let cmd = resolveNimBin() & " " & backend & flags & " --out:" & outFile & " " & srcFile
+    let compiler = if nimBin.len > 0: nimBin else: resolveNimBin()
+    let cmd = compiler & " " & backend & flags & " --out:" & outFile & " " & srcFile
     let (output, exitCode) = execCmdEx(cmd)
     if exitCode != 0:
       write(stdout, output)
@@ -72,7 +75,7 @@ proc buildPackageBinaries(pkgName: string, flags: string,
 
 proc buildInstalled*(name: string, release = true, debug = false,
     verbose = false, preferRef = "", nimFlags: seq[string] = @[],
-    backend = "c"): bool =
+    backend = "c", useNimony = false): bool =
   ## Build the binaries of `name` and every dependency in its closure that
   ## declares `bin` entries, into ~/.clue/bin. Deps are built before the root
   ## so a cascade of tool binaries is installed in dependency order.
@@ -135,7 +138,7 @@ proc buildInstalled*(name: string, release = true, debug = false,
       seenPaths.incl(flag)
       pathFlags.add(flag)
 
-  let flags = " " & pathFlags.join(" ") & featureDefines & buildFlags(release, debug, nimFlags.join(" ")) & " " & nimFlags.join(" ")
+  let flags = " " & pathFlags.join(" ") & featureDefines & buildFlags(release, debug, nimFlags.join(" "), useNimony) & " " & nimFlags.join(" ")
 
   var order: seq[string]
   var seenOrder = initHashSet[string]()
@@ -162,7 +165,8 @@ proc buildInstalled*(name: string, release = true, debug = false,
   var seenBins = initHashSet[string]()
   for pkg in order:
     if not buildPackageBinaries(pkg, flags, seenBins, clueBinPath,
-            progress, fail, preferRef = preferRef, backend = backend):
+            progress, fail, preferRef = preferRef, backend = backend,
+            nimBin = resolveNimBin(useNimony)):
       return false # a build failed, stopping now
   if useLive:
     live.success("Built binaries to " & clueBinPath)

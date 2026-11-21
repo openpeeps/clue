@@ -155,7 +155,7 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     doBuild = false, buildRelease = true, buildDebug = false,
     constraint: VersionConstraint = VersionConstraint(kind: vcAny, version: newVersion(0, 0, 0)),
     backend = "c", sourceFilter: string = "", suppressSummary = false,
-    depsOnly = false, showTree = true,
+    depsOnly = false, showTree = true, useNimony = false,
     directRoots: seq[datpkgrOps.ClosureRoot] = @[]) =
   ## Thin wrapper around datpkgr/operations.installPackage.
   ## Builder (`builder.nim`) stays in clue and is injected via buildHook.
@@ -169,7 +169,8 @@ proc installPackage*(pkgName: string, pkgRef: string = "", refresh = false,
     if doBuild:
       proc(pkgName2: string, preferRef: string, backend2: string): bool =
         buildInstalled(pkgName2, buildRelease, buildDebug, verbose,
-          preferRef = preferRef, nimFlags = extras, backend = backend2)
+          preferRef = preferRef, nimFlags = extras, backend = backend2,
+          useNimony = useNimony)
     else: nil
   let ok = datpkgrOps.installPackage(cfg, pkgName, pkgRef, refresh, features, verbose, url,
                                         doBuild, buildRelease, buildDebug, constraint,
@@ -195,6 +196,8 @@ proc installCommand*(v: Values) =
   let buildDebug = v.has("--debug")
   let buildRelease = not buildDebug
   let backend = if v.has("-b"): v.get("-b").getAny else: "c"
+  let useNimony = v.has("--useNimony")
+  warnNimonyBackend(backend, useNimony)
   let sourceFilter = if v.has("--source"): v.get("--source").getStr else: ""
   # Registry auto-refresh is deliberately *not* done up front: fetching
   # packages.json is a multi-megabyte GET, and a closure that already resolves
@@ -221,7 +224,7 @@ proc installCommand*(v: Values) =
     let nimble = parseNimbleFile(nimblePath)
     let pkgName = nimblePath.extractFilename.changeFileExt("")
 
-    checkNimConstraint(nimble)
+    checkNimConstraint(nimble, useNimony)
 
     if not depsOnly:
       # Before install hook
@@ -456,7 +459,7 @@ proc installCommand*(v: Values) =
       displaySuccess("Installed " & $localDepLabels.len & " " & pluralize(localDepLabels.len, "package"))
     if doBuild and not depsOnly:
       if not buildInstalled(pkgName, buildRelease, buildDebug, verbose,
-          nimFlags = extras, backend = backend):
+          nimFlags = extras, backend = backend, useNimony = useNimony):
         return
 
     if not depsOnly:
@@ -492,7 +495,8 @@ proc installCommand*(v: Values) =
     ensureFreshRegistryIfStale()
     installPackage(name, urlRef, refresh, features, verbose, url = url,
             doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
-            backend = backend, sourceFilter = sourceFilter, depsOnly = depsOnly)
+            backend = backend, sourceFilter = sourceFilter, depsOnly = depsOnly,
+            useNimony = useNimony)
   else:
     let pkgInput = split(raw, "@")
     let pkgName = pkgInput[0]
@@ -513,13 +517,14 @@ proc installCommand*(v: Values) =
           displayInfo(pkgName & "#" & reused & " is already installed")
         if doBuild:
           if not buildInstalled(pkgName, buildRelease, buildDebug, verbose,
-              nimFlags = extras, backend = backend):
+              nimFlags = extras, backend = backend, useNimony = useNimony):
             return
         return
     ensureFreshRegistryIfStale()
     installPackage(pkgName, pkgRef, refresh, features, verbose,
           doBuild = doBuild, buildRelease = buildRelease, buildDebug = buildDebug,
-          backend = backend, sourceFilter = sourceFilter, depsOnly = depsOnly)
+          backend = backend, sourceFilter = sourceFilter, depsOnly = depsOnly,
+          useNimony = useNimony)
     # Dependency versions on disk may have moved — the project lock (if any)
     # pins the previous resolution, so drop it for a clean re-resolve.
     try: invalidateLock(getCurrentDir())

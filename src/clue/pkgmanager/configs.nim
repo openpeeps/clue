@@ -306,7 +306,16 @@ proc fetchAllPkgMetas*(pkgName: string): seq[PkgRef] =
   clueCfg.fetchAllPkgMetas(pkgName)
 
 # Toolchain helpers — Nim-specific, owned by Clue (not datpkgr)
-proc resolveNimBin*(): string =
+proc resolveNimBin*(useNimony = false): string =
+  ## Resolve the compiler binary. With `useNimony` the Nimony toolchain
+  ## (Nim 3, `nimony c …`) is used instead of `nim`. A venv pins a Nim 2.x
+  ## toolchain via choosenim, so it is deliberately ignored here — nimony
+  ## is a separate toolchain, never a venv entry.
+  if useNimony:
+    let nimonyPath = findExe("nimony")
+    if nimonyPath.len > 0:
+      return nimonyPath
+    return "nimony"
   let venvConfig = getCurrentDir() / ".env" / "venv.json"
   if fileExists(venvConfig):
     try:
@@ -344,11 +353,23 @@ proc defaultToolchainFlags*(userFlags = ""): string =
     check("/usr/local/include", "/usr/local/lib")
   result = parts.join("")
 
-proc defaultColorsFlag*(userFlags = ""): string =
+proc defaultColorsFlag*(userFlags = "", useNimony = false): string =
+  ## Nimony has no `--colors` switch (it prints its usage text and exits 0
+  ## when it sees an unknown flag), so color control is nim-only.
+  if useNimony:
+    return ""
   if userFlags.contains("--colors"): "" else: " --colors:on"
 
-proc detectNimVersion*(): string =
-  let (outp, code) = execCmdEx(resolveNimBin() & " --version")
+proc warnNimonyBackend*(backend: string, useNimony: bool) =
+  ## Nimony's CLI only mirrors `nim c` / `nim check`. Anything else
+  ## (`cpp`, `js`, …) is the user's own experiment — say so once.
+  if useNimony and backend != "c":
+    displayWarning("--useNimony with backend '" & backend &
+      "': only 'c' maps cleanly from nim to nimony")
+
+proc detectNimVersion*(nimBin = ""): string =
+  let bin = if nimBin.len > 0: nimBin else: resolveNimBin()
+  let (outp, code) = execCmdEx(bin & " --version")
   if code != 0:
     return "2.2.10"
   for line in outp.splitLines():
@@ -359,17 +380,46 @@ proc detectNimVersion*(): string =
           if parts.len >= 2:
             return if parts.len >= 3: parts[0] & "." & parts[1] & "." & parts[2]
                    else: parts[0] & "." & parts[1]
+  # Anything else (`nimony --version` prints `0.6.3 [macosx; amd64]`):
+  # first dotted numeric token in the output.
+  for line in outp.splitLines():
+    for w in line.splitWhitespace():
+      let t = w.strip(chars = {'.', ',', ';', ':', '(', '[', ']', '"', '\''})
+      if t.len == 0 or t[0] notin {'0'..'9'} or '.' notin t:
+        continue
+      let parts = t.split('.')
+      if parts.len < 2:
+        continue
+      var numeric = true
+      for p in parts:
+        if p.len == 0:
+          numeric = false
+          break
+        for c in p:
+          if c notin {'0'..'9'}:
+            numeric = false
+            break
+        if not numeric:
+          break
+      if numeric:
+        return if parts.len >= 3: parts[0] & "." & parts[1] & "." & parts[2]
+               else: parts[0] & "." & parts[1]
   "2.2.10"
 
-proc checkNimConstraint*(nimble: clueNimbleParser.NimbleFile) =
+proc checkNimConstraint*(nimble: clueNimbleParser.NimbleFile, useNimony = false) =
   for d in nimble.requires:
     if not d.isNim: continue
     if d.constraint.kind == vcAny: continue
-    let currentNim = detectNimVersion()
+    let currentNim = detectNimVersion(resolveNimBin(useNimony))
     try:
       let curVer = parseVersion(currentNim)
       if not curVer.satisfies(d.constraint):
-        if d.constraint.kind == vcExact:
+        if useNimony:
+          # nimble `requires nim` constraints pin Nim 2.x releases, which do
+          # not map onto nimony versions — warn and carry on.
+          displayWarning("Nimony " & currentNim & " does not satisfy Nim constraint " &
+            $d.constraint & " — skipping the check under --useNimony")
+        elif d.constraint.kind == vcExact:
           displayError("Nim " & currentNim & " does not satisfy exact constraint " &
             $d.constraint & " — required by nimble, cannot proceed", quitProcess = true)
         else:

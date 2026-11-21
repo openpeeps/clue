@@ -19,12 +19,13 @@ when isMainModule:
       -- "Package Management"
       build ?string(file), ?bool("--release"), ?bool("--debug"),
             ?string("--features"), ?bool("--verbose"), ?string("--out"),
-            ?string("-o"), ?any("-b" = ["c", "cpp", "objc", "js"]):
+            ?string("-o"), ?bool("--useNimony"),
+            ?any("-b" = ["c", "cpp", "objc", "js"]):
         ## Build the current package or a single module
       bump ?string(pkgOrVersion), ?string(version), ?string("--level"):
         ## Bump the version in the current .nimble file, or a root dependency's
         ## version constraint (`clue bump nim 2.2.0`)
-      check ?string(file), ?string("--features"):
+      check ?string(file), ?string("--features"), ?bool("--useNimony"):
         ## Checks the project for syntax and semantics
       develop:
         ## Editable install for live library discovery
@@ -34,9 +35,10 @@ when isMainModule:
         ## Initialize a new nimble project in the current directory
       install ?string(pkg), ?bool("--refresh"), ?string("--features"),
               ?bool("--verbose"), ?bool("--build"), ?bool("--debug"),
-              ?string("--source"), ?bool("--depsOnly"), ?any("-b" = ["c", "cpp", "objc", "js"]):
+              ?string("--source"), ?bool("--depsOnly"), ?bool("--useNimony"),
+              ?any("-b" = ["c", "cpp", "objc", "js"]):
         ## Install a package from the registry (or local); --depsOnly installs only its dependencies
-      test ?string(files), ?bool("--parallel"),
+      test ?string(files), ?bool("--parallel"), ?bool("--useNimony"),
              ?any("-b" = ["c", "cpp", "objc", "js"]):
         ## Compile and run test modules in tests/ (optional comma-separated filter)
         ## --parallel runs them on a worker pool and reports only pass/fail

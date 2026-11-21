@@ -324,14 +324,14 @@ proc collectResolvedPaths*(nimble: NimbleFile, activeRootFeatures: seq[string],
 
 proc tryLockedFlags*(projectDir: string, nimble: NimbleFile,
     activeRootFeatures: seq[string], pkgName: string,
-    verbose: bool): tuple[hit: bool, pathFlags: seq[string], featureDefines: string] =
+    verbose: bool, useNimony = false): tuple[hit: bool, pathFlags: seq[string], featureDefines: string] =
   ## Fast path: reuse `clue.lock` when it matches the current fingerprint and
   ## every recorded path is still on disk. No Boogie DB, no git, no resolver.
   let (ok, lock) = readLock(projectDir)
   if not ok:
     return (false, @[], "")
   let nimVersion =
-    try: detectNimVersion()
+    try: detectNimVersion(resolveNimBin(useNimony))
     except CatchableError: ""
   if not validateLock(lock, nimble, activeRootFeatures, nimVersion,
       getClueCfg().developPath()):
@@ -343,12 +343,12 @@ proc tryLockedFlags*(projectDir: string, nimble: NimbleFile,
 
 proc storeLock*(projectDir: string, nimble: NimbleFile,
     activeRootFeatures: seq[string], pkgName: string,
-    entries: seq[LockEntry]) =
+    entries: seq[LockEntry], useNimony = false) =
   ## Persist a fresh resolution. Failures are silent — a missing lock only
   ## costs speed, never correctness.
   try:
     let nimVersion =
-      try: detectNimVersion()
+      try: detectNimVersion(resolveNimBin(useNimony))
       except CatchableError: ""
     var active = activeRootFeatures
     active.sort()
@@ -360,16 +360,17 @@ proc storeLock*(projectDir: string, nimble: NimbleFile,
 
 proc collectPathsWithLock*(projectDir: string, nimble: NimbleFile,
     activeRootFeatures: seq[string], pkgName: string,
-    verbose: bool): tuple[pathFlags: seq[string], featureDefines: string] =
+    verbose: bool, useNimony = false): tuple[pathFlags: seq[string], featureDefines: string] =
   ## Lock-aware resolution for `build`/`check`: fast path on hit, slow
   ## resolve + lock rewrite on miss.
   let (hit, flags, defines) =
-    tryLockedFlags(projectDir, nimble, activeRootFeatures, pkgName, verbose)
+    tryLockedFlags(projectDir, nimble, activeRootFeatures, pkgName, verbose,
+      useNimony)
   if hit:
     return (flags, defines)
   let (slowFlags, slowDefines, entries) =
     collectResolvedPathsDetailed(nimble, activeRootFeatures, pkgName, verbose)
-  storeLock(projectDir, nimble, activeRootFeatures, pkgName, entries)
+  storeLock(projectDir, nimble, activeRootFeatures, pkgName, entries, useNimony)
   (slowFlags, slowDefines)
 
 proc resolveBackend(v: Values): string =
@@ -405,6 +406,9 @@ proc buildCommand*(v: Values) =
     elif v.has("-o"): v.get("-o").getStr
     else: ""
   let backend = resolveBackend(v)
+  let useNimony = v.has("--useNimony")
+  warnNimonyBackend(backend, useNimony)
+  let nimBin = resolveNimBin(useNimony)
   let nimFlags = extras.join(" ")
   let toolchainFlags = defaultToolchainFlags(nimFlags)
 
@@ -412,15 +416,15 @@ proc buildCommand*(v: Values) =
   # package is put on the import path so any `import xyz` resolves.
   if file.len > 0:
     let pathFlags = allInstalledPaths().mapIt("--path:" & it)
-    var flags = " " & pathFlags.join(" ") & defaultColorsFlag(nimFlags) & " " & nimFlags & toolchainFlags
+    var flags = " " & pathFlags.join(" ") & defaultColorsFlag(nimFlags, useNimony) & " " & nimFlags & toolchainFlags
     if isRelease:
       flags.add(" -d:release --opt:size")
-    elif isDebug:
+    elif isDebug and not useNimony:
       flags.add(" --debugger:native")
     let outFile =
       if outPath.len > 0: outPath
       else: file.extractFilename.changeFileExt("")
-    let cmd = resolveNimBin() & " " & backend & flags & " --out:" & outFile & " " & file
+    let cmd = nimBin & " " & backend & flags & " --out:" & outFile & " " & file
     if verbose:
       display("  " & cyan(cmd))
     let (output, exitCode) = execCmdEx(cmd)
@@ -458,7 +462,7 @@ proc buildCommand*(v: Values) =
   let nimble = parseNimbleFile(nimblePath)
   let pkgName = nimblePath.extractFilename.changeFileExt("")
 
-  checkNimConstraint(nimble)
+  checkNimConstraint(nimble, useNimony)
 
   if nimble.bin.len == 0:
     displayInfo("No binaries defined in " & nimblePath)
@@ -475,7 +479,7 @@ proc buildCommand*(v: Values) =
 
   let (depPathFlags, featureDefines) =
     collectPathsWithLock(nimblePath.parentDir(), nimble, activeRootFeatures,
-      pkgName, verbose)
+      pkgName, verbose, useNimony)
 
   # Self first: the working tree shadows same-named installed copies, so
   # `import pkgname/mod` works from any file in the project.
@@ -500,14 +504,14 @@ proc buildCommand*(v: Values) =
                   else: pkgDir / binDir / bin
     var flags = " " & pathFlags.join(" ") & featureDefines &
                       pkgVersionDefine(nimble, nimFlags) &
-                      defaultColorsFlag(nimFlags) & " " &
+                      defaultColorsFlag(nimFlags, useNimony) & " " &
                       nimFlags & toolchainFlags
     if isRelease:
       flags.add(" -d:release --opt:size")
-    elif isDebug:
+    elif isDebug and not useNimony:
       flags.add(" --debugger:native")
 
-    let cmd = &"{resolveNimBin()} {backend}{flags} --out:{outFile} {srcFile}"
+    let cmd = &"{nimBin} {backend}{flags} --out:{outFile} {srcFile}"
     if verbose:
       display("  " & cyan(cmd))
 
@@ -626,13 +630,13 @@ proc testWorker(job: TestJob, progress: Chan[ProgressEvent]): int {.gcsafe.} =
       discard
     1
 
-proc runTestsParallel(jobs: seq[TestJob]): seq[string] =
+proc runTestsParallel(jobs: seq[TestJob], useNimony = false): seq[string] =
   ## Run every test module on a bounded pool (`min(cpus, tests)`, see
   ## `poolSizeFor`), drained from a queue: a new test starts as soon as a slot
   ## frees up, so slow tests do not hold up the ones behind them. Prints one
   ## verdict per test as it lands and returns the names that failed.
   setControlCHook(killRunningTests)
-  testNimBin = resolveNimBin()
+  testNimBin = resolveNimBin(useNimony)
   var failed: seq[string] = @[]
   discard runPoolStreaming(jobs, testWorker,
     proc (idx: int, code: int) =
@@ -658,8 +662,11 @@ proc testCommand*(v: Values) =
   # even when `clue test` runs from a subdirectory.
   let projectRoot = nimblePath.parentDir()
 
-  checkNimConstraint(parseNimbleFile(nimblePath))
   let backend = if v.has("-b"): v.get("-b").getAny else: "c"
+  let useNimony = v.has("--useNimony")
+  warnNimonyBackend(backend, useNimony)
+  let nimBin = resolveNimBin(useNimony)
+  checkNimConstraint(parseNimbleFile(nimblePath), useNimony)
   let nimFlags = extras
   let parallel = v.has("--parallel")
 
@@ -696,6 +703,11 @@ proc testCommand*(v: Values) =
   let tasks = listTasks(nimblePath)
   for (name, _) in tasks:
     if name.toLowerAscii == "test":
+      if useNimony:
+        # Nimscript only evaluates under `nim e` — nimony has no `e`
+        # command, so a custom task always runs on nim.
+        displayWarning("--useNimony ignored: " & nimblePath.extractFilename() &
+          " defines its own task 'test', which runs under nim")
       if parallel:
         # A custom task owns its own scheduling; there is no per-module work
         # for the pool to hand out.
@@ -762,7 +774,7 @@ proc testCommand*(v: Values) =
       for (name, raw, testPath) in found:
         jobs.add((name: name, path: testPath, projectRoot: projectRoot,
           backend: backend, extraArgs: sharedArgs))
-      failed = runTestsParallel(jobs)
+      failed = runTestsParallel(jobs, useNimony)
     else:
       var passed = 0
       for (name, raw, testPath) in found:
@@ -778,7 +790,7 @@ proc testCommand*(v: Values) =
           args.add(f)
         args.add("--out:" & outFile)
         args.add(testPath)
-        var singleProcess = startProcess(resolveNimBin(), args = args,
+        var singleProcess = startProcess(nimBin, args = args,
           workingDir = projectRoot, options = {poParentStreams})
         let singleCode = singleProcess.waitForExit()
         singleProcess.close()
@@ -826,7 +838,7 @@ proc testCommand*(v: Values) =
       sharedArgs.add(f)
     for f in getEnv("__CLUE_DEFINES").split(" "):
       if f.len > 0: sharedArgs.add(f)
-    let colorFlag = defaultColorsFlag(nimFlags.join(" ")).strip()
+    let colorFlag = defaultColorsFlag(nimFlags.join(" "), useNimony).strip()
     if colorFlag.len > 0: sharedArgs.add(colorFlag)
     for f in nimFlags:
       sharedArgs.add(f)
@@ -835,12 +847,64 @@ proc testCommand*(v: Values) =
       jobs.add((name: testPath.extractFilename.changeFileExt(""),
         path: testPath, projectRoot: projectRoot, backend: backend,
         extraArgs: sharedArgs))
-    let failed = runTestsParallel(jobs)
+    let failed = runTestsParallel(jobs, useNimony)
     discard runNimscriptHook(nimblePath, "test", before=false)
     if failed.len > 0:
       displayError($failed.len & " test(s) failed: " & failed.join(", "))
       quit(1)
     displaySuccess("All " & $jobs.len & " test(s) passed!")
+    return
+
+  if useNimony:
+    # No generated runner: it is compiled with Nim 2 stdlib idioms that
+    # nimony does not guarantee. Compile each test module directly with
+    # nimony instead, serially, with the same flags the runner would use.
+    let testsDir = projectRoot / "tests"
+    if not dirExists(testsDir):
+      displayError("No tests directory in " & projectRoot)
+      quit(1)
+    var testFiles: seq[string] = @[]
+    for kind, path in walkDir(testsDir):
+      if kind == pcFile and path.endsWith(".nim") and
+          path.extractFilename.startsWith("t"):
+        testFiles.add(path)
+    testFiles.sort()
+    if testFiles.len == 0:
+      displayError("No test modules found in " & testsDir)
+      quit(1)
+    var sharedArgs: seq[string] = @[]
+    for f in testPathParts:
+      sharedArgs.add(f)
+    for f in getEnv("__CLUE_DEFINES").split(" "):
+      if f.len > 0: sharedArgs.add(f)
+    for f in nimFlags:
+      sharedArgs.add(f)
+    var failed: seq[string] = @[]
+    var passed = 0
+    for testPath in testFiles:
+      let name = testPath.extractFilename.changeFileExt("")
+      displayInfo("Compiling " & name & ".nim (" & backend & " backend)...")
+      let outFile = getTempDir() / ("clue_test_" & name)
+      var args = @[backend, "-r", "--path:" & projectRoot]
+      for f in sharedArgs:
+        args.add(f)
+      args.add("--out:" & outFile)
+      args.add(testPath)
+      var nimonyProcess = startProcess(nimBin, args = args,
+        workingDir = projectRoot, options = {poParentStreams})
+      let nimonyCode = nimonyProcess.waitForExit()
+      nimonyProcess.close()
+      if nimonyCode != 0:
+        displayError("Test '" & name & "' failed (exit " & $nimonyCode & ")")
+        failed.add(name)
+      else:
+        displaySuccess("OK: " & name)
+        inc passed
+    discard runNimscriptHook(nimblePath, "test", before=false)
+    if failed.len > 0:
+      displayError($failed.len & " test(s) failed: " & failed.join(", "))
+      quit(1)
+    displaySuccess("All " & $passed & " test(s) passed!")
     return
 
   let testRunnerCode = """import os, osproc, strutils, terminal, algorithm, json
@@ -883,6 +947,7 @@ let extraFlags = if parts.len > 0: parts[0] else: ""
 let nimFlags = if parts.len > 1: parts[1] else: ""
 let backend = if parts.len > 2: parts[2] else: "c"
 let projectRoot = if parts.len > 3: parts[3] else: getCurrentDir()
+let nimBin = if parts.len > 4: parts[4] else: resolveNimBin(projectRoot)
 let testsDir = projectRoot / "tests"
 var failed: seq[string]
 var passed: int
@@ -906,7 +971,7 @@ for testPath in testFiles:
       if f.len > 0: args.add(f)
   args.add("--out:" & outFile)
   args.add(testPath)
-  currentProcess = startProcess(resolveNimBin(projectRoot), args = args,
+  currentProcess = startProcess(nimBin, args = args,
     workingDir = projectRoot, options = {poParentStreams})
   let code = currentProcess.waitForExit()
   currentProcess.close()
@@ -940,7 +1005,7 @@ else:
   let runnerOut = buildTempDir / "clue_test_runner"
   writeFile(runnerNim, testRunnerCode)
   let (buildOutput, buildCode) = execCmdEx(
-    resolveNimBin() & " c --out:" & runnerOut & " " & runnerNim)
+    nimBin & " c --out:" & runnerOut & " " & runnerNim)
   removeFile(runnerNim)
   if buildCode != 0:
     removeDir(buildTempDir)
@@ -949,7 +1014,7 @@ else:
   let runnerNimFlags = nimFlags.join(" ") & defaultColorsFlag(nimFlags.join(" "))
   let exitCode = execCmd(runnerOut.quoteShell & " " & depFlags.quoteShell &
     " " & runnerNimFlags.quoteShell & " " & backend.quoteShell &
-    " " & projectRoot.quoteShell)
+    " " & projectRoot.quoteShell & " " & nimBin.quoteShell)
   removeFile(runnerOut)
   removeDir(buildTempDir)
 
@@ -968,10 +1033,12 @@ proc checkCommand*(v: Values) =
     displayError("No .nimble file found in " & pkgDir, quitProcess = true)
     return
 
+  let useNimony = v.has("--useNimony")
+  let nimBin = resolveNimBin(useNimony)
   let nimFlags = extras.join(" ")
   let nimble = parseNimbleFile(nimblePath)
   let pkgName = nimblePath.extractFilename.changeFileExt("")
-  checkNimConstraint(nimble)
+  checkNimConstraint(nimble, useNimony)
 
   var activeRootFeatures: seq[string]
   if v.has("--features"):
@@ -997,7 +1064,7 @@ proc checkCommand*(v: Values) =
 
   let (depPathFlags, featureDefines) =
     collectPathsWithLock(nimblePath.parentDir(), nimble, activeRootFeatures,
-      pkgName, false)
+      pkgName, false, useNimony)
   # Self first, same as `clue build` (see buildCommand).
   var pathFlags = selfImportPaths(pkgDir, nimble).mapIt("--path:" & it)
   for f in depPathFlags:
@@ -1009,8 +1076,8 @@ proc checkCommand*(v: Values) =
   for target in targets:
     let flags = " " & pathFlags.join(" ") & featureDefines &
       pkgVersionDefine(nimble, nimFlags) &
-      defaultColorsFlag(nimFlags) & " " & nimFlags & toolchainFlags
-    let cmd = &"{resolveNimBin()} check{flags} {target}"
+      defaultColorsFlag(nimFlags, useNimony) & " " & nimFlags & toolchainFlags
+    let cmd = &"{nimBin} check{flags} {target}"
     let (output, exitCode) = execCmdEx(cmd)
     if exitCode != 0:
       writeRaw(output)
