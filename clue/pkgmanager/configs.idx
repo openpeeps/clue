@@ -43,8 +43,9 @@ nim	refreshRegistry	clue/pkgmanager/configs.html#refreshRegistry	proc refreshReg
 nim	withClueDB	clue/pkgmanager/configs.html#withClueDB.t,untyped	template withClueDB(body: untyped)		298
 nim	fetchPkgMeta	clue/pkgmanager/configs.html#fetchPkgMeta,string,string	proc fetchPkgMeta(pkgName: string; sourceFilter: string = ""): Option[PkgRef]		302
 nim	fetchAllPkgMetas	clue/pkgmanager/configs.html#fetchAllPkgMetas,string	proc fetchAllPkgMetas(pkgName: string): seq[PkgRef]		305
-nim	resolveNimBin	clue/pkgmanager/configs.html#resolveNimBin	proc resolveNimBin(): string		309
-nim	defaultToolchainFlags	clue/pkgmanager/configs.html#defaultToolchainFlags,string	proc defaultToolchainFlags(userFlags = ""): string		329
-nim	defaultColorsFlag	clue/pkgmanager/configs.html#defaultColorsFlag,string	proc defaultColorsFlag(userFlags = ""): string		347
-nim	detectNimVersion	clue/pkgmanager/configs.html#detectNimVersion	proc detectNimVersion(): string		350
-nim	checkNimConstraint	clue/pkgmanager/configs.html#checkNimConstraint	proc checkNimConstraint(nimble: clueNimbleParser.NimbleFile)		364
+nim	resolveNimBin	clue/pkgmanager/configs.html#resolveNimBin	proc resolveNimBin(useNimony = false): string		309
+nim	defaultToolchainFlags	clue/pkgmanager/configs.html#defaultToolchainFlags,string	proc defaultToolchainFlags(userFlags = ""): string		338
+nim	defaultColorsFlag	clue/pkgmanager/configs.html#defaultColorsFlag,string	proc defaultColorsFlag(userFlags = ""; useNimony = false): string		356
+nim	warnNimonyBackend	clue/pkgmanager/configs.html#warnNimonyBackend,string,bool	proc warnNimonyBackend(backend: string; useNimony: bool)		363
+nim	detectNimVersion	clue/pkgmanager/configs.html#detectNimVersion,string	proc detectNimVersion(nimBin = ""): string		370
+nim	checkNimConstraint	clue/pkgmanager/configs.html#checkNimConstraint	proc checkNimConstraint(nimble: clueNimbleParser.NimbleFile; useNimony = false)		409

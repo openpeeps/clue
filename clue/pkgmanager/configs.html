@@ -16,10 +16,10 @@
 <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAA3XAAAN1wFCKJt4AAAAB3RJTUUH4QQQEwksSS9ZWwAAAk1JREFUWMPtll2ITVEUx39nn/O7Y5qR8f05wtCUUr6ZIS++8pEnkZInPImneaCQ5METNdOkeFBKUhMPRIkHKfEuUZSUlGlKPN2TrgfncpvmnntnmlEyq1Z7t89/rf9a6+y99oZxGZf/XeIq61EdtgKXgdXA0xrYAvBjOIF1AI9zvjcC74BSpndrJPkBWDScTF8Aa4E3wDlgHbASaANmVqlcCnwHvgDvgVfAJ+AikAAvgfVZwLnSVZHZaOuKoQi3ZOMi4NkYkpe1p4J7A8BpYAD49hfIy/oqG0+hLomiKP2L5L+1ubn5115S+3OAn4EnwBlgMzCjyt6ZAnQCJ4A7wOs88iRJHvw50HoujuPBoCKwHWiosy8MdfZnAdcHk8dxXFJ3VQbQlCTJvRBCGdRbD4M6uc5glpY3eAihpN5S5w12diSEcCCEcKUO4ljdr15T76ur1FDDLIQQ3qv71EdDOe3Kxj3leRXyk+pxdWnFWod6Wt2bY3de3aSuUHcPBVimHs7mK9WrmeOF6lR1o9qnzskh2ar2qm1qizpfXaPeVGdlmGN5pb09qMxz1Xb1kLqgzn1RyH7JUXW52lr5e/Kqi9qpto7V1atuUzfnARrV7jEib1T76gG2qxdGmXyiekkt1GswPTtek0aBfJp6YySGBfWg2tPQ0FAYgf1stUfdmdcjarbYJEniKIq6gY/Aw+zWHAC+p2labGpqiorFYgGYCEzN7oQdQClN07O1/EfDyGgC0ALMBdYAi4FyK+4H3gLPsxfR1zRNi+NP7nH5J+QntnXe5B5mpfQAAAAASUVORK5CYII=">
 
 <!-- CSS -->
-<link rel="stylesheet" type="text/css" href="../../nimdoc.out.css?v=2.4.0">
+<link rel="stylesheet" type="text/css" href="../../nimdoc.out.css?v=2.4.2">
 
 <!-- JS -->
-<script type="text/javascript" src="../../dochack.js?v=2.4.0"></script>
+<script type="text/javascript" src="../../dochack.js?v=2.4.2"></script>
 </head>
 <body>
   <div class="document" id="documentId">
@@ -68,7 +68,7 @@
     <summary><a class="reference reference-toplevel" href="#12" id="62">Procs</a></summary>
     <ul class="simple simple-toc-section">
       <ul class="simple nested-toc-section">checkNimConstraint
-  <li><a class="reference" href="#checkNimConstraint" title="checkNimConstraint(nimble: clueNimbleParser.NimbleFile)">checkNimConstraint(nimble: clueNimbleParser.NimbleFile)</a></li>
+  <li><a class="reference" href="#checkNimConstraint" title="checkNimConstraint(nimble: clueNimbleParser.NimbleFile; useNimony = false)">checkNimConstraint(nimble: clueNimbleParser.NimbleFile; useNimony = false)</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">clueCheckProgress
@@ -100,7 +100,7 @@
 
 </ul>
 <ul class="simple nested-toc-section">defaultColorsFlag
-  <li><a class="reference" href="#defaultColorsFlag%2Cstring" title="defaultColorsFlag(userFlags = &quot;&quot;): string">defaultColorsFlag(userFlags = &quot;&quot;): string</a></li>
+  <li><a class="reference" href="#defaultColorsFlag%2Cstring" title="defaultColorsFlag(userFlags = &quot;&quot;; useNimony = false): string">defaultColorsFlag(userFlags = &quot;&quot;; useNimony = false): string</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">defaultToolchainFlags
@@ -108,7 +108,7 @@
 
 </ul>
 <ul class="simple nested-toc-section">detectNimVersion
-  <li><a class="reference" href="#detectNimVersion" title="detectNimVersion(): string">detectNimVersion(): string</a></li>
+  <li><a class="reference" href="#detectNimVersion%2Cstring" title="detectNimVersion(nimBin = &quot;&quot;): string">detectNimVersion(nimBin = &quot;&quot;): string</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">displaySpans
@@ -168,7 +168,7 @@
 
 </ul>
 <ul class="simple nested-toc-section">resolveNimBin
-  <li><a class="reference" href="#resolveNimBin" title="resolveNimBin(): string">resolveNimBin(): string</a></li>
+  <li><a class="reference" href="#resolveNimBin" title="resolveNimBin(useNimony = false): string">resolveNimBin(useNimony = false): string</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">safeRemoveDir
@@ -189,6 +189,10 @@
 </ul>
 <ul class="simple nested-toc-section">sourceCachePath
   <li><a class="reference" href="#sourceCachePath%2Cstring" title="sourceCachePath(name: string): string">sourceCachePath(name: string): string</a></li>
+
+</ul>
+<ul class="simple nested-toc-section">warnNimonyBackend
+  <li><a class="reference" href="#warnNimonyBackend%2Cstring%2Cbool" title="warnNimonyBackend(backend: string; useNimony: bool)">warnNimonyBackend(backend: string; useNimony: bool)</a></li>
 
 </ul>
 
@@ -295,10 +299,10 @@
   <dl class="item">
     <div id="checkNimConstraint-procs-all">
   <div id="checkNimConstraint">
-  <dt><pre><span class="Keyword">proc</span> <a href="#checkNimConstraint"><span class="Identifier">checkNimConstraint</span></a><span class="Other">(</span><span class="Identifier">nimble</span><span class="Other">:</span> <span class="Identifier">clueNimbleParser</span><span class="Other">.</span><span class="Identifier">NimbleFile</span><span class="Other">)</span> {.
-    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span>
-                                       <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
-                                       <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dt><pre><span class="Keyword">proc</span> <a href="#checkNimConstraint"><span class="Identifier">checkNimConstraint</span></a><span class="Other">(</span><span class="Identifier">nimble</span><span class="Other">:</span> <span class="Identifier">clueNimbleParser</span><span class="Other">.</span><span class="Identifier">NimbleFile</span><span class="Other">;</span> <span class="Identifier">useNimony</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span>
+                                       <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
+                                       <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
@@ -394,11 +398,11 @@
 </div>
 <div id="defaultColorsFlag-procs-all">
   <div id="defaultColorsFlag,string">
-  <dt><pre><span class="Keyword">proc</span> <a href="#defaultColorsFlag%2Cstring"><span class="Identifier">defaultColorsFlag</span></a><span class="Other">(</span><span class="Identifier">userFlags</span> <span class="Other">=</span> <span class="StringLit">&quot;&quot;</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
-    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dt><pre><span class="Keyword">proc</span> <a href="#defaultColorsFlag%2Cstring"><span class="Identifier">defaultColorsFlag</span></a><span class="Other">(</span><span class="Identifier">userFlags</span> <span class="Other">=</span> <span class="StringLit">&quot;&quot;</span><span class="Other">;</span> <span class="Identifier">useNimony</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    
+    Nimony has no <tt class="docutils literal"><span class="pre"><span class="Operator">--</span><span class="Identifier">colors</span></span></tt> switch (it prints its usage text and exits 0 when it sees an unknown flag), so color control is nim-only.
     
   </dd>
 </div>
@@ -417,10 +421,10 @@
 
 </div>
 <div id="detectNimVersion-procs-all">
-  <div id="detectNimVersion">
-  <dt><pre><span class="Keyword">proc</span> <a href="#detectNimVersion"><span class="Identifier">detectNimVersion</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
-    <span class="Identifier">ExecIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">RootEffect</span><span class="Other">,</span> <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span>
-    <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <div id="detectNimVersion,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#detectNimVersion%2Cstring"><span class="Identifier">detectNimVersion</span></a><span class="Other">(</span><span class="Identifier">nimBin</span> <span class="Other">=</span> <span class="StringLit">&quot;&quot;</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span>
+    <span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ExecIOEffect</span><span class="Other">,</span>
+    <span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
@@ -616,11 +620,12 @@
 </div>
 <div id="resolveNimBin-procs-all">
   <div id="resolveNimBin">
-  <dt><pre><span class="Keyword">proc</span> <a href="#resolveNimBin"><span class="Identifier">resolveNimBin</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">,</span>
-    <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dt><pre><span class="Keyword">proc</span> <a href="#resolveNimBin"><span class="Identifier">resolveNimBin</span></a><span class="Other">(</span><span class="Identifier">useNimony</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ReadDirEffect</span><span class="Other">,</span> <span class="Identifier">ReadEnvEffect</span><span class="Other">,</span> <span class="Identifier">ReadIOEffect</span><span class="Other">,</span> <span class="Identifier">WriteIOEffect</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    
+    Resolve the compiler binary. With <tt class="docutils literal"><span class="pre"><span class="Identifier">useNimony</span></span></tt> the Nimony toolchain (Nim 3, <tt class="docutils literal"><span class="pre"><span class="Identifier">nimony</span> <span class="Identifier">c</span> <span class="Identifier">…</span></span></tt>) is used instead of <tt class="docutils literal"><span class="pre"><span class="Identifier">nim</span></span></tt>. A venv pins a Nim 2.x toolchain via choosenim, so it is deliberately ignored here — nimony is a separate toolchain, never a venv entry.
     
   </dd>
 </div>
@@ -690,6 +695,18 @@
   <dd>
     
     
+    
+  </dd>
+</div>
+
+</div>
+<div id="warnNimonyBackend-procs-all">
+  <div id="warnNimonyBackend,string,bool">
+  <dt><pre><span class="Keyword">proc</span> <a href="#warnNimonyBackend%2Cstring%2Cbool"><span class="Identifier">warnNimonyBackend</span></a><span class="Other">(</span><span class="Identifier">backend</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">useNimony</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">IOError</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">WriteIOEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    Nimony's CLI only mirrors <tt class="docutils literal"><span class="pre"><span class="Identifier">nim</span> <span class="Identifier">c</span></span></tt> / <tt class="docutils literal"><span class="pre"><span class="Identifier">nim</span> <span class="Identifier">check</span></span></tt>. Anything else (<tt class="docutils literal"><span class="pre"><span class="Identifier">cpp</span></span></tt>, <tt class="docutils literal"><span class="pre"><span class="Identifier">js</span></span></tt>, …) is the user's own experiment — say so once.
     
   </dd>
 </div>
@@ -909,7 +926,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-11-08 14:01:38 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-11-25 17:28:54 UTC</small>
       </div>
     </div>
   </div>
